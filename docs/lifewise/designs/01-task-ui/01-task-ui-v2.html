@@ -1,0 +1,1466 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>数字生活 · 任务与习惯 · Lifewise v2</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color"="#2D5F3F">
+
+<!-- 字体：Fraunces (display) + Newsreader (body) + JetBrains Mono (data) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<!-- Iconify：动态加载图标库 -->
+<!-- 内联 SVG sprite：避免 CDN 证书/网络依赖 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="i-plus" viewBox="0 0 24 24"><path fill="currentColor" d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2m6-6V11c0-3-2-5.5-5-6V4a1 1 0 0 0-2 0v1c-3 .5-5 3-5 6v5l-2 2v1h16v-1z"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><path fill="currentColor" d="M14 6l-1.41 1.41L17.17 12 14 14.59 12.59 16l-1.41 1.41L13 19l6-6zM4 5h2v14H4z"/></symbol>
+<symbol id="i-view-column" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5h18v14H3zm2 2v10h5V7zm7 0v10h4V7z"/></symbol>
+<symbol id="i-magnify" viewBox="0 0 24 24"><path fill="currentColor" d="M9.5 3a6.5 6.5 0 0 1 4.9 11.04l4.85 4.85-1.5 1.5-4.85-4.85A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path fill="currentColor" d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.84 1.83 3.75 3.75zM3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path fill="currentColor" d="M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3zm2 5h2v9h-2zm-4 0h2v9H7zm8 0h2v9h-2z"/></symbol>
+<symbol id="i-check-all" viewBox="0 0 24 24"><path fill="currentColor" d="m.41 13.41l1.41-1.41 4.18 4.18-1.41 1.41zM6 18l-2.59-2.59 1.41-1.41L6 15.17l9.59-9.59L17 7l-9.59 9.59zM15 7l4.59 4.59L21 12l-6-6-1.41 1.41z"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l9 8h-3v9h-5v-6h-2v6H6v-9H3z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path fill="currentColor" d="m9 16.17-3.88-3.88L3.71 13.7 9 19l11-11-1.41-1.41z"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><path fill="currentColor" d="M11 2h2v3.06a8 8 0 0 1 5.94 5.94H22v2h-3.06a8 8 0 0 1-5.94 5.94V22h-2v-3.06a8 8 0 0 1-5.94-5.94H2v-2h3.06A8 8 0 0 1 11 5.06zm1 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10m0 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4"/></symbol>
+<symbol id="i-account" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path fill="currentColor" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+</defs>
+</svg>
+
+<!-- Iconify 备选：若 CDN 可用则使用，否则回退到内联 SVG -->
+<script>
+window.useInlineIcon = function(name, size){
+  const s = size || 22;
+  return `<svg width="${s}" height="${s}" aria-hidden="true" style="vertical-align:middle;display:inline-block"><use href="#i-${name}"/></svg>`;
+};
+// 替换工具：把所有 <iconify-icon icon="mdi:foo" ...> 转成内联 SVG
+function upgradeIcons(){
+  document.querySelectorAll('iconify-icon').forEach(el => {
+    const m = (el.getAttribute('icon')||'').match(/^[a-z]+:(.+)$/);
+    const name = m ? m[1].replace(/^outline$|^marked-outline$/, m => m).replace(/-/g,'-') : null;
+    const w = el.getAttribute('width') || '22';
+    // 简化的 icon 名映射（覆盖本页面用到的）
+    const map = {
+      'plus':'plus','bell-outline':'bell','arrow-left':'arrow-left','arrow-right':'arrow-right',
+      'view-column-outline':'view-column','magnify':'magnify','pencil-outline':'pencil',
+      'trash-can-outline':'trash','check-all':'check-all','home-variant-outline':'home',
+      'checkbox-marked-outline':'check','target':'target','account-circle-outline':'account',
+      'pin':'pin'
+    };
+    const key = map[name] || name;
+    if(document.getElementById('i-'+key)){
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns,'svg');
+      svg.setAttribute('width', w); svg.setAttribute('height', w);
+      svg.setAttribute('aria-hidden','true');
+      svg.style.verticalAlign='middle'; svg.style.display='inline-block';
+      const use = document.createElementNS(ns,'use');
+      use.setAttribute('href','#i-'+key);
+      svg.appendChild(use);
+      el.replaceWith(svg);
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', upgradeIcons);
+// 兼容：即使 DOMContentLoaded 已触发，立即执行一次
+if(document.readyState !== 'loading') upgradeIcons();
+// 监听 iconify 自定义元素是否注册成功
+setTimeout(()=>{
+  if(!customElements.get('iconify-icon')){
+    console.log('[icon] iconify CDN failed, using inline sprite');
+    upgradeIcons();
+  }
+}, 600);
+</script>
+
+<style>
+/* ====== 设计令牌：手帐美学 ====== */
+:root{
+  --paper:#FBF8F3;
+  --paper-2:#F4EFE6;
+  --ink:#1A1A1A;
+  --ink-2:#4A4A4A;
+  --ink-3:#8A8A85;
+  --rule:#D9D2C5;
+  --green:#2D5F3F;
+  --green-soft:#E8EFE9;
+  --yellow:#F5E5A0;
+  --red:#B5392C;
+  --red-soft:#F5DED9;
+  --amber:#C18A2A;
+  --amber-soft:#F7E9CB;
+
+  --font-display:'Fraunces','Source Serif Pro',Georgia,serif;
+  --font-body:'Newsreader',Georgia,'PingFang SC',serif;
+  --font-mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+
+  --shadow-note:0 1px 0 rgba(0,0,0,.04),0 2px 6px rgba(60,50,30,.08);
+  --shadow-tape:0 2px 4px rgba(0,0,0,.10);
+  --shadow-modal:0 12px 48px rgba(60,50,30,.18);
+
+  --r-sm:4px; --r-md:8px; --r-lg:14px;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;font-variation-settings:"opsz" 16;font-feature-settings:"kern","liga"}
+
+/* 纸张纹理：SVG 噪点做纸张肌理 */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.6 0 0 0 0 0.55 0 0 0 0 0.4 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");opacity:.6;mix-blend-mode:multiply}
+
+#app{position:relative;width:100%;max-width:480px;margin:0 auto;background:transparent;min-height:100vh;min-height:100dvh;padding-bottom:calc(72px + env(safe-area-inset-bottom));display:flex;flex-direction:column;z-index:1;container-type:inline-size}
+@media (min-width:641px) and (max-width:1024px){#app{max-width:760px}}
+@media (min-width:1025px){#app{max-width:1240px;min-height:calc(100vh - 80px);margin:40px auto;padding:0 0 40px}}
+
+button{font-family:inherit;cursor:pointer;border:0;background:transparent;color:inherit;font-size:inherit}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+ul{list-style:none;padding:0;margin:0}
+h1,h2,h3,h4,h5,h6,p{margin:0}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:2px}
+
+/* ====== 顶部 ====== */
+.app-header{display:flex;align-items:center;height:64px;padding:0 24px;flex-shrink:0;gap:12px;border-bottom:1.5px solid var(--ink);position:relative}
+.app-header::after{content:"";position:absolute;left:24px;right:24px;bottom:-4px;height:1.5px;border-top:1px dashed var(--ink);opacity:.4}
+.app-header .back,.app-header .icon-btn{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--ink);background:transparent;transition:background .15s}
+.app-header .back:hover,.app-header .icon-btn:hover{background:var(--paper-2)}
+.app-header h1{font-family:var(--font-display);font-size:22px;font-weight:500;font-variation-settings:"opsz" 36,"SOFT" 30;letter-spacing:-.01em;flex:1;min-width:0}
+.app-header .actions{display:flex;gap:4px;flex-shrink:0}
+
+/* ====== 视图 ====== */
+.view{display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.view.active{display:flex}
+.view-pad{padding:20px 24px}
+
+/* ====== 底部 Tab：装订条 ====== */
+.bottom-tab{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;height:calc(64px + env(safe-area-inset-bottom));background:var(--paper);border-top:1.5px solid var(--ink);display:flex;z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-tab::before{content:"";position:absolute;left:0;right:0;top:1.5px;height:1px;border-top:1px dashed var(--ink);opacity:.4}
+.bottom-tab button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--ink-2);font-family:var(--font-body);position:relative;min-height:48px;transition:color .15s}
+.bottom-tab button:hover{color:var(--ink)}
+.bottom-tab button.active{color:var(--green)}
+.bottom-tab button.active::after{content:"";position:absolute;top:-1.5px;left:24%;right:24%;height:3px;background:var(--green);border-radius:0 0 2px 2px}
+.bottom-tab button .badge{position:absolute;top:6px;right:calc(50% - 22px);min-width:16px;height:16px;background:var(--red);color:var(--paper);font-size:10px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:600}
+
+/* ====== 通用卡片 ====== */
+.surface-card{background:var(--paper);border:1px solid var(--ink);border-radius:var(--r-md);padding:16px 18px;margin-bottom:10px;position:relative}
+.surface-card::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:5px;background:repeating-linear-gradient(90deg,transparent 0 14px,var(--ink) 14px 15px);opacity:.3}
+
+/* ====== 任务卡：便签纸 + 胶带 ====== */
+.task-card{position:relative;background:var(--paper-2);border:1px solid var(--ink);border-radius:var(--r-sm);padding:18px 18px 16px;margin-bottom:14px;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:var(--shadow-note)}
+.task-card:nth-child(odd){transform:rotate(-.4deg)}
+.task-card:nth-child(even){transform:rotate(.3deg)}
+.task-card:hover{transform:rotate(0) translateY(-2px);box-shadow:var(--shadow-modal)}
+.task-card .tape{position:absolute;top:-8px;left:24px;width:60px;height:18px;background:var(--yellow);opacity:.85;transform:rotate(-3deg);box-shadow:var(--shadow-tape);border:1px dashed rgba(0,0,0,.1)}
+.task-card:nth-child(3n) .tape{background:#D9C9E8;left:auto;right:24px;transform:rotate(4deg)}
+.task-card:nth-child(4n) .tape{background:#B8D9C8;transform:rotate(-2deg)}
+.task-card .check{width:22px;height:22px;border:1.5px solid var(--ink);border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:transparent;transition:.15s;font-family:var(--font-display)}
+.task-card .check:hover{border-color:var(--green);background:var(--green-soft)}
+.task-card.done{opacity:.7}
+.task-card.done .check{background:var(--green);border-color:var(--green);color:var(--paper)}
+.task-card.done .check::after{content:"✓";color:var(--paper);font-size:14px}
+.task-card.done .task-title{text-decoration:line-through;color:var(--ink-3)}
+.task-card.overdue .task-title{color:var(--red)}
+.task-card .body{flex:1;min-width:0;overflow:hidden}
+.task-card .task-title{font-family:var(--font-display);font-size:18px;font-weight:500;line-height:1.35;margin-bottom:8px;font-variation-settings:"opsz" 24;letter-spacing:-.005em}
+.task-card .task-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--ink-2);font-family:var(--font-mono)}
+.task-card.dragging{opacity:.4}
+
+/* ====== 标签 chip ====== */
+.chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 10px;border-radius:11px;font-size:11px;font-weight:500;background:transparent;color:var(--ink);border:1px solid var(--ink);white-space:nowrap;flex-shrink:0;font-family:var(--font-mono);letter-spacing:.04em}
+.chip.priority.p0{background:var(--red);color:var(--paper);border-color:var(--red)}
+.chip.priority.p1{background:var(--amber);color:var(--paper);border-color:var(--amber)}
+.chip.priority.p2{background:var(--green);color:var(--paper);border-color:var(--green)}
+.chip.priority.p3{background:transparent;color:var(--ink-2)}
+.chip.label{background:transparent;color:var(--ink-2);border:1px dashed var(--ink-3)}
+.chip.danger{background:var(--red-soft);color:var(--red);border-color:var(--red)}
+.chip.success{background:var(--green-soft);color:var(--green);border-color:var(--green)}
+.chip.streak{background:var(--amber-soft);color:var(--amber);border-color:var(--amber)}
+.chip.muted{color:var(--ink-3);border-color:var(--ink-3)}
+
+/* ====== 习惯卡 ====== */
+.habit-card{position:relative;display:flex;align-items:center;gap:14px;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r-sm);padding:14px 18px;margin-bottom:10px;cursor:pointer;min-height:64px;transition:background .15s}
+.habit-card:hover{background:var(--paper-2)}
+.habit-card .icon{width:48px;height:48px;display:inline-flex;align-items:center;justify-content:center;background:var(--yellow);border-radius:50%;border:1px solid var(--ink);font-size:24px;flex-shrink:0;transform:rotate(-4deg)}
+.habit-card .body{flex:1;min-width:0;overflow:hidden}
+.habit-card .title{font-family:var(--font-display);font-size:17px;font-weight:500;margin-bottom:4px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variation-settings:"opsz" 24}
+.habit-card .meta{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink-2);font-family:var(--font-mono);flex-wrap:wrap}
+.habit-card .check-btn{padding:8px 16px;border-radius:24px;background:var(--green);color:var(--paper);font-size:13px;font-weight:500;flex-shrink:0;min-height:44px;min-width:96px;font-family:var(--font-body);border:1px solid var(--ink);transition:transform .15s}
+.habit-card .check-btn:hover{transform:translateY(-1px)}
+.habit-card.done .check-btn{background:var(--paper);color:var(--green)}
+.habit-card.done .icon{background:var(--green-soft)}
+
+/* ====== Section 标题 ====== */
+.section-title{display:flex;align-items:center;justify-content:space-between;padding:24px 0 12px;font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--ink-2);text-transform:uppercase;letter-spacing:.18em;font-variation-settings:"opsz" 14}
+.section-title::before{content:"§ ";color:var(--ink-3);font-family:var(--font-mono)}
+.task-list,.habit-section,.recycle-list,.notif-list{padding:0 0 8px}
+
+/* ====== Tabs：本子分页 ====== */
+.tabs{display:flex;background:var(--paper);border-bottom:1px solid var(--ink);padding:0 24px;flex-shrink:0}
+.tabs button{flex:1;padding:14px 0;font-size:14px;color:var(--ink-2);font-weight:500;border-bottom:2px solid transparent;min-height:48px;font-family:var(--font-body)}
+.tabs button.active{color:var(--green);border-bottom-color:var(--green);font-style:italic}
+
+/* ====== Sheet ====== */
+.sheet-mask{position:absolute;inset:0;background:rgba(60,50,30,.4);display:none;align-items:flex-end;justify-content:center;z-index:100}
+.sheet-mask.open{display:flex}
+.sheet{width:100%;max-width:560px;max-height:90vh;overflow-y:auto;background:var(--paper);border:1px solid var(--ink);border-bottom:0;padding:24px 24px calc(24px + env(safe-area-inset-bottom));animation:slideUp .28s cubic-bezier(.2,.7,.3,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media (min-width:1025px){.sheet-mask.open{align-items:center}.sheet{border-radius:var(--r-md);border-bottom:1px solid var(--ink);padding:32px 36px;box-shadow:var(--shadow-modal);max-width:560px}}
+.sheet-handle{width:48px;height:4px;background:var(--ink);opacity:.2;border-radius:2px;margin:0 auto 20px}
+.sheet h2{font-family:var(--font-display);font-size:24px;font-weight:500;margin-bottom:20px;font-variation-settings:"opsz" 36;letter-spacing:-.01em}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--ink-2);margin-bottom:6px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
+.field label .req{color:var(--red);margin-left:2px}
+.field input[type=text],.field input[type=datetime-local],.field textarea,.field select{width:100%;padding:12px 14px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);transition:.15s;font-family:var(--font-body)}
+.field input:focus,.field textarea:focus{border-color:var(--green);outline:2px solid var(--green-soft);outline-offset:0}
+.field textarea{min-height:84px;resize:vertical}
+.field.error input,.field.error textarea{border-color:var(--red);outline-color:var(--red-soft)}
+
+.priority-picker{display:flex;gap:8px}
+.priority-picker button{flex:1;height:48px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);font-weight:600;font-family:var(--font-display);transition:.15s;font-size:15px}
+.priority-picker button.active.p0{background:var(--red);color:var(--paper);border-color:var(--red)}
+.priority-picker button.active.p1{background:var(--amber);color:var(--paper);border-color:var(--amber)}
+.priority-picker button.active.p2{background:var(--green);color:var(--paper);border-color:var(--green)}
+.priority-picker button.active.p3{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.label-picker{display:flex;flex-wrap:wrap;gap:6px}
+.label-picker button{padding:6px 12px;border:1px dashed var(--ink-3);border-radius:14px;background:transparent;color:var(--ink-2);font-size:13px;min-height:32px;font-family:var(--font-body)}
+.label-picker button.active{background:var(--green-soft);color:var(--green);border-color:var(--green);border-style:solid}
+.label-picker button:disabled{opacity:.4;cursor:not-allowed}
+
+.freq-picker{display:flex;gap:8px}
+.freq-picker button{flex:1;height:48px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);font-weight:500;font-family:var(--font-body)}
+.freq-picker button.active{background:var(--green);color:var(--paper);border-color:var(--green)}
+
+.icon-picker{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.icon-picker button{height:48px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);font-size:22px}
+.icon-picker button.active{background:var(--yellow);border-color:var(--ink);box-shadow:var(--shadow-note)}
+
+.sheet-actions{display:flex;gap:10px;margin-top:24px}
+.btn-primary,.btn-secondary,.btn-danger,.btn-text{flex:1;height:52px;border-radius:var(--r-sm);font-weight:500;font-size:15px;min-height:52px;font-family:var(--font-display);border:1px solid var(--ink);transition:transform .1s}
+.btn-primary:active,.btn-secondary:active,.btn-danger:active{transform:translateY(1px)}
+.btn-primary{background:var(--green);color:var(--paper);border-color:var(--ink)}
+.btn-secondary{background:var(--paper);color:var(--ink);border-color:var(--ink)}
+.btn-danger{background:var(--red);color:var(--paper);border-color:var(--ink)}
+.btn-text{color:var(--ink);background:transparent;border-color:transparent;text-decoration:underline}
+
+/* ====== 看板 ====== */
+.kanban-board-wrap{padding:24px;flex:1}
+.kanban{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;min-height:400px;-webkit-overflow-scrolling:touch}
+.kanban-col{flex:0 0 280px;background:var(--paper-2);border:1px solid var(--ink);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:8px}
+.kanban-col h3{font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:8px;padding:0 4px;display:flex;justify-content:space-between;align-items:center;font-style:italic;color:var(--ink-2);letter-spacing:.04em;text-transform:uppercase}
+.kanban-col.drag-over{background:var(--yellow);border-style:dashed}
+.kanban-empty{font-size:12px;color:var(--ink-3);padding:16px 4px;border:1px dashed var(--ink-3);border-radius:var(--r-sm);text-align:center;font-style:italic}
+@media (min-width:1025px){.kanban-col{flex:0 0 300px}.kanban-board-wrap{max-width:1200px;margin:0 auto}}
+
+/* ====== 子任务 ====== */
+.subtask{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--rule);font-family:var(--font-body)}
+.subtask:last-child{border-bottom:0}
+.subtask .check{width:20px;height:20px;border:1.5px solid var(--ink);border-radius:4px;background:transparent;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-height:20px}
+.subtask.done .check{background:var(--green);border-color:var(--green);color:var(--paper)}
+.subtask.done .check::after{content:"✓";color:var(--paper);font-size:12px}
+.subtask.done .st-title{text-decoration:line-through;color:var(--ink-3)}
+.st-title{font-size:15px;line-height:1.4}
+
+/* ====== Toast ====== */
+.toast{position:fixed;top:20px;left:20px;right:20px;max-width:480px;margin:0 auto;padding:14px 18px;border-radius:var(--r-md);background:var(--ink);color:var(--paper);font-size:14px;display:none;align-items:center;gap:12px;z-index:200;box-shadow:var(--shadow-modal);font-family:var(--font-body);border:1px solid var(--ink);animation:slideDown .25s cubic-bezier(.2,.7,.3,1)}
+.toast.show{display:flex}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast .undo{color:var(--yellow);font-weight:600;font-size:14px;padding:4px 8px;border-radius:4px;margin-left:auto;font-family:var(--font-mono)}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ====== 空状态 ====== */
+.empty{padding:60px 24px;text-align:center;color:var(--ink-2)}
+.empty .ico{font-size:48px;margin-bottom:16px;line-height:1;display:inline-block;transform:rotate(-3deg)}
+.empty h3{font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--ink);margin-bottom:8px;font-style:italic}
+.empty p{font-size:14px;color:var(--ink-3);margin-bottom:20px;line-height:1.6}
+
+/* ====== Demo bar ====== */
+.demo-bar{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:300;background:var(--ink);color:var(--paper);padding:6px 10px;border-radius:var(--r-md);font-size:11px;display:flex;gap:6px;align-items:center;max-width:calc(100vw - 16px);flex-wrap:wrap;box-shadow:var(--shadow-modal);border:1px solid var(--ink)}
+.demo-bar select,.demo-bar button{background:transparent;color:var(--paper);border:1px solid var(--paper);padding:4px 8px;border-radius:4px;font-size:11px;font-family:var(--font-mono)}
+.demo-bar button{cursor:pointer;transition:background .15s}
+.demo-bar button:hover{background:var(--paper);color:var(--ink)}
+
+.recycle-banner{margin:8px 0;padding:14px;background:var(--yellow);border:1px solid var(--ink);border-radius:var(--r-sm);display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);position:relative}
+.recycle-banner::before{content:"⚠";font-family:var(--font-display);font-size:18px}
+
+/* ====== FAB ====== */
+.fab-row{position:fixed;bottom:88px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:15;max-width:480px}
+.fab{width:60px;height:60px;border-radius:50%;background:var(--ink);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--shadow-modal);border:1px solid var(--ink);transition:transform .15s,box-shadow .15s}
+.fab:hover{transform:scale(1.06) rotate(-4deg);box-shadow:0 12px 32px rgba(60,50,30,.32)}
+.fab:active{transform:scale(.96)}
+
+/* ====== 通知卡 ====== */
+.notif{display:flex;gap:14px;padding:16px 18px;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r-sm);margin-bottom:10px;transition:border-color .15s,box-shadow .15s;position:relative}
+.notif:hover{border-color:var(--green);box-shadow:var(--shadow-note)}
+.notif .body{flex:1;min-width:0}
+.notif .title{font-family:var(--font-display);font-size:16px;font-weight:500;margin-bottom:4px}
+.notif .desc{font-size:14px;color:var(--ink-2);line-height:1.5;margin-bottom:6px;word-break:break-word}
+.notif .time{font-size:11px;color:var(--ink-3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em}
+.notif .dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:8px}
+
+/* ====== 回收站 ====== */
+.recycle-item{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r-sm);margin-bottom:10px;position:relative}
+.recycle-item .body{flex:1}
+.recycle-item .title{font-family:var(--font-display);font-size:16px;margin-bottom:4px}
+.recycle-item .meta{font-size:12px;color:var(--ink-3);font-family:var(--font-mono)}
+
+@media (min-width:1025px){
+  .desktop-grid{display:grid;grid-template-columns:1.4fr 1fr 0.7fr;gap:32px;padding:0 40px;align-items:start}
+  .desktop-grid > div{min-width:0}
+  .task-list,.habit-section,.recycle-list,.notif-list{padding:0}
+  .habit-card,.recycle-item,.notif{margin-left:0;margin-right:0}
+  .bottom-tab{display:none}
+  #app{padding-bottom:0}
+  .fab-row{right:calc(50vw - 580px); bottom:60px}
+  #view-task-detail.view{display:none}
+  .task-drawer-mask{position:absolute;inset:0;background:rgba(60,50,30,.42);z-index:50;animation:fadeIn .18s ease-out}
+  .task-drawer{position:absolute;top:0;right:0;bottom:0;width:520px;max-width:90%;background:var(--paper);box-shadow:-12px 0 36px rgba(60,50,30,.18);display:flex;flex-direction:column;z-index:51;animation:drawerIn .24s cubic-bezier(.2,.7,.3,1);border-left:1.5px solid var(--ink)}
+  @keyframes drawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .task-drawer .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1.5px solid var(--ink);flex-shrink:0}
+  .task-drawer .drawer-head h2{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--ink-2);text-transform:uppercase;letter-spacing:.12em;font-style:italic}
+  .task-drawer .drawer-body{flex:1;overflow-y:auto;padding:24px}
+  .task-drawer .drawer-close{background:transparent;border:0;font-size:20px;color:var(--ink-2);cursor:pointer;width:36px;height:36px;border-radius:50%;transition:background .15s}
+  .task-drawer .drawer-close:hover{background:var(--paper-2);color:var(--ink)}
+  .habit-grid{display:grid;grid-template-columns:1fr;gap:12px}
+}
+@media (min-width:641px) and (max-width:1024px){.habit-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}
+@media (max-width:640px){.habit-grid{display:flex;flex-direction:column;gap:10px}}
+
+/* ====== 日历 ====== */
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.calendar .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-size:13px;color:var(--ink);background:var(--paper-2);font-family:var(--font-mono);border:1px solid transparent}
+.calendar .day.empty{background:transparent;pointer-events:none}
+.calendar .day.future{background:transparent;color:var(--ink-3);opacity:.4}
+.calendar .day.checked{background:var(--green);color:var(--paper);font-weight:600}
+.calendar .day.missed{background:var(--red-soft);color:var(--red)}
+.calendar .day.today{outline:2px solid var(--ink);outline-offset:1px;background:var(--yellow)}
+.calendar .day.backfill-eligible{background:var(--green-soft);color:var(--green);cursor:pointer;font-weight:600;border:1px dashed var(--green)}
+.calendar .day.backfill-eligible:hover{background:var(--green);color:var(--paper)}
+.calendar .day.disabled{opacity:.4;cursor:not-allowed}
+.week-heads{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:var(--ink-2);text-align:center;padding:0 0 6px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-family:var(--font-mono)}
+.week-heads > div{padding:4px 0;border-bottom:1px solid var(--ink)}
+.month-nav{width:32px;height:32px;border:1px solid var(--ink);background:var(--paper);border-radius:50%;font-size:16px;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;transition:background .15s;font-family:var(--font-display)}
+.month-nav:hover:not(:disabled){background:var(--yellow)}
+
+/* ====== Picker sheet ====== */
+.picker-list{display:flex;flex-direction:column;gap:10px}
+.picker-item{display:flex;align-items:center;gap:16px;padding:18px 20px;background:var(--paper);border:1px solid var(--ink);border-radius:var(--r-sm);text-align:left;width:100%;min-height:68px;transition:background .15s,transform .1s}
+.picker-item:hover{background:var(--yellow);transform:translateX(4px)}
+.picker-ico{font-size:28px;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;background:var(--paper-2);border-radius:50%;border:1px solid var(--ink)}
+.picker-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.picker-title{font-family:var(--font-display);font-size:17px;font-weight:500;color:var(--ink)}
+.picker-desc{font-size:13px;color:var(--ink-2);font-family:var(--font-mono)}
+.picker-arrow{font-family:var(--font-display);font-size:24px;color:var(--ink-2);line-height:1}
+</style>
+</head>
+<body>
+
+<div class="demo-bar" id="demo-bar">
+  <span style="opacity:.7;font-family:var(--font-display);font-style:italic">v2</span>
+  <select id="demo-view">
+    <option value="dashboard">Dashboard</option>
+    <option value="tasks-today">任务·今日</option>
+    <option value="tasks-board">任务·看板</option>
+    <option value="task-detail">任务详情</option>
+    <option value="habits">习惯列表</option>
+    <option value="habit-detail">习惯详情</option>
+    <option value="backfill">习惯补卡</option>
+    <option value="recycle">回收站</option>
+    <option value="notifications">通知中心</option>
+    <option value="settings">设置</option>
+  </select>
+  <select id="demo-width">
+    <option value="390">📱 390</option>
+    <option value="768">平板 768</option>
+    <option value="1280" selected>🖥️ 桌面 1280</option>
+  </select>
+  <span style="opacity:.5">·</span>
+  <span style="opacity:.7">时间</span>
+  <button onclick="advanceDay(-1)">−1d</button>
+  <button onclick="advanceDay(0)">今天</button>
+  <button onclick="advanceDay(1)">+1d</button>
+</div>
+
+<div id="app">
+
+<!-- Dashboard -->
+<div id="view-dashboard" class="view active">
+  <header class="app-header">
+    <h1>早晨 · 小林</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="showView('notifications')" aria-label="通知">
+        <iconify-icon icon="mdi:bell-outline" width="22"></iconify-icon>
+      </button>
+    </div>
+  </header>
+  <div class="view-pad">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--yellow);border:1px solid var(--ink);border-radius:var(--r-sm);margin-bottom:18px;font-size:14px;font-family:var(--font-display);font-style:italic">
+      <iconify-icon icon="mdi:pin" width="18"></iconify-icon>
+      <span style="flex:1">今天还有 <b id="dash-missed-count" style="font-family:var(--font-mono);font-style:normal">0</b> 个习惯没打卡</span>
+      <a onclick="showView('habits')" style="color:var(--ink);font-weight:600;cursor:pointer;text-decoration:underline">去打卡 →</a>
+    </div>
+    <div style="display:flex;justify-content:space-around;padding:24px 16px;border:1.5px solid var(--ink);border-radius:var(--r-md);margin-bottom:24px;background:var(--paper-2);position:relative">
+      <div style="text-align:center"><div style="font-family:var(--font-display);font-size:32px;font-weight:600;color:var(--ink);font-variation-settings:'opsz' 48" id="stat-today-total">0</div><div style="font-size:12px;color:var(--ink-2);margin-top:4px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em">今日任务</div></div>
+      <div style="text-align:center"><div style="font-family:var(--font-display);font-size:32px;font-weight:600;color:var(--green);font-variation-settings:'opsz' 48" id="stat-today-done">0</div><div style="font-size:12px;color:var(--ink-2);margin-top:4px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em">已完成</div></div>
+      <div style="text-align:center"><div style="font-family:var(--font-display);font-size:32px;font-weight:600;color:var(--amber);font-variation-settings:'opsz' 48" id="stat-week-rate">0%</div><div style="font-size:12px;color:var(--ink-2);margin-top:4px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em">本周习惯</div></div>
+    </div>
+    <div class="desktop-grid">
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+          <h2 style="font-family:var(--font-display);font-size:24px;font-weight:500;font-style:italic">📌 今日任务</h2>
+          <button style="color:var(--ink);font-size:13px;font-family:var(--font-mono);text-decoration:underline" onclick="showView('tasks-today')">查看全部</button>
+        </div>
+        <div id="dash-today-tasks"></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+          <h2 style="font-family:var(--font-display);font-size:24px;font-weight:500;font-style:italic">🌱 今日习惯</h2>
+          <button style="color:var(--ink);font-size:13px;font-family:var(--font-mono);text-decoration:underline" onclick="showView('habits')">查看全部</button>
+        </div>
+        <div id="dash-habits" class="habit-grid"></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+          <h2 style="font-family:var(--font-display);font-size:18px;font-weight:500;font-style:italic">✉ 通知</h2>
+          <button style="color:var(--ink);font-size:12px;font-family:var(--font-mono);text-decoration:underline" onclick="showView('notifications')">全部</button>
+        </div>
+        <div id="dash-notif"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fab-row">
+    <button class="fab" aria-label="新建" onclick="openSheet('picker')">
+      <iconify-icon icon="mdi:plus" width="28"></iconify-icon>
+    </button>
+  </div>
+</div>
+
+<!-- Tasks Today -->
+<div id="view-tasks-today" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')" aria-label="返回">
+      <iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon>
+    </button>
+    <h1>任务</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="showView('tasks-board')" aria-label="看板"><iconify-icon icon="mdi:view-column-outline" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="showView('search')" aria-label="搜索"><iconify-icon icon="mdi:magnify" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="openSheet('new-task')" aria-label="新建"><iconify-icon icon="mdi:plus" width="22"></iconify-icon></button>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab active" data-tab="today" onclick="showView('tasks-today')">今日</button>
+    <button class="tab" data-tab="week" onclick="showView('tasks-week')">本周</button>
+    <button class="tab" data-tab="all" onclick="showView('tasks-all')">全部</button>
+  </div>
+  <div class="section-title"><span id="task-tab-label">今日</span><span style="font-weight:400;color:var(--ink-3);font-family:var(--font-mono)" id="task-count">0 项</span></div>
+  <div id="tasks-list" class="task-list" style="padding:0 24px"></div>
+</div>
+
+<div id="view-tasks-week" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>任务</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="showView('tasks-board')"><iconify-icon icon="mdi:view-column-outline" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="showView('search')"><iconify-icon icon="mdi:magnify" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="openSheet('new-task')"><iconify-icon icon="mdi:plus" width="22"></iconify-icon></button>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab" data-tab="today" onclick="showView('tasks-today')">今日</button>
+    <button class="tab active" data-tab="week" onclick="showView('tasks-week')">本周</button>
+    <button class="tab" data-tab="all" onclick="showView('tasks-all')">全部</button>
+  </div>
+  <div class="section-title"><span>本周 · 滚动窗口</span><span style="font-weight:400;color:var(--ink-3);font-family:var(--font-mono)" id="task-count-2">0 项</span></div>
+  <div id="tasks-list-2" class="task-list" style="padding:0 24px"></div>
+</div>
+
+<div id="view-tasks-all" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>任务</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="showView('tasks-board')"><iconify-icon icon="mdi:view-column-outline" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="showView('search')"><iconify-icon icon="mdi:magnify" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="openSheet('new-task')"><iconify-icon icon="mdi:plus" width="22"></iconify-icon></button>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab" data-tab="today" onclick="showView('tasks-today')">今日</button>
+    <button class="tab" data-tab="week" onclick="showView('tasks-week')">本周</button>
+    <button class="tab active" data-tab="all" onclick="showView('tasks-all')">全部</button>
+  </div>
+  <div class="section-title"><span>全部 · 未删除</span><span style="font-weight:400;color:var(--ink-3);font-family:var(--font-mono)" id="task-count-3">0 项</span></div>
+  <div id="tasks-list-3" class="task-list" style="padding:0 24px"></div>
+</div>
+
+<!-- Board -->
+<div id="view-tasks-board" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>看板</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="showView('search')"><iconify-icon icon="mdi:magnify" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="openSheet('new-task')"><iconify-icon icon="mdi:plus" width="22"></iconify-icon></button>
+    </div>
+  </header>
+  <div class="kanban-board-wrap"><div id="kanban-board" class="kanban"></div></div>
+</div>
+
+<!-- Task Detail -->
+<div id="view-task-detail" class="view">
+  <header class="app-header">
+    <button class="back" onclick="if(window.innerWidth>=1025){closeTaskDrawer();return}history.back()"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>任务详情</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="openSheet('edit-task')" aria-label="编辑"><iconify-icon icon="mdi:pencil-outline" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="deleteCurrentTask()" aria-label="删除"><iconify-icon icon="mdi:trash-can-outline" width="22"></iconify-icon></button>
+    </div>
+  </header>
+  <div class="view-pad">
+    <h1 id="detail-title" style="font-family:var(--font-display);font-size:28px;font-weight:500;margin-bottom:12px;line-height:1.3;font-variation-settings:'opsz' 48;letter-spacing:-.01em"></h1>
+    <div id="detail-meta" class="task-meta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px"></div>
+    <div id="detail-note-section" style="margin-bottom:24px">
+      <div style="font-size:11px;color:var(--ink-2);margin-bottom:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em">备注</div>
+      <div id="detail-note" style="font-size:15px;color:var(--ink);line-height:1.6;padding:14px 16px;background:var(--paper-2);border:1px solid var(--ink);border-radius:var(--r-sm);font-style:italic"></div>
+    </div>
+    <div id="detail-subtasks-section" style="margin-bottom:24px">
+      <div style="font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--ink-2);margin-bottom:12px;font-style:italic">子任务 <span id="subtask-progress" style="color:var(--ink-3);font-weight:400;font-family:var(--font-mono);font-style:normal"></span></div>
+      <div id="detail-subtasks"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:32px">
+      <button class="btn-primary" id="detail-complete-btn" onclick="toggleCurrentTask()">标记完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search -->
+<div id="view-search" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>搜索</h1>
+  </header>
+  <div style="padding:16px 24px;background:var(--paper);border-bottom:1px solid var(--ink)">
+    <input id="search-input" type="text" placeholder="搜索任务标题或标签…" style="width:100%;padding:12px 16px;border:1px solid var(--ink);border-radius:var(--r-sm);background:var(--paper);font-family:var(--font-body)" autofocus oninput="doSearch(this.value)">
+  </div>
+  <div id="search-results" class="task-list" style="padding:8px 24px"></div>
+</div>
+
+<!-- Habits -->
+<div id="view-habits" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>习惯</h1>
+    <div class="actions"><button class="icon-btn" onclick="openSheet('new-habit')"><iconify-icon icon="mdi:plus" width="22"></iconify-icon></button></div>
+  </header>
+  <div style="padding:16px 24px;background:var(--paper-2);border-bottom:1px solid var(--ink)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-family:var(--font-display);font-size:14px;color:var(--ink-2);font-style:italic">本周完成率</span>
+      <span style="font-family:var(--font-mono);font-size:14px;font-weight:600" id="habit-week-rate">0%</span>
+    </div>
+    <div style="height:6px;background:var(--paper);border:1px solid var(--ink);border-radius:3px;overflow:hidden">
+      <div id="habit-week-bar" style="height:100%;background:var(--green);width:0%;transition:width .3s"></div>
+    </div>
+  </div>
+  <div id="habits-list" class="habit-section" style="padding:8px 24px"></div>
+</div>
+
+<!-- Habit Detail -->
+<div id="view-habit-detail" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('habits')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>习惯详情</h1>
+    <div class="actions">
+      <button class="icon-btn" onclick="openSheet('edit-habit')" aria-label="编辑"><iconify-icon icon="mdi:pencil-outline" width="22"></iconify-icon></button>
+      <button class="icon-btn" onclick="deleteCurrentHabit()" aria-label="删除"><iconify-icon icon="mdi:trash-can-outline" width="22"></iconify-icon></button>
+    </div>
+  </header>
+  <div class="view-pad">
+    <div style="text-align:center;padding:24px">
+      <div id="habit-detail-icon" style="font-size:56px;margin-bottom:12px;display:inline-block;transform:rotate(-4deg)"></div>
+      <h1 id="habit-detail-title" style="font-family:var(--font-display);font-size:26px;font-weight:500;margin-bottom:12px;font-style:italic"></h1>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;flex-wrap:wrap">
+        <span id="habit-detail-streak" class="chip streak"></span>
+        <span id="habit-detail-longest" class="chip muted"></span>
+      </div>
+      <button id="habit-detail-check-btn" class="btn-primary" style="width:220px;margin:0 auto" onclick="checkInCurrentHabit()"></button>
+    </div>
+    <div class="surface-card">
+      <div style="font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--ink-2);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-style:italic">
+        <span>本月 · <span id="habit-detail-month-label" style="font-family:var(--font-mono);font-style:normal;color:var(--ink);font-weight:600"></span></span>
+        <button style="color:var(--ink);font-size:13px;font-family:var(--font-mono);text-decoration:underline" onclick="showView('backfill')">补卡 →</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+        <button id="habit-detail-prev-month" class="month-nav" onclick="shiftHabitMonth(-1)" aria-label="上一月">‹</button>
+        <button class="month-nav" onclick="shiftHabitMonth(1)" aria-label="下一月">›</button>
+      </div>
+      <div class="week-heads"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+      <div id="habit-detail-calendar" class="calendar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Backfill -->
+<div id="view-backfill" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('habit-detail')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>补卡</h1>
+  </header>
+  <div class="view-pad">
+    <p style="color:var(--ink-2);font-size:14px;margin-bottom:16px;line-height:1.6;font-family:var(--font-display);font-style:italic">仅允许补最近 3 天。今天及未来不可补。</p>
+    <div class="surface-card">
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px">
+        <button id="backfill-prev-month" class="month-nav" onclick="shiftBackfillMonth(-1)" aria-label="上一月">‹</button>
+        <span id="backfill-month-label" style="min-width:90px;text-align:center;font-family:var(--font-display);font-size:16px;font-weight:500;color:var(--ink);font-style:italic"></span>
+        <button class="month-nav" onclick="shiftBackfillMonth(1)" aria-label="下一月">›</button>
+      </div>
+      <div class="week-heads"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+      <div id="backfill-calendar" class="calendar"></div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:18px;font-size:12px;color:var(--ink-2);flex-wrap:wrap;font-family:var(--font-mono)">
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:3px;background:var(--green-soft);border:1px dashed var(--green);display:inline-block"></span>可补</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:3px;background:var(--red-soft);display:inline-block"></span>不可补</span>
+      <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:3px;background:var(--green);display:inline-block"></span>已打卡</span>
+    </div>
+  </div>
+</div>
+
+<!-- Recycle -->
+<div id="view-recycle" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>回收站</h1>
+  </header>
+  <div class="view-pad">
+    <div class="recycle-banner" id="recycle-banner" style="display:none">
+      <span><b id="recycle-banner-count">1</b> 条任务将于 <b id="recycle-banner-days">2</b> 天后被清理</span>
+    </div>
+    <div class="section-title" style="padding-left:0;padding-right:0">30 天内可恢复</div>
+    <div id="recycle-list" class="recycle-list" style="padding:0"></div>
+  </div>
+</div>
+
+<!-- Notifications -->
+<div id="view-notifications" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>通知中心</h1>
+    <div class="actions"><button class="icon-btn" onclick="markAllRead()" aria-label="全部已读"><iconify-icon icon="mdi:check-all" width="22"></iconify-icon></button></div>
+  </header>
+  <div class="view-pad"><div id="notif-list" class="notif-list" style="padding:0"></div></div>
+</div>
+
+<!-- Settings -->
+<div id="view-settings" class="view">
+  <header class="app-header">
+    <button class="back" onclick="showView('dashboard')"><iconify-icon icon="mdi:arrow-left" width="22"></iconify-icon></button>
+    <h1>设置</h1>
+  </header>
+  <div class="view-pad" style="display:flex;flex-direction:column;gap:12px">
+    <div class="surface-card" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:500;font-size:16px">任务到期前 1h 推送</div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:2px;font-family:var(--font-mono)">Web Push 通知</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:48px;height:26px"><input type="checkbox" checked style="opacity:0;width:0;height:0" onchange="showToast('设置已保存','success')"><span style="position:absolute;cursor:pointer;inset:0;background:var(--green);border:1px solid var(--ink);border-radius:13px"></span></label>
+    </div>
+    <div class="surface-card" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:500;font-size:16px">习惯漏签 21:00 提醒</div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:2px;font-family:var(--font-mono)">漏签当天提醒</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:48px;height:26px"><input type="checkbox" checked style="opacity:0;width:0;height:0" onchange="showToast('设置已保存','success')"><span style="position:absolute;cursor:pointer;inset:0;background:var(--green);border:1px solid var(--ink);border-radius:13px"></span></label>
+    </div>
+    <div class="surface-card" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--font-display);font-weight:500;font-size:16px">时区</div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:2px;font-family:var(--font-mono)">影响自然日与 streak</div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:14px;color:var(--ink-2)">Asia/Shanghai</div>
+    </div>
+    <div class="surface-card" onclick="showView('recycle')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+      <div style="font-family:var(--font-display);font-weight:500;font-size:16px">回收站</div>
+      <iconify-icon icon="mdi:arrow-right" width="22"></iconify-icon>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-tab">
+  <button class="active" data-tab="dashboard" onclick="showView('dashboard')"><iconify-icon icon="mdi:home-variant-outline" width="22"></iconify-icon><span>今日</span></button>
+  <button data-tab="tasks" onclick="showView('tasks-today')"><iconify-icon icon="mdi:checkbox-marked-outline" width="22"></iconify-icon><span>任务</span></button>
+  <button data-tab="habits" onclick="showView('habits')"><iconify-icon icon="mdi:target" width="22"></iconify-icon><span>习惯</span><span class="badge" id="habit-badge" style="display:none">!</span></button>
+  <button data-tab="me" onclick="showView('settings')"><iconify-icon icon="mdi:account-circle-outline" width="22"></iconify-icon><span>我</span></button>
+</nav>
+
+<div class="sheet-mask" id="sheet-mask" onclick="if(event.target===this)closeSheet()"></div>
+<div class="toast" id="toast" aria-live="polite"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const DAY = 86400000;
+const PRIORITIES = ['P0','P1','P2','P3'];
+
+function nowDate(){ return new Date(currentTime); }
+function fmtDate(d){ return `${d.getMonth()+1}月${d.getDate()}日`; }
+function fmtTime(d){ return d.toTimeString().slice(0,5); }
+function isSameDay(a,b){ return a.toDateString()===b.toDateString(); }
+
+function stableHash(s){
+  let h = 2166136261;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619); }
+  return (h >>> 0) / 4294967295;
+}
+
+let currentTime = new Date('2026-07-26T10:00:00+08:00').getTime();
+function advanceDay(delta){
+  if(delta === 0) currentTime = new Date('2026-07-26T10:00:00+08:00').getTime();
+  else currentTime += delta * DAY;
+  refreshAll();
+  showToast(`时间已调整到 ${fmtDate(nowDate())}`,'success');
+}
+
+let tasks = [
+  {id:'t_001',title:'回复 X 项目邮件',note:'把今天会议提到的几个点同步给客户',dueAt:'2026-07-26T14:00:00+08:00',priority:'P0',labels:['工作','沟通'],status:'OPEN',doneAt:null,subtasks:[{id:'s1',title:'整理会议纪要',done:true},{id:'s2',title:'列出客户问题清单',done:false}],createdAt:'2026-07-26T08:12:00+08:00',deletedAt:null},
+  {id:'t_002',title:'提交周报',note:'',dueAt:'2026-07-26T18:00:00+08:00',priority:'P0',labels:['工作'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-26T08:30:00+08:00',deletedAt:null},
+  {id:'t_003',title:'健身 45 分钟',note:'热身 + 力量 + 有氧',dueAt:'2026-07-26T19:30:00+08:00',priority:'P1',labels:['健康'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-26T07:00:00+08:00',deletedAt:null},
+  {id:'t_004',title:'阅读《思考,快与慢》第 6 章',note:'',dueAt:'2026-07-27T22:00:00+08:00',priority:'P1',labels:['学习'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-25T20:00:00+08:00',deletedAt:null},
+  {id:'t_005',title:'买水果和牛奶',note:'',dueAt:'2026-07-26T20:00:00+08:00',priority:'P2',labels:['生活'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-26T09:00:00+08:00',deletedAt:null},
+  {id:'t_006',title:'回复律师邮件',note:'',dueAt:'2026-07-28T12:00:00+08:00',priority:'P2',labels:['工作','沟通'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-25T18:00:00+08:00',deletedAt:null},
+  {id:'t_007',title:'晨间冥想 10 分钟',note:'',dueAt:'2026-07-26T07:30:00+08:00',priority:'P2',labels:['健康'],status:'DONE',doneAt:'2026-07-26T07:25:00+08:00',subtasks:[],createdAt:'2026-07-26T06:30:00+08:00',deletedAt:null},
+  {id:'t_008',title:'整理书桌',note:'',dueAt:'2026-07-25T22:00:00+08:00',priority:'P3',labels:['生活'],status:'DONE',doneAt:'2026-07-25T21:50:00+08:00',subtasks:[],createdAt:'2026-07-25T19:00:00+08:00',deletedAt:null},
+  {id:'t_009',title:'约牙医复诊',note:'',dueAt:'2026-07-29T10:00:00+08:00',priority:'P2',labels:['健康'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-24T15:00:00+08:00',deletedAt:null},
+  {id:'t_010',title:'给妈妈打电话',note:'',dueAt:'2026-07-25T18:00:00+08:00',priority:'P1',labels:['家人'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-24T20:00:00+08:00',deletedAt:null},
+  {id:'t_011',title:'看牙医',note:'去年洗牙记录',dueAt:'2026-07-18T14:00:00+08:00',priority:'P3',labels:['健康'],status:'DONE',doneAt:'2026-07-18T13:50:00+08:00',subtasks:[],createdAt:'2026-07-15T10:00:00+08:00',deletedAt:null},
+  {id:'t_012',title:'写 OKR 季度复盘',note:'',dueAt:'2026-07-30T17:00:00+08:00',priority:'P1',labels:['工作'],status:'OPEN',doneAt:null,subtasks:[],createdAt:'2026-07-22T11:00:00+08:00',deletedAt:null}
+];
+
+let habits = [
+  {id:'h_001',title:'阅读 30 分钟',icon:'📖',frequency:'DAILY',targetPerPeriod:1,createdAt:'2026-06-25',deletedAt:null},
+  {id:'h_002',title:'晨跑 3 公里',icon:'🏃',frequency:'DAILY',targetPerPeriod:1,createdAt:'2026-05-12',deletedAt:null},
+  {id:'h_003',title:'冥想 10 分钟',icon:'🧘',frequency:'DAILY',targetPerPeriod:1,createdAt:'2026-06-20',deletedAt:null},
+  {id:'h_004',title:'写日记',icon:'✍',frequency:'DAILY',targetPerPeriod:1,createdAt:'2026-05-01',deletedAt:null},
+  {id:'h_005',title:'喝水 8 杯',icon:'💧',frequency:'DAILY',targetPerPeriod:1,createdAt:'2026-07-26',deletedAt:null}
+];
+
+let checkIns = [];
+habits.forEach(h => {
+  for(let i=0;i<30;i++){
+    const d = new Date(currentTime - i*DAY);
+    d.setHours(0,0,0,0);
+    const dStr = d.toISOString().slice(0,10);
+    if(h.id === 'h_005') continue;
+    if(stableHash(h.id + ':' + dStr) > 0.18){
+      checkIns.push({id:`c_${h.id}_${i}`,habitId:h.id,checkInDate:dStr,isBackfill:false,createdAt:d.toISOString()});
+    }
+  }
+});
+
+let recycleBin = [
+  {id:'r_001',title:'取消的会议准备',deletedAt:new Date(currentTime - 28*DAY).toISOString()},
+  {id:'r_002',title:'旧周报草稿',deletedAt:new Date(currentTime - 5*DAY).toISOString()},
+  {id:'r_003',title:'误删的差旅申请',deletedAt:new Date(currentTime - 2*DAY).toISOString()}
+];
+
+let notifications = [
+  {id:'n_001',title:'任务即将到期',desc:'回复 X 项目邮件,将于 14:00 到期',time:'2 分钟前',unread:true,target:{type:'task',id:'t_001'}},
+  {id:'n_002',title:'连续打卡 12 天',desc:'阅读 30 分钟 已连续 12 天,继续加油!',time:'今天 09:00',unread:true,target:{type:'habit',id:'h_001'}},
+  {id:'n_003',title:'别忘了打卡',desc:'冥想 10 分钟 今天还没打卡,坚持就是胜利',time:'昨天 21:00',unread:false,target:{type:'habit',id:'h_003'}}
+];
+
+let currentTaskId = null, currentHabitId = null, currentSheet = null, undoAction = null, dragTaskId = null;
+let habitMonthCursor = null, backfillMonthCursor = null;
+
+function daysInMonth(year, month){ return new Date(year, month+1, 0).getDate(); }
+function fmtYM(y, m){ return `${y} 年 ${m+1} 月`; }
+
+function streakFor(habitId){
+  const set = new Set(checkIns.filter(c=>c.habitId===habitId).map(c=>c.checkInDate));
+  const today0 = new Date(currentTime); today0.setHours(0,0,0,0);
+  const todayStr = today0.toISOString().slice(0,10);
+  const todayChecked = set.has(todayStr);
+  let current = 0;
+  let cursor = todayChecked ? new Date(today0) : new Date(today0.getTime() - DAY);
+  while(true){
+    const s = cursor.toISOString().slice(0,10);
+    if(set.has(s)){ current++; cursor = new Date(cursor.getTime() - DAY); } else break;
+  }
+  let longest = 0, runMax = 0, prev = null;
+  [...set].sort().forEach(s=>{
+    const d = new Date(s);
+    if(prev && Math.round((d - prev)/DAY) === 1) runMax++;
+    else runMax = 1;
+    if(runMax > longest) longest = runMax;
+    prev = d;
+  });
+  return { current, longest, todayChecked };
+}
+
+function renderMonthCalendar(targetElId, year, month, checksSet, opts={}){
+  const el = document.getElementById(targetElId);
+  if(!el) return;
+  const today0 = new Date(currentTime); today0.setHours(0,0,0,0);
+  const todayStr = today0.toISOString().slice(0,10);
+  const firstDay = new Date(year, month, 1);
+  const totalDays = daysInMonth(year, month);
+  const firstWeekday = firstDay.getDay();
+  let html = '';
+  for(let i=0;i<firstWeekday;i++) html += '<div class="day empty"></div>';
+  for(let d=1; d<=totalDays; d++){
+    const date = new Date(year, month, d);
+    const dStr = date.toISOString().slice(0,10);
+    const isToday = dStr === todayStr;
+    const isFuture = date > today0;
+    const checked = checksSet.has(dStr);
+    const eligible = opts.backfillMode && !isFuture && !checked && (today0 - date) <= 3*DAY && (today0 - date) >= 0;
+    let cls = 'day';
+    if(checked) cls += ' checked';
+    else if(isFuture) cls += ' future';
+    else cls += ' missed';
+    if(isToday) cls += ' today';
+    if(eligible) cls += ' backfill-eligible';
+    const onclick = eligible ? `onclick="tryBackfill('${dStr}')"` : '';
+    html += `<div class="${cls}" ${onclick} title="${dStr}">${d}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function showView(name){
+  $$('.view').forEach(v=>v.classList.remove('active'));
+  const v = document.getElementById('view-' + name);
+  if(v) v.classList.add('active');
+  const tabMap = {dashboard:'dashboard','tasks-today':'tasks','tasks-week':'tasks','tasks-all':'tasks','tasks-board':'tasks',habits:'habits','settings':'me','recycle':'me',notifications:'dashboard'};
+  $$('.bottom-tab button').forEach(b=>b.classList.remove('active'));
+  const t = tabMap[name];
+  if(t){ const btn = document.querySelector(`.bottom-tab button[data-tab="${t}"]`); if(btn) btn.classList.add('active'); }
+  if(name === 'dashboard') renderDashboard();
+  else if(name === 'tasks-today') renderTaskList('today','tasks-list','task-count','task-tab-label','今日');
+  else if(name === 'tasks-week') renderTaskList('week','tasks-list-2','task-count-2',null,null);
+  else if(name === 'tasks-all') renderTaskList('all','tasks-list-3','task-count-3',null,null);
+  else if(name === 'tasks-board') renderBoard();
+  else if(name === 'habits') renderHabits();
+  else if(name === 'habit-detail') renderHabitDetail();
+  else if(name === 'backfill') renderBackfill();
+  else if(name === 'recycle') renderRecycle();
+  else if(name === 'notifications') renderNotifications();
+  const active = document.querySelector('.view.active');
+  if(active) active.scrollTop = 0;
+  window.scrollTo(0,0);
+}
+
+function refreshAll(){
+  const active = document.querySelector('.view.active')?.id?.replace('view-','');
+  if(active === 'dashboard') renderDashboard();
+  else if(active === 'tasks-today') renderTaskList('today','tasks-list','task-count','task-tab-label','今日');
+  else if(active === 'tasks-week') renderTaskList('week','tasks-list-2','task-count-2',null,null);
+  else if(active === 'tasks-all') renderTaskList('all','tasks-list-3','task-count-3',null,null);
+  else if(active === 'tasks-board') renderBoard();
+  else if(active === 'habits') renderHabits();
+  else if(active === 'habit-detail') renderHabitDetail();
+  else if(active === 'backfill') renderBackfill();
+  else if(active === 'recycle') renderRecycle();
+  else if(active === 'notifications') renderNotifications();
+}
+
+function isOverdue(t){
+  if(t.status === 'DONE') return false;
+  if(!t.dueAt) return false;
+  return new Date(t.dueAt) < nowDate();
+}
+
+function sortTasks(list){
+  const pOrder = {P0:0,P1:1,P2:2,P3:3};
+  return [...list].sort((a,b)=>{
+    if(pOrder[a.priority] !== pOrder[b.priority]) return pOrder[a.priority] - pOrder[b.priority];
+    if(a.dueAt && b.dueAt) return new Date(a.dueAt) - new Date(b.dueAt);
+    if(a.dueAt) return -1; if(b.dueAt) return 1;
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
+}
+
+function renderTaskCard(t){
+  const overdue = isOverdue(t);
+  const done = t.status === 'DONE';
+  const meta = [];
+  meta.push(`<span class="chip priority ${t.priority.toLowerCase()}">${t.priority}</span>`);
+  t.labels.slice(0,2).forEach(l => meta.push(`<span class="chip label">#${l}</span>`));
+  if(t.dueAt){
+    const d = new Date(t.dueAt);
+    const sameDay = isSameDay(d, nowDate());
+    const timeStr = `${d.getMonth()+1}月${d.getDate()}日 ${fmtTime(d)}`;
+    meta.push(`<span class="chip ${overdue?'danger':''}">${overdue?'⚠ ':''}${sameDay?fmtTime(d):timeStr}</span>`);
+  }
+  if(t.subtasks?.length){
+    const done_n = t.subtasks.filter(s=>s.done).length;
+    meta.push(`<span class="chip muted">☑ ${done_n}/${t.subtasks.length}</span>`);
+  }
+  return `
+    <div class="task-card ${done?'done':''} ${overdue?'overdue':''}" data-task-id="${t.id}" onclick="openTaskDetail('${t.id}')" draggable="true">
+      <div class="tape"></div>
+      <button class="check" onclick="event.stopPropagation();toggleTask('${t.id}')" aria-label="${done?'撤销':'完成'}"></button>
+      <div class="body">
+        <div class="task-title">${t.title}</div>
+        <div class="task-meta">${meta.join('')}</div>
+      </div>
+    </div>`;
+}
+
+function renderHabitCard(h, compact=false){
+  const s = streakFor(h.id);
+  const done = s.todayChecked;
+  const streakChip = s.current > 0
+    ? `<span class="chip streak">🔥 ${s.current} 天</span>`
+    : (s.longest > 0 ? `<span class="chip danger">上次 ${s.longest} 天</span>` : `<span class="chip muted">未开始</span>`);
+  return `
+    <div class="habit-card ${done?'done':''}" onclick="openHabitDetail('${h.id}')">
+      <div class="icon">${h.icon}</div>
+      <div class="body">
+        <div class="title">${h.title}</div>
+        <div class="meta">${streakChip}${done?`<span class="chip success">✓ 今日</span>`:''}</div>
+      </div>
+      <button class="check-btn" onclick="event.stopPropagation();checkInHabit('${h.id}')">${done?'已打卡 ✓':'打卡'}</button>
+    </div>`;
+}
+
+function renderDashboard(){
+  const today0 = new Date(currentTime); today0.setHours(0,0,0,0);
+  const todayTasks = tasks.filter(t => !t.deletedAt && t.dueAt && isSameDay(new Date(t.dueAt), today0));
+  const habitWeekRate = computeWeekRate();
+  $('#stat-today-total').textContent = todayTasks.length;
+  $('#stat-today-done').textContent = todayTasks.filter(t=>t.status==='DONE').length;
+  $('#stat-week-rate').textContent = habitWeekRate + '%';
+  $('#dash-missed-count').textContent = habits.filter(h=>!h.deletedAt && !streakFor(h.id).todayChecked).length;
+
+  $('#dash-today-tasks').innerHTML = todayTasks.length === 0
+    ? `<div class="empty"><div class="ico">🌿</div><h3>今天没有任务</h3><p>把想做的事贴在本子上,逐条划掉</p></div>`
+    : sortTasks(todayTasks).slice(0,5).map(renderTaskCard).join('');
+
+  const activeHabits = habits.filter(h=>!h.deletedAt).slice(0,4);
+  $('#dash-habits').innerHTML = activeHabits.map(h=>renderHabitCard(h, true)).join('');
+
+  $('#dash-notif').innerHTML = notifications.slice(0,3).map(n => `
+    <div class="notif" onclick="${n.target?.type==='task'?`openTaskDetail('${n.target.id}')`:`openHabitDetail('${n.target.id}')`}">
+      ${n.unread?'<div class="dot"></div>':'<div style="width:8px;flex-shrink:0"></div>'}
+      <div class="body">
+        <div class="title">${n.title}</div>
+        <div class="desc">${n.desc}</div>
+        <div class="time">${n.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function computeWeekRate(){
+  const weekAgo = new Date(currentTime - 7*DAY);
+  let expected = 0, done = 0;
+  habits.forEach(h => {
+    if(h.deletedAt) return;
+    for(let d=new Date(weekAgo); d<=nowDate(); d.setDate(d.getDate()+1)){
+      expected++;
+      const dStr = new Date(d).toISOString().slice(0,10);
+      if(checkIns.some(c=>c.habitId===h.id && c.checkInDate===dStr)) done++;
+    }
+  });
+  return expected ? Math.round(done/expected*100) : 0;
+}
+
+function renderTaskList(range, listId, countId, labelId, labelText){
+  const today0 = new Date(currentTime); today0.setHours(0,0,0,0);
+  const weekEnd = new Date(today0.getTime() + 7*DAY);
+  let filtered = tasks.filter(t => !t.deletedAt);
+  if(range === 'today'){
+    filtered = filtered.filter(t => t.dueAt && isSameDay(new Date(t.dueAt), today0));
+  } else if(range === 'week'){
+    filtered = filtered.filter(t => t.dueAt && new Date(t.dueAt) >= today0 && new Date(t.dueAt) < weekEnd);
+  }
+  if(labelId && labelText) $('#'+labelId).textContent = labelText;
+  $('#'+countId).textContent = filtered.length + ' 项';
+  $('#'+listId).innerHTML = filtered.length === 0
+    ? `<div class="empty"><div class="ico">📝</div><h3>还没有任务</h3><p>从 + 号新建第一条</p></div>`
+    : sortTasks(filtered).map(renderTaskCard).join('');
+}
+
+function renderBoard(){
+  const cols = [
+    {key:'OPEN', title:'未完成', tasks: tasks.filter(t=>!t.deletedAt && t.status==='OPEN')},
+    {key:'DONE', title:'已完成', tasks: tasks.filter(t=>!t.deletedAt && t.status==='DONE')}
+  ];
+  $('#kanban-board').innerHTML = cols.map(c => `
+    <div class="kanban-col" data-status="${c.key}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault();this.classList.remove('drag-over');dropTask(event,'${c.key}')">
+      <h3>${c.title} <span style="font-family:var(--font-mono);font-style:normal;color:var(--ink-2)">${c.tasks.length}</span></h3>
+      ${c.tasks.length === 0 ? `<div class="kanban-empty">拖动任务到这里</div>` : sortTasks(c.tasks).map(renderTaskCard).join('')}
+    </div>`).join('');
+  $$('.task-card').forEach(card => {
+    card.addEventListener('dragstart', e => { dragTaskId = card.dataset.taskId; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragTaskId = null; });
+  });
+}
+
+function dropTask(ev, newStatus){
+  if(!dragTaskId) return;
+  const t = tasks.find(x=>x.id===dragTaskId);
+  if(!t) return;
+  t.status = newStatus;
+  if(newStatus==='DONE'){ t.doneAt = new Date(currentTime).toISOString(); } else { t.doneAt = null; }
+  refreshAll();
+  showToast(newStatus==='DONE'?'任务已完成':'任务已重新打开','success');
+}
+
+function toggleTask(id){
+  const t = tasks.find(x=>x.id===id);
+  if(!t) return;
+  if(t.status==='DONE'){
+    t.status='OPEN'; t.doneAt=null;
+    showToast('已重新打开','success');
+  } else {
+    t.status='DONE'; t.doneAt=new Date(currentTime).toISOString();
+    const oldT = {...t};
+    undoAction = ()=>{ Object.assign(t, oldT); refreshAll(); };
+    showToast('已完成 · 30s 内可撤销','success', true);
+  }
+  refreshAll();
+}
+
+function toggleCurrentTask(){ if(currentTaskId) toggleTask(currentTaskId); }
+
+function openTaskDetail(id){
+  currentTaskId = id;
+  const t = tasks.find(x=>x.id===id);
+  if(!t) return;
+  if(window.innerWidth >= 1025){
+    openTaskDrawer();
+  } else {
+    showView('task-detail');
+    renderTaskDetail();
+  }
+}
+
+function renderTaskDetail(){
+  const t = tasks.find(x=>x.id===currentTaskId);
+  if(!t) return;
+  $('#detail-title').textContent = t.title;
+  const meta = [];
+  meta.push(`<span class="chip priority ${t.priority.toLowerCase()}">${t.priority}</span>`);
+  t.labels.forEach(l => meta.push(`<span class="chip label">#${l}</span>`));
+  if(t.dueAt){
+    const d = new Date(t.dueAt);
+    meta.push(`<span class="chip ${isOverdue(t)?'danger':''}">${isOverdue(t)?'⚠ ':''}${fmtDate(d)} ${fmtTime(d)}</span>`);
+  }
+  meta.push(`<span class="chip ${t.status==='DONE'?'success':'muted'}">${t.status==='DONE'?'已完成':'未完成'}</span>`);
+  $('#detail-meta').innerHTML = meta.join('');
+  if(t.note){
+    $('#detail-note-section').style.display = '';
+    $('#detail-note').textContent = t.note;
+  } else {
+    $('#detail-note-section').style.display = 'none';
+  }
+  if(t.subtasks?.length){
+    $('#detail-subtasks-section').style.display = '';
+    $('#subtask-progress').textContent = `${t.subtasks.filter(s=>s.done).length}/${t.subtasks.length}`;
+    $('#detail-subtasks').innerHTML = t.subtasks.map(s => `
+      <div class="subtask ${s.done?'done':''}">
+        <button class="check" onclick="toggleSubtask('${t.id}','${s.id}')"></button>
+        <span class="st-title">${s.title}</span>
+      </div>`).join('');
+  } else {
+    $('#detail-subtasks-section').style.display = 'none';
+  }
+  $('#detail-complete-btn').textContent = t.status==='DONE'?'重新打开':'标记完成';
+  $('#detail-complete-btn').className = t.status==='DONE'?'btn-secondary':'btn-primary';
+}
+
+function toggleSubtask(taskId, stId){
+  const t = tasks.find(x=>x.id===taskId);
+  if(!t) return;
+  const s = t.subtasks.find(x=>x.id===stId);
+  if(!s) return;
+  s.done = !s.done;
+  renderTaskDetail();
+  refreshAll();
+}
+
+function openTaskDrawer(){
+  renderTaskDetail();
+  let mask = $('.task-drawer-mask');
+  if(!mask){
+    mask = document.createElement('div');
+    mask.className = 'task-drawer-mask';
+    mask.onclick = closeTaskDrawer;
+    const drawer = document.createElement('div');
+    drawer.className = 'task-drawer';
+    drawer.innerHTML = `
+      <div class="drawer-head">
+        <h2>任务详情</h2>
+        <div style="display:flex;gap:4px">
+          <button class="drawer-close" onclick="openSheet('edit-task')" aria-label="编辑"><iconify-icon icon="mdi:pencil-outline" width="18"></iconify-icon></button>
+          <button class="drawer-close" onclick="deleteCurrentTask()" aria-label="删除"><iconify-icon icon="mdi:trash-can-outline" width="18"></iconify-icon></button>
+          <button class="drawer-close" onclick="closeTaskDrawer()" aria-label="关闭">×</button>
+        </div>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>`;
+    document.getElementById('app').appendChild(mask);
+    document.getElementById('app').appendChild(drawer);
+  }
+  $('#drawer-body').innerHTML = `
+    <h1 style="font-family:var(--font-display);font-size:26px;font-weight:500;margin-bottom:14px;line-height:1.3;font-style:italic" id="detail-title"></h1>
+    <div id="detail-meta" class="task-meta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px"></div>
+    <div id="detail-note-section" style="margin-bottom:24px">
+      <div style="font-size:11px;color:var(--ink-2);margin-bottom:8px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em">备注</div>
+      <div id="detail-note" style="font-size:15px;color:var(--ink);line-height:1.6;padding:14px 16px;background:var(--paper-2);border:1px solid var(--ink);border-radius:var(--r-sm);font-style:italic"></div>
+    </div>
+    <div id="detail-subtasks-section" style="margin-bottom:24px">
+      <div style="font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--ink-2);margin-bottom:12px;font-style:italic">子任务 <span id="subtask-progress" style="color:var(--ink-3);font-weight:400;font-family:var(--font-mono);font-style:normal"></span></div>
+      <div id="detail-subtasks"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:24px">
+      <button class="btn-primary" id="detail-complete-btn" onclick="toggleCurrentTask()">标记完成</button>
+    </div>`;
+  upgradeIcons();
+  mask.style.display = 'block';
+  document.querySelector('.task-drawer').style.display = 'flex';
+  renderTaskDetail();
+}
+
+function closeTaskDrawer(){
+  const mask = $('.task-drawer-mask'); const drawer = $('.task-drawer');
+  if(mask) mask.style.display = 'none';
+  if(drawer) drawer.style.display = 'none';
+}
+
+function deleteCurrentTask(){
+  if(!currentTaskId) return;
+  const t = tasks.find(x=>x.id===currentTaskId);
+  if(!t) return;
+  if(!confirm('确定删除任务「' + t.title + '」?')) return;
+  t.deletedAt = new Date(currentTime).toISOString();
+  undoAction = ()=>{ delete t.deletedAt; refreshAll(); };
+  showToast('任务已删除 · 30s 内可撤销','success',true);
+  if(window.innerWidth >= 1025) closeTaskDrawer(); else history.back();
+  refreshAll();
+}
+
+function openHabitDetail(id){
+  currentHabitId = id;
+  habitMonthCursor = null;
+  showView('habit-detail');
+}
+
+function renderHabits(){
+  const activeHabits = habits.filter(h=>!h.deletedAt);
+  const rate = computeWeekRate();
+  $('#habit-week-rate').textContent = rate + '%';
+  $('#habit-week-bar').style.width = rate + '%';
+  $('#habits-list').innerHTML = activeHabits.length === 0
+    ? `<div class="empty"><div class="ico">🌱</div><h3>开始第一个习惯</h3><p>小步前进,日积月累</p></div>`
+    : activeHabits.map(renderHabitCard).join('');
+}
+
+function renderHabitDetail(){
+  const h = habits.find(x=>x.id===currentHabitId);
+  if(!h){ showView('habits'); return; }
+  const s = streakFor(h.id);
+  $('#habit-detail-icon').textContent = h.icon;
+  $('#habit-detail-title').textContent = h.title;
+  $('#habit-detail-streak').innerHTML = s.current > 0 ? `🔥 连续 ${s.current} 天` : (s.longest > 0 ? `上次 ${s.longest} 天` : '未开始');
+  $('#habit-detail-longest').textContent = `最长 ${s.longest} 天`;
+  $('#habit-detail-check-btn').textContent = s.todayChecked ? '今日已打卡 ✓' : '打卡';
+  $('#habit-detail-check-btn').style.background = s.todayChecked ? 'var(--paper)' : 'var(--green)';
+  $('#habit-detail-check-btn').style.color = s.todayChecked ? 'var(--green)' : 'var(--paper)';
+  const checks = new Set(checkIns.filter(c=>c.habitId===h.id).map(c=>c.checkInDate));
+  const today0 = new Date(currentTime);
+  if(!habitMonthCursor || habitMonthCursor.habitId !== h.id){
+    habitMonthCursor = { habitId:h.id, year:today0.getFullYear(), month:today0.getMonth() };
+  }
+  const { year, month } = habitMonthCursor;
+  $('#habit-detail-month-label').textContent = fmtYM(year, month);
+  $('#habit-detail-prev-month').disabled = (year === today0.getFullYear() && month === today0.getMonth());
+  $('#habit-detail-prev-month').style.opacity = $('#habit-detail-prev-month').disabled ? '.3' : '1';
+  renderMonthCalendar('habit-detail-calendar', year, month, checks, {});
+}
+
+function shiftHabitMonth(delta){
+  if(!habitMonthCursor) return;
+  let { year, month } = habitMonthCursor;
+  month += delta;
+  if(month < 0){ month = 11; year--; }
+  if(month > 11){ month = 0; year++; }
+  habitMonthCursor = { ...habitMonthCursor, year, month };
+  renderHabitDetail();
+}
+
+function checkInHabit(id){
+  const today0 = new Date(currentTime); today0.setHours(0,0,0,0);
+  const todayStr = today0.toISOString().slice(0,10);
+  const exists = checkIns.find(c=>c.habitId===id && c.checkInDate===todayStr);
+  if(exists){ showToast('今天已打卡','error'); return; }
+  const h = habits.find(x=>x.id===id);
+  if(!h || h.deletedAt) return;
+  const newCheckIn = {id:'c_'+Date.now(),habitId:id,checkInDate:todayStr,isBackfill:false,createdAt:new Date(currentTime).toISOString()};
+  checkIns.push(newCheckIn);
+  undoAction = ()=>{ checkIns = checkIns.filter(c=>c.id!==newCheckIn.id); refreshAll(); };
+  const s = streakFor(id);
+  showToast(`已打卡 · 连续 ${s.current} 天 🔥 · 30s 内可撤销`,'success',true);
+  refreshAll();
+}
+function checkInCurrentHabit(){ if(currentHabitId){ checkInHabit(currentHabitId); } }
+
+function renderBackfill(){
+  const h = habits.find(x=>x.id===currentHabitId);
+  if(!h){ showView('habits'); return; }
+  const today0 = new Date(currentTime);
+  const checks = new Set(checkIns.filter(c=>c.habitId===h.id).map(c=>c.checkInDate));
+  if(!backfillMonthCursor || backfillMonthCursor.habitId !== h.id){
+    backfillMonthCursor = { habitId:h.id, year:today0.getFullYear(), month:today0.getMonth() };
+  }
+  const { year, month } = backfillMonthCursor;
+  $('#backfill-month-label').textContent = fmtYM(year, month);
+  $('#backfill-prev-month').disabled = (year === today0.getFullYear() && month === today0.getMonth());
+  $('#backfill-prev-month').style.opacity = $('#backfill-prev-month').disabled ? '.3' : '1';
+  renderMonthCalendar('backfill-calendar', year, month, checks, { backfillMode:true });
+}
+
+function shiftBackfillMonth(delta){
+  if(!backfillMonthCursor) return;
+  let { year, month } = backfillMonthCursor;
+  month += delta;
+  if(month < 0){ month = 11; year--; }
+  if(month > 11){ month = 0; year++; }
+  backfillMonthCursor = { ...backfillMonthCursor, year, month };
+  renderBackfill();
+}
+
+function tryBackfill(dateStr){
+  const habitId = currentHabitId;
+  if(!habitId) return;
+  const today0 = new Date(currentTime); today0.setHours(0,0,0,0);
+  const target = new Date(dateStr);
+  const diff = Math.round((today0 - target) / DAY);
+  if(diff < 1 || diff > 3) return;
+  const checks = checkIns.filter(c=>c.habitId===habitId && c.checkInDate===dateStr);
+  if(checks.length > 0) return;
+  const newCheckIn = {id:'c_'+Date.now(),habitId,checkInDate:dateStr,isBackfill:true,createdAt:new Date(currentTime).toISOString()};
+  checkIns.push(newCheckIn);
+  undoAction = ()=>{ checkIns = checkIns.filter(c=>c.id!==newCheckIn.id); refreshAll(); };
+  const s = streakFor(habitId);
+  showToast(`已补 ${dateStr} · 重新计算连续 ${s.current} 天 · 30s 内可撤销`,'success',true);
+  refreshAll();
+}
+
+function deleteCurrentHabit(){
+  if(!currentHabitId) return;
+  const h = habits.find(x=>x.id===currentHabitId);
+  if(!h) return;
+  if(!confirm('确定删除习惯「' + h.title + '」?')) return;
+  h.deletedAt = new Date(currentTime).toISOString();
+  undoAction = ()=>{ delete h.deletedAt; refreshAll(); };
+  showToast('习惯已删除 · 30s 内可撤销','success',true);
+  showView('habits');
+  refreshAll();
+}
+
+function renderRecycle(){
+  const urgent = recycleBin.filter(r => (30 - Math.round((currentTime - new Date(r.deletedAt))/DAY)) <= 3);
+  if(urgent.length > 0){
+    $('#recycle-banner').style.display = 'flex';
+    $('#recycle-banner-count').textContent = urgent.length;
+    $('#recycle-banner-days').textContent = Math.max(0, 30 - Math.round((currentTime - new Date(urgent[0].deletedAt))/DAY));
+  } else {
+    $('#recycle-banner').style.display = 'none';
+  }
+  $('#recycle-list').innerHTML = recycleBin.length === 0
+    ? `<div class="empty"><div class="ico">🗑</div><h3>回收站为空</h3><p>30 天内删除的任务会出现在这里</p></div>`
+    : recycleBin.map((r,i)=>{
+      const remain = Math.max(0, 30 - Math.round((currentTime - new Date(r.deletedAt))/DAY));
+      return `<div class="recycle-item">
+        <div class="body">
+          <div class="title">${r.title}</div>
+          <div class="meta">${remain} 天后清理</div>
+        </div>
+        <button class="btn-secondary" style="height:auto;padding:8px 16px;font-size:13px;min-height:auto" onclick="restoreItem(${i})">恢复</button>
+      </div>`;
+    }).join('');
+}
+
+function restoreItem(i){
+  const r = recycleBin[i];
+  const newTask = {id:'t_'+Date.now(),title:r.title,note:'',dueAt:null,priority:'P3',labels:[],status:'OPEN',doneAt:null,subtasks:[],createdAt:new Date(currentTime).toISOString(),deletedAt:null};
+  tasks.unshift(newTask);
+  recycleBin.splice(i,1);
+  showToast('任务已恢复','success');
+  refreshAll();
+}
+
+function renderNotifications(){
+  $('#notif-list').innerHTML = notifications.length === 0
+    ? `<div class="empty"><div class="ico">🔔</div><h3>没有通知</h3><p>新消息会出现在这里</p></div>`
+    : notifications.map(n => `
+      <div class="notif" onclick="${n.target?.type==='task'?`openTaskDetail('${n.target.id}')`:`openHabitDetail('${n.target.id}')`}">
+        ${n.unread?'<div class="dot"></div>':'<div style="width:8px;flex-shrink:0"></div>'}
+        <div class="body">
+          <div class="title">${n.title}</div>
+          <div class="desc">${n.desc}</div>
+          <div class="time">${n.time}</div>
+        </div>
+      </div>`).join('');
+}
+
+function markAllRead(){
+  notifications.forEach(n=>n.unread=false);
+  refreshAll();
+  showToast('已全部标记为已读','success');
+}
+
+function doSearch(q){
+  q = q.trim().toLowerCase();
+  if(!q){ $('#search-results').innerHTML=''; return; }
+  const results = tasks.filter(t=>!t.deletedAt && (t.title.toLowerCase().includes(q) || t.labels.some(l=>l.toLowerCase().includes(q))));
+  $('#search-results').innerHTML = results.length === 0
+    ? `<div class="empty"><div class="ico">🔍</div><p>没有匹配的任务</p></div>`
+    : results.map(renderTaskCard).join('');
+}
+
+function openSheet(name){
+  currentSheet = name;
+  if(name === 'picker'){
+    openSheetHtml(`
+      <div class="sheet-handle"></div>
+      <h2>新建</h2>
+      <div class="picker-list">
+        <button class="picker-item" onclick="closeSheet();setTimeout(()=>openSheet('new-task'),280)">
+          <span class="picker-ico"><iconify-icon icon="mdi:checkbox-marked-outline" width="24"></iconify-icon></span>
+          <span class="picker-body"><span class="picker-title">新建任务</span><span class="picker-desc">一次性待办,设截止时间</span></span>
+          <iconify-icon class="picker-arrow" icon="mdi:arrow-right" width="22"></iconify-icon>
+        </button>
+        <button class="picker-item" onclick="closeSheet();setTimeout(()=>openSheet('new-habit'),280)">
+          <span class="picker-ico"><iconify-icon icon="mdi:target" width="24"></iconify-icon></span>
+          <span class="picker-body"><span class="picker-title">新建习惯</span><span class="picker-desc">每日打卡,累积 streak</span></span>
+          <iconify-icon class="picker-arrow" icon="mdi:arrow-right" width="22"></iconify-icon>
+        </button>
+      </div>
+      <div class="sheet-actions"><button class="btn-secondary" onclick="closeSheet()">取消</button></div>
+    `);
+  } else if(name === 'new-task' || name === 'edit-task'){
+    const isEdit = name === 'edit-task';
+    const t = isEdit ? tasks.find(x=>x.id===currentTaskId) : null;
+    openSheetHtml(`
+      <div class="sheet-handle"></div>
+      <h2>${isEdit?'编辑任务':'新建任务'}</h2>
+      <div class="field" id="f-title"><label>标题 <span class="req">*</span></label><input type="text" id="in-title" placeholder="想做的事…" value="${t?.title||''}" autofocus></div>
+      <div class="field"><label>优先级</label><div class="priority-picker">${PRIORITIES.map(p=>`<button data-p="${p}" onclick="pickPriority('${p}',this)" class="${(t?.priority||'P3')===p?`active ${p.toLowerCase()}`:''}">${p}</button>`).join('')}</div></div>
+      <div class="field"><label>截止时间(可选)</label><input type="datetime-local" id="in-due" value="${t?.dueAt ? t.dueAt.slice(0,16) : ''}"></div>
+      <div class="field"><label>标签(最多 5 个)</label><div class="label-picker" id="label-picker">${['工作','沟通','学习','健康','生活','家人','重要'].map(l=>`<button data-l="${l}" class="${(t?.labels||[]).includes(l)?'active':''}" onclick="pickLabel(this,'${l}')">#${l}</button>`).join('')}</div></div>
+      <div class="field"><label>备注(可选)</label><textarea id="in-note" placeholder="补充说明…">${t?.note||''}</textarea></div>
+      <div class="sheet-actions"><button class="btn-secondary" onclick="closeSheet()">取消</button><button class="btn-primary" onclick="submitTask('${name}')">保存</button></div>
+    `);
+    pickLabelInit();
+  } else if(name === 'new-habit' || name === 'edit-habit'){
+    const isEdit = name === 'edit-habit';
+    const h = isEdit ? habits.find(x=>x.id===currentHabitId) : null;
+    openSheetHtml(`
+      <div class="sheet-handle"></div>
+      <h2>${isEdit?'编辑习惯':'新建习惯'}</h2>
+      <div class="field"><label>图标</label><div class="icon-picker">${['📖','🏃','🧘','✍','💧','🍎','💪','🎨'].map(ic=>`<button onclick="pickIcon(this,'${ic}')" class="${(h?.icon||'📖')===ic?'active':''}">${ic}</button>`).join('')}</div></div>
+      <div class="field"><label>标题 <span class="req">*</span></label><input type="text" id="in-habit-title" placeholder="例如:阅读 30 分钟" value="${h?.title||''}" autofocus></div>
+      <div class="field"><label>频率</label><div class="freq-picker"><button data-f="DAILY" onclick="pickFreq(this,'DAILY')" class="${(h?.frequency||'DAILY')==='DAILY'?'active':''}">每日</button><button data-f="WEEKLY" onclick="pickFreq(this,'WEEKLY')" class="${(h?.frequency||'DAILY')==='WEEKLY'?'active':''}">每周 N 次</button></div></div>
+      <div class="sheet-actions"><button class="btn-secondary" onclick="closeSheet()">取消</button><button class="btn-primary" onclick="submitHabit('${name}')">${isEdit?'保存':'创建'}</button></div>
+    `);
+  }
+  $('#sheet-mask').classList.add('open');
+}
+function openSheetHtml(html){ $('#sheet-mask').innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; upgradeIcons(); }
+function closeSheet(){ $('#sheet-mask').classList.remove('open'); $('#sheet-mask').innerHTML = ''; currentSheet = null; }
+
+function pickPriority(p, btn){ $$('.priority-picker button').forEach(b=>b.classList.remove('active','p0','p1','p2','p3')); btn.classList.add('active', p.toLowerCase()); }
+function pickLabel(btn){
+  const active = $$('.label-picker button.active').length;
+  if(!btn.classList.contains('active') && active >= 5){ showToast('最多 5 个标签','error'); return; }
+  btn.classList.toggle('active'); pickLabelInit();
+}
+function pickLabelInit(){
+  const newActive = $$('.label-picker button.active').length;
+  $$('.label-picker button:not(.active)').forEach(b=>{ b.disabled = newActive >= 5; b.style.opacity = newActive >= 5 ? '.4' : '1'; });
+}
+let pickedIcon = null, pickedFreq = null;
+function pickIcon(btn, ic){ pickedIcon = ic; $$('.icon-picker button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+function pickFreq(btn, f){ pickedFreq = f; $$('.freq-picker button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+
+function submitTask(name){
+  const isEdit = name === 'edit-task';
+  const title = $('#in-title').value.trim();
+  if(!title){ $('#f-title').classList.add('error'); showToast('请输入任务标题','error'); return; }
+  const priority = $('.priority-picker button.active')?.dataset.p || 'P3';
+  const dueVal = $('#in-due').value;
+  const labels = $$('.label-picker button.active').map(b=>b.dataset.l);
+  const note = $('#in-note').value.trim();
+  if(isEdit){
+    const t = tasks.find(x=>x.id===currentTaskId);
+    if(t){ t.title=title; t.priority=priority; t.dueAt=dueVal?dueVal+':00+08:00':null; t.labels=labels; t.note=note; }
+    closeSheet();
+    showToast('已保存','success');
+    refreshAll();
+  } else {
+    const newT = {id:'t_'+Date.now(),title,note,dueAt:dueVal?dueVal+':00+08:00':null,priority,labels,status:'OPEN',doneAt:null,subtasks:[],createdAt:new Date(currentTime).toISOString(),deletedAt:null};
+    tasks.unshift(newT);
+    closeSheet();
+    showToast('已新建 · 30s 内可撤销','success', true);
+    undoAction = ()=>{ tasks = tasks.filter(x=>x.id!==newT.id); refreshAll(); };
+    refreshAll();
+  }
+}
+
+function submitHabit(name){
+  const isEdit = name === 'edit-habit';
+  const title = $('#in-habit-title').value.trim();
+  if(!title){ showToast('请输入习惯标题','error'); return; }
+  const icon = pickedIcon || '📖';
+  const freq = pickedFreq || 'DAILY';
+  if(isEdit){
+    const h = habits.find(x=>x.id===currentHabitId);
+    if(h){ h.title=title; h.icon=icon; h.frequency=freq; }
+    closeSheet();
+    showToast('已保存','success');
+    refreshAll();
+  } else {
+    const newH = {id:'h_'+Date.now(),title,icon,frequency:freq,targetPerPeriod:1,createdAt:new Date(currentTime).toISOString(),deletedAt:null};
+    habits.push(newH);
+    closeSheet();
+    showToast('已创建习惯 · 30s 内可撤销','success', true);
+    undoAction = ()=>{ habits = habits.filter(x=>x.id!==newH.id); refreshAll(); };
+    refreshAll();
+  }
+  pickedIcon=null; pickedFreq=null;
+}
+
+function showToast(msg, type='success', withUndo=false){
+  const t = $('#toast');
+  t.className = 'toast ' + type + ' show';
+  t.innerHTML = `<span>${msg}</span>${withUndo?'<a class="undo" onclick="undoToast()">撤销</a>':''}`;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
+}
+
+function undoToast(){
+  if(undoAction){ undoAction(); undoAction=null; showToast('已撤销','success'); }
+  const t = $('#toast'); t.classList.remove('show');
+}
+
+$('#demo-view').addEventListener('change', e => showView(e.target.value));
+$('#demo-width').addEventListener('change', e => {
+  const w = parseInt(e.target.value, 10);
+  const app = $('#app');
+  app.style.maxWidth = w + 'px';
+  if(w >= 1025){ app.style.margin = '40px auto'; app.style.borderRadius = 'var(--r-md)'; app.style.minHeight = 'calc(100vh - 80px)'; }
+  else { app.style.margin = '0 auto'; app.style.borderRadius = '0'; app.style.minHeight = '100vh'; }
+});
+
+renderDashboard();
+</script>
+</body>
+</html>
