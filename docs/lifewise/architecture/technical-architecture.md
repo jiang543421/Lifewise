@@ -6,7 +6,7 @@
 > **设计日期**：2026-07-25
 > **关联文档**：
 > - [`business-architecture.md`](./business-architecture.md) — 业务模块、接口、事件、流程
-> - [`data-model-design.md`](./data-model-design.md) — 24 张表、Outbox、分区、索引
+> - [`data-model-design.md`](versions/data-model-design-v1.1.1.md) — 24 张表、Outbox、分区、索引
 > - [`../specs/PRD/01-task-management.md`](../specs/PRD/01-task-management.md) ~ [`06-ai-analysis.md`](../specs/PRD/06-ai-analysis.md) — 6 个产品 PRD
 > **目标读者**：研发、运维、架构评审、AI 工程师
 > **架构方法**：模块化单体 + Docker Compose 单机部署 + PWA 接入
