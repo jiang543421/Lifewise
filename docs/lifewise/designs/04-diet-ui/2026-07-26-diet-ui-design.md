@@ -1,9 +1,10 @@
 # 饮食记录模块 UI 原型设计
 
 > **模块代号**：`meal`
-> **设计日期**：2026-07-26（修订日：2026-07-27）
-> **文档版本**：v1.0
-> **状态**：Approved Design
+> **设计日期**：2026-07-26（v1.0）；2026-07-27（v1.1 修订）
+> **文档版本**：v1.1
+> **状态**：Approved Design（v1.1 修订中）
+> **v1.1 修订摘要**：3 处——① §0.3 明确 MEAL-031 PRD §3 vs §6 冲突立场；② §6.1 F1 加 5 分钟内点击提示路径；③ §5.1 Food 数据模型 + §6.6 搜索状态补 nameAliases 拼音首字母
 > **关联 PRD**：`docs/lifewise/specs/PRD/04-diet-tracking.md`
 > **关联架构**：`docs/lifewise/architecture/business-architecture.md`、`docs/lifewise/architecture/technical-architecture.md`
 > **交付物**：本设计文档 + `04-diet-ui-v1.html` 单文件原型
@@ -44,7 +45,7 @@
 - 视觉识别（拍照 / 语音 / 条形码 = v1.2+，本次占位路由 disabled）
 - AI 饮食建议（v1.1+，作为 H4 段内 chip「AI 洞察」入口占位不实现）
 - 家庭成员档案（v1.3+）
-- 月度 PDF 报告（v1.1+）
+- 月度 PDF 报告（v1.1+；**v1.1 修订明确**：PRD §3 将 MEAL-031 列入 MVP 段、§6 明确"v1.1 不做"，PRD 自身矛盾。**本设计按 §6 立场**：MEAL-031 严格 Out of Scope，v1 仅做 MEAL-030 月度 CSV 导出；如未来需提前实现 PDF，由 writing-plans 阶段另开子任务）
 - 与消费模块联动 / 任务模块运动打卡联动（v1.3+）
 - 体重 / 睡眠（v1.x；进 H4「档案」段内 chip 占位不实现）
 
@@ -60,7 +61,7 @@ App 入口
       ├─ 「任务」入口 → 任务模块（沿用 01-task-ui）
       ├─ 「习惯」入口 → 习惯模块（沿用 01-task-ui）
       ├─ 「日报」入口 → 日报模块（沿用 02-daily-ui）
-      └─ 「🌿 健康」入口 → 饮食模块（V1-V6）
+      └─ 「🌿 健康」入口 → 饮食模块（V1-V4 + v1.x chip 占位：体重/睡眠/AI 洞察/提醒）
            ├─ H1 今日（/health/today）        ← 默认 Segmented 第 1 段
            ├─ H2 本周（/health/week）         ← 第 2 段
            ├─ H3 食物库（/health/foods）      ← 第 3 段
@@ -269,7 +270,7 @@ App 入口
 | 组件 | 用途 | 调用方式 |
 |------|------|---------|
 | `MealExportTrigger` | H1 / H2 顶部"📤"导出触发 | 唤起 G2 `GlobalExportSheet`；传 `{type:'meal', scope:'month'}`（v1 仅月度，单餐/周聚合留 v1.1） |
-| `MealFAB` | H1 顶部"➕ 餐次" FAB | 当前时段自动判定餐段 → 唤起 `MealPickerSheet` mode=`add`；**长按 → mode=`quick`**；超推荐 N+1 时弹 toast "今日 [段] 已记录 [N] 次" |
+| `MealFAB` | H1 顶部"➕ 餐次" FAB | 当前时段自动判定餐段 → 唤起 `MealPickerSheet` mode=`add`；**长按 1.2s → mode=`quick`**（与 §11 自检一致）；超推荐 N+1 时弹 toast "今日 [段] 已记录 [N] 次" |
 
 ### 4.4 命名空间规则（3 层）
 
@@ -345,7 +346,7 @@ App 入口
 {
   id: "f_042",                          // f_<内置序号> 或 f_<uuid 自定义>
   name: "煎饼",                          // 中文名
-  nameAliases: ["煎饼果子", "jianbing"],  // 别名（中文 + 拼音 + 英文）；用于搜索
+  nameAliases: ["煎饼果子", "jianbing", "jb"],  // 别名（中文 + 拼音全拼 + 拼音首字母 + 英文）；用于搜索；**v1.1 修订**：每个内置 Food 必须包含至少 1 个拼音首字母别名（AC-2 "jf"→"鸡饭" 场景）
   category: "主食",                       // 6 分类（主食/肉类/蔬菜/水果/饮品/零食）
   kcalPer100g: 320,                      // 每 100g 千卡
   proteinPer100g: 8,                    // g/100g
@@ -371,6 +372,11 @@ App 入口
   estimatedProtein: 65,                 // g；约 1.2g/kg（轻量减脂）
   estimatedCarb: 220,                   // g；45-65% 总热量
   estimatedFat: 60,                     // g；20-35% 总热量
+  // 用户自定义目标（v1 可编辑；缺省 = estimated*）
+  customTargetKcal?: number,            // kcal
+  customTargetProtein?: number,         // g
+  customTargetCarb?: number,            // g
+  customTargetFat?: number,             // g
   // 推荐区间
   proteinRange: [10, 15],               // % 总热量
   carbRange: [45, 65],
@@ -406,8 +412,8 @@ todayConsumed = meals.filter(m => sameDay(m.takenAt))
                   .reduce((s, m) => s + m.kcal, 0)
 // 注意：mode=quick 的 Meal 计入 todayConsumed，但不计入 MacroDonut
 
-// 今日剩余（kcal）
-todayRemain = todayConsumed - nutritionTarget.estimatedKcal
+// 今日剩余（kcal；优先用户自定义目标，缺省回退估算值）
+todayRemain = todayConsumed - (nutritionTarget.customTargetKcal ?? nutritionTarget.estimatedKcal)
 //   < 0                  → "剩余 N kcal"（已用 <target）
 //   ≥ target × 0.85      → "接近"（橙）
 //   > target × 1.1       → "溢出"（红，进度环变 danger）
@@ -510,11 +516,11 @@ estimatedKcal = round(BMR × activityFactor)
 
 | # | 流程 | 路径 | 关键反馈 |
 |---|------|------|---------|
-| **F1** | 30 秒加餐 | MealFAB 单击 → MealPickerSheet mode=`add` → 食物搜索 → 份量滑块 → 确认 | Sheet 关闭 + MealCard 已加态 + MealProgressOverview 重算 |
+| **F1** | 30 秒加餐 | MealFAB 单击 → 检测同 slot 5 分钟内是否已有 Meal → **若有**：Sheet 顶部提示「检测到 [时间] 早餐已记 [N] 项，是否继续追加？」+ 「继续追加 / 新建」二选一（默认 30s 无操作 = 继续追加）→ MealPickerSheet mode=`add`；**若无**：直接 mode=`add` → 食物搜索 → 份量滑块 → 确认 | Sheet 关闭 + MealCard 已加态 + MealProgressOverview 重算 |
 | **F2** | 懒人模式（PRD AC-3） | MealFAB 长按 → MealPickerSheet mode=`quick` → kcal + 备注 → 确认 | Sheet 关闭 + MealCard 已加（无营养明细） |
 | **F3** | 食物库搜索 | H3 搜索 → 拼音/中/英/别名归一化 → 选食物 → FoodDetailSheet mode=`view` → 加入餐次 | 加入后回到 H1.x 加餐 Sheet |
 | **F4** | 自定义食物 | H3 搜索无结果 → CTA → FoodDetailSheet mode=`custom` → 名称/分类/100g 营养 → 保存 | "🌟 我的" 标签演示 |
-| **F5** | 档案配置 | H4 → chip 切换 `[基础 \| 目标 \| 偏好]` → 基础 chip 录入 5 字段 → 保存 \| 目标 chip 设置能量/蛋白/碳水/脂肪目标值 → 保存 \| 偏好 chip 设置饮食偏好（素食/低钠/低糖 等 v1 占位）→ 保存 → MealProgressOverview 重算剩余 + H4 显示估算结果 |
+| **F5** | 档案配置 | H4 → chip 切换 `[基础 \| 目标 \| 偏好]` → 基础 chip 录入身高/体重/性别/年龄/活动量 5 字段 → 保存 \| 目标 chip 设置能量/蛋白/碳水/脂肪目标值 → 保存 \| 偏好 chip 设置饮食偏好（素食/低钠/低糖 等 v1 占位）→ 保存 → MealProgressOverview 重算剩余 + H4 显示估算结果 |
 | **F6** | 本周营养汇总 | 健康 Tab → 本周 → WeekChart + MacroDonut | 7 天柱状 + 宏量扇形 + 推荐区间偏离提示 |
 | **F7** | 月度 CSV 导出 | H1 / H2 顶部"📤" → MealExportTrigger → G2 GlobalExportSheet (scope=`month`) | 下载 CSV |
 
@@ -524,6 +530,7 @@ estimatedKcal = round(BMR × activityFactor)
 [空]    未加餐  → 显示 "➕ 记 [段]餐" CTA → 唤起 MealPickerSheet mode=`add`
 [已加]  已加餐  → 显示 emoji + 段名 + 总 kcal + 条目数
                  → 长按: 编辑 / 删除菜单 → 唤起 mode=`edit` 或删除（二次确认）
+                 → 单击 → 唤起 MealPickerSheet mode=`detail`（**v1.1 修订**：若同 slot 5 分钟内已有 Meal，先走 F1 的 Sheet 顶部二选一；选定"继续追加"进入 mode=`add`，选定"新建"创建新 Meal——v1.1+ 评估独立"新增"入口）
 [草稿]  draft 恢复中 → MealCard 显示 "⚠ 草稿" + localStorage draft 提示
 [当前]  正在 MealPickerSheet 编辑 → MealCard 弱化显示
 ```
@@ -532,7 +539,7 @@ estimatedKcal = round(BMR × activityFactor)
 
 ```
 mode=add       → 食物搜索 + 份量 + 营养预览 + 确认
-mode=detail    → 全部 MealListItem + 营养明细 + 「✏ 编辑」按钮
+mode=detail    → 详情 Tab（全部 MealListItem + 营养明细）+ 「✏ 编辑」跳 edit
 mode=edit      → 同 add，但 MealItem 已预填
 mode=quick     → 单 kcal 输入 + 备注 + 确认（懒人模式，跳过食物库 + 份量）
 ```
@@ -577,7 +584,7 @@ MacroDonut:
 ```
 [初始]    空字符串 → 显示"试试 [拼音/中文/英文]"
 [搜索中]  防抖 300ms → loading
-[命中]    列表更新
+[命中]    列表更新（匹配路径：中文名 / 拼音全拼 / 拼音首字母 / 别名 / 英文，**v1.1 修订**：拼音首字母路径确保 "jf"→"鸡饭"）
 [无结果]  显示"换个关键词" + 自定义食物 CTA
 ```
 
@@ -654,7 +661,7 @@ MacroDonut:
 - 选中态用 `--brand`；未选用 `--text-2`
 - 🌿 Tab 红点 = 4px 圆点，右上角定位，不挡图标
 - Tab 顺序固定，不提供隐藏 / 折叠入口
-- **与 daily-ui v1.1 兼容**：daily-ui v1.2 加修订记录说明 BottomTab5 → BottomTab6
+- **与 daily-ui v1.2 配套**：daily-ui v1.2 加修订记录说明 BottomTab5 → BottomTab6（健康 Tab 编号 5）
 
 ### 8.4 lg 桌面端特别说明
 
@@ -687,7 +694,7 @@ MacroDonut:
 | H1 进度环变化 | polite | "今日已用 1200 千卡，占推荐 67%；剩余 550 千卡" |
 | 加餐成功 | polite | "早餐已记录 3 项，共 540 千卡" |
 | 懒人模式加餐成功 | polite | "早餐已记录，共 350 千卡" |
-| 搜索命中 | polite | "搜索『jf』命中 2 条：煎饼、鸡饭" |
+| 搜索命中 | polite | "搜索『jf』命中 1 条：鸡饭；『jb』命中 1 条：煎饼" |
 | 搜索无结果 | assertive | "搜索无结果，可自定义食物" |
 | 档案未填完整 | assertive | "档案未填完整，无法获取推荐摄入估算" |
 | MealProgressOverview 溢出 | assertive | "今日热量已超出推荐 15%" |
@@ -788,7 +795,7 @@ docs/lifewise/designs/
 | MEAL-002 编辑 / 软删除餐次 | H1.x mode=`edit`；H1 MealCard 长按 |
 | MEAL-003 餐次下添加食物条目 | H1.x mode=add 内嵌 FoodItem + 份量 |
 | MEAL-004 食物份数 | H1.x mode=add 份量滑块 0.5 步进 |
-| MEAL-005 餐次时间 | Meal.createdAt 取当前；±12h 可调 |
+| MEAL-005 餐次时间 | Meal.takenAt 取当前；±12h 可调 |
 | MEAL-006 餐次备注 | H1.x 任意 mode（备注 ≤200 字） |
 | **lazy 模式（PRD AC-3）** | **H1.x mode=quick（懒人打卡）** |
 | MEAL-010 内置 200+ 食物库 | H3 FoodItem（mock 截 30+） |
@@ -811,7 +818,7 @@ docs/lifewise/designs/
 `docs/lifewise/designs/02-daily-ui/02-daily-ui-design.md` 中 §0 修订记录需追加：
 
 ```markdown
-- v1.2 修 1 项 Tab 兼容：① BottomTab5 → BottomTab6 改名（健康 Tab 编号 5）；② 顺序追加 🌿 健康 Tab 于 📝 日报 与 👤 我 之间；③ 「🌿 健康」Tab 红点规则独立（详见 04-diet-ui §1.3）
+- v1.2 修 1 类 Tab 兼容（3 子项）：① BottomTab5 → BottomTab6 改名（健康 Tab 编号 5）；② 顺序追加 🌿 健康 Tab 于 📝 日报 与 👤 我 之间；③ 「🌿 健康」Tab 红点规则独立（详见 04-diet-ui §1.3）
 ```
 
 ### 与 03-expense-ui 边界（假设后续接入）
