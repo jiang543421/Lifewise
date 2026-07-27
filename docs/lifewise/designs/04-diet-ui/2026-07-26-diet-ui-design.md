@@ -516,7 +516,7 @@ estimatedKcal = round(BMR × activityFactor)
 
 | # | 流程 | 路径 | 关键反馈 |
 |---|------|------|---------|
-| **F1** | 30 秒加餐 | MealFAB 单击 → 检测同 slot 5 分钟内是否已有 Meal → **若有**：Sheet 顶部提示「检测到 [时间] 早餐已记 [N] 项，是否继续追加？」+ 「继续追加 / 新建」二选一（默认 30s 无操作 = 继续追加）→ MealPickerSheet mode=`add`；**若无**：直接 mode=`add` → 食物搜索 → 份量滑块 → 确认 | Sheet 关闭 + MealCard 已加态 + MealProgressOverview 重算 |
+| **F1** | 30 秒加餐 | MealFAB 单击 → 检测同 slot 5 分钟内是否已有 Meal → **若有**：Sheet 顶部提示条「检测到 [时间] 早餐已记 [N] 项」+ 30s 倒计时进度条 + 文案「N 秒后默认继续追加」+ 「继续追加 / 新建」二选一按钮（**超时自动选「继续追加」并滑入 Sheet 内容区**）；**若无**：直接 mode=`add` → 食物搜索 → 份量滑块 → 确认 | Sheet 关闭 + MealCard 已加态 + MealProgressOverview 重算 |
 | **F2** | 懒人模式（PRD AC-3） | MealFAB 长按 → MealPickerSheet mode=`quick` → kcal + 备注 → 确认 | Sheet 关闭 + MealCard 已加（无营养明细） |
 | **F3** | 食物库搜索 | H3 搜索 → 拼音/中/英/别名归一化 → 选食物 → FoodDetailSheet mode=`view` → 加入餐次 | 加入后回到 H1.x 加餐 Sheet |
 | **F4** | 自定义食物 | H3 搜索无结果 → CTA → FoodDetailSheet mode=`custom` → 名称/分类/100g 营养 → 保存 | "🌟 我的" 标签演示 |
@@ -529,8 +529,11 @@ estimatedKcal = round(BMR × activityFactor)
 ```
 [空]    未加餐  → 显示 "➕ 记 [段]餐" CTA → 唤起 MealPickerSheet mode=`add`
 [已加]  已加餐  → 显示 emoji + 段名 + 总 kcal + 条目数
-                 → 长按: 编辑 / 删除菜单 → 唤起 mode=`edit` 或删除（二次确认）
-                 → 单击 → 唤起 MealPickerSheet mode=`detail`（**v1.1 修订**：若同 slot 5 分钟内已有 Meal，先走 F1 的 Sheet 顶部二选一；选定"继续追加"进入 mode=`add`，选定"新建"创建新 Meal——v1.1+ 评估独立"新增"入口）
+                 → **单击 → 直接唤起 mode=`detail`（纯查看）**——**v1.1 修订改回**：用户预期"点已加 = 查看刚吃了什么"，不应弹加餐提示
+                 → 长按: 菜单 = 「✏ 编辑 / ➕ 再记一项 / 🗑 删除」三项
+                       - 编辑 → mode=`edit`
+                       - 再记一项 → 走 F1 同 slot 5 分钟内 Sheet 顶部二选一（**仅当 5 分钟内有 Meal 时显示；否则隐藏**）
+                       - 删除 → 二次确认 → 软删除 → 30 天回收站
 [草稿]  draft 恢复中 → MealCard 显示 "⚠ 草稿" + localStorage draft 提示
 [当前]  正在 MealPickerSheet 编辑 → MealCard 弱化显示
 ```
@@ -582,11 +585,14 @@ MacroDonut:
 ### 6.6 搜索 4 状态（H3 食物库 / H1.x add 模式）
 
 ```
-[初始]    空字符串 → 显示"试试 [拼音/中文/英文]"
+[初始]    空字符串 → 显示"试试 [拼音/中文]"
 [搜索中]  防抖 300ms → loading
-[命中]    列表更新（匹配路径：中文名 / 拼音全拼 / 拼音首字母 / 别名 / 英文，**v1.1 修订**：拼音首字母路径确保 "jf"→"鸡饭"）
+[命中]    列表更新（v1.1 修订精简到 3 路径：中文名 / 别名 / 拼音首字母；**排序规则**：精确匹配 > 前缀匹配 > 包含匹配；**首字母匹配策略**：query 作为首字母前缀，例 "jf" 命中所有 nameAliases 拼音首字母以 "jf" 开头的 Food，如 jifan/jiafan/jianbing）
 [无结果]  显示"换个关键词" + 自定义食物 CTA
+[首字母冲突]  命中 ≥2 条 → 列表头标注 "首字母搜索 2 条, 按完整度排序"；mock 数据预置 jf → 鸡饭 + 酒坊冲突（演示前缀匹配 + 完整度排序）
 ```
+
+**v1.1+ 评估**（不实现）：拼音全拼 / 英文 / 模糊匹配路径；更精细的拼音权重；按用户历史偏好排序。
 
 ### 6.7 懒人模式 vs 普通模式的营养显示
 
@@ -784,6 +790,7 @@ docs/lifewise/designs/
 9. 移动端 草稿恢复 toast（H1.x add 进入）
 10. 移动端 拍照占位 disabled + tooltip
 11. 桌面端 H1 + H2 + H3 + H4 单列布局
+12. 移动端 H1.x 搜索 "jf" 命中 2 条（鸡饭 + 酒坊，按完整度排序，首字母冲突 demo）
 
 ---
 
@@ -844,5 +851,5 @@ docs/lifewise/designs/
 
 ---
 
-*文档版本：v1.0*
-*下一步：生成 `04-diet-ui-v1.html` → 自审 → git commit → 用户审稿 → 移交 writing-plans*
+*文档版本：v1.1*
+*下一步：writing-plans 阶段生成实施计划（单文件 HTML 原型 04-diet-ui-v1.html 实现拆解）*
