@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lifewise 认证与权限设计 v1.0 — 设计文档</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #0F172A;
+  background: #F8FAFC;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+a { color: #3B5BFE; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:root {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --surface-3: #E2E8F0;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-1: #0F172A;
+  --text-2: #475569;
+  --text-3: #94A3B8;
+  --primary: #3B5BFE;
+  --primary-soft: #E8EEFF;
+  --primary-deep: #1E3A8A;
+  --success: #10B981;
+  --success-soft: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-soft: #FEF3C7;
+  --danger: #EF4444;
+  --danger-soft: #FEE2E2;
+  --info: #0EA5E9;
+  --info-soft: #E0F2FE;
+  --sec-0: #64748B; --sec-1: #0EA5E9; --sec-2: #8B5CF6; --sec-3: #EC4899;
+  --sec-4: #F59E0B; --sec-5: #10B981; --sec-6: #3B5BFE; --sec-7: #6366F1;
+  --sec-8: #14B8A6; --sec-9: #EF4444; --sec-10: #F97316; --sec-11: #06B6D4;
+  --sec-12: #84CC16; --sec-13: #A855F7; --sec-14: #6B7280; --sec-15: #DC2626;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --fs-h1: 28px; --fs-h2: 22px; --fs-h3: 18px; --fs-h4: 16px; --fs-body: 14px; --fs-small: 12px; --fs-micro: 11px;
+}
+
+.layout { display: grid; grid-template-columns: 280px 1fr; gap: 0; max-width: 1600px; margin: 0 auto; min-height: 100vh; }
+
+.sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--surface); border-right: 1px solid var(--border); padding: var(--sp-5) 0; }
+.sidebar-header { padding: 0 var(--sp-5) var(--sp-4); border-bottom: 1px solid var(--border); margin-bottom: var(--sp-4); }
+.sidebar-header h1 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-1); display: flex; align-items: center; gap: var(--sp-2); }
+.sidebar-header .meta { margin-top: var(--sp-2); font-size: 11px; color: var(--text-3); display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.sidebar-header .meta span { padding: 2px 6px; background: var(--surface-2); border-radius: 4px; }
+.toc { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 0; }
+.toc a { display: block; padding: 6px var(--sp-5); font-size: 13px; color: var(--text-2); border-left: 3px solid transparent; transition: all 0.15s ease; }
+.toc a:hover { background: var(--surface-2); color: var(--text-1); text-decoration: none; }
+.toc a.active { background: var(--primary-soft); color: var(--primary-deep); border-left-color: var(--primary); font-weight: 600; }
+.toc .lvl-3 { padding-left: var(--sp-7); font-size: 12px; }
+.toc .lvl-4 { padding-left: 88px; font-size: 12px; }
+
+.main { padding: var(--sp-6) var(--sp-7); max-width: 1100px; }
+
+.doc-header { background: linear-gradient(135deg, #3B5BFE 0%, #1E3A8A 100%); color: white; border-radius: var(--r-lg); padding: var(--sp-6); margin-bottom: var(--sp-6); box-shadow: var(--shadow-md); }
+.doc-header .badge { display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.2); border-radius: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: var(--sp-3); }
+.doc-header h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+.doc-header .subtitle { margin: var(--sp-2) 0 0; font-size: 14px; opacity: 0.9; }
+.doc-meta { margin-top: var(--sp-4); display: flex; flex-wrap: wrap; gap: var(--sp-3); font-size: 12px; }
+.doc-meta > div { background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 6px; }
+.doc-meta strong { font-weight: 600; margin-right: 4px; opacity: 0.85; }
+
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: var(--sp-5); overflow: hidden; scroll-margin-top: 20px; }
+.section-header { padding: var(--sp-4) var(--sp-5); background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--sp-3); }
+.section-header .icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; font-weight: 700; flex-shrink: 0; }
+.section-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text-1); }
+.section-header .section-num { font-size: 12px; color: var(--text-3); font-weight: 500; margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+.section-body { padding: var(--sp-5); }
+.section-body h3 { margin: var(--sp-5) 0 var(--sp-3); font-size: 16px; font-weight: 600; color: var(--text-1); padding-bottom: var(--sp-2); border-bottom: 1px solid var(--border); }
+.section-body h3:first-child { margin-top: 0; }
+.section-body h4 { margin: var(--sp-4) 0 var(--sp-2); font-size: 14px; font-weight: 600; color: var(--text-2); }
+.section-body p { margin: 0 0 var(--sp-3); color: var(--text-2); }
+.section-body ul, .section-body ol { margin: 0 0 var(--sp-3); padding-left: var(--sp-5); color: var(--text-2); }
+.section-body li { margin-bottom: var(--sp-1); }
+.section-body strong { color: var(--text-1); }
+.section-body hr { border: none; border-top: 1px solid var(--border); margin: var(--sp-5) 0; }
+
+.tbl { width: 100%; border-collapse: collapse; margin: var(--sp-3) 0; font-size: 13px; background: var(--surface); border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
+.tbl thead { background: var(--surface-2); }
+.tbl th { text-align: left; padding: 10px 14px; font-weight: 600; color: var(--text-1); border-bottom: 2px solid var(--border); white-space: nowrap; }
+.tbl td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
+.tbl tbody tr:last-child td { border-bottom: none; }
+.tbl tbody tr:hover { background: var(--surface-2); }
+.tbl code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--primary-deep); }
+.tbl .ok { color: var(--success); font-weight: 600; }
+.tbl .no { color: var(--danger); font-weight: 600; }
+
+.code-wrap { position: relative; margin: var(--sp-3) 0; }
+.code-label { display: inline-block; padding: 4px 10px; background: var(--text-1); color: white; font-size: 11px; font-weight: 600; border-radius: var(--r-sm) var(--r-sm) 0 0; font-family: 'JetBrains Mono', monospace; }
+.code-block { background: #0F172A; color: #E2E8F0; border-radius: 0 var(--r-md) var(--r-md) var(--r-md); padding: var(--sp-4); overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6; white-space: pre; }
+.code-block .com { color: #64748B; font-style: italic; }
+.code-block .str { color: #86EFAC; }
+
+code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--primary-deep); border: 1px solid var(--border); }
+
+.callout { margin: var(--sp-3) 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); border-left: 4px solid; background: var(--surface-2); color: var(--text-2); font-size: 13px; }
+.callout.info { border-color: var(--info); background: var(--info-soft); }
+.callout.warn { border-color: var(--warning); background: var(--warning-soft); }
+.callout.danger { border-color: var(--danger); background: var(--danger-soft); }
+.callout.success { border-color: var(--success); background: var(--success-soft); }
+.callout strong { color: var(--text-1); }
+.callout p:last-child { margin-bottom: 0; }
+
+.steps { counter-reset: step; list-style: none; padding: 0; margin: var(--sp-3) 0; }
+.steps li { counter-increment: step; position: relative; padding: var(--sp-2) 0 var(--sp-2) 40px; margin-bottom: var(--sp-2); color: var(--text-2); }
+.steps li::before { content: counter(step); position: absolute; left: 0; top: 6px; width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+
+.sub-section { margin: var(--sp-4) 0; padding-left: var(--sp-4); border-left: 3px solid var(--primary-soft); }
+.sub-section h4 { margin-top: 0; color: var(--primary-deep); font-size: 14px; font-weight: 600; }
+
+.checklist { list-style: none; padding: 0; margin: var(--sp-3) 0; }
+.checklist li { position: relative; padding: 8px 0 8px 32px; border-bottom: 1px solid var(--border); color: var(--text-2); font-size: 13px; }
+.checklist li:last-child { border-bottom: none; }
+.checklist li::before { content: '☐'; position: absolute; left: 8px; top: 8px; color: var(--text-3); font-size: 16px; font-weight: 700; }
+.checklist li.emphasized { background: var(--warning-soft); margin: 0 -8px; padding: 8px 8px 8px 40px; border-radius: 6px; border-bottom: none; font-weight: 500; }
+.checklist li.emphasized::before { left: 16px; color: var(--warning); }
+
+[id] { scroll-margin-top: 24px; }
+
+@media (max-width: 1024px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; max-height: 50vh; }
+  .main { padding: var(--sp-4); }
+  .doc-header h1 { font-size: 22px; }
+}
+
+@media print {
+  .sidebar { display: none; }
+  .layout { grid-template-columns: 1fr; }
+  .main { padding: 0; max-width: 100%; }
+  .section { break-inside: avoid; box-shadow: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>🔐 认证 & 权限设计</h1>
+      <div class="meta">
+        <span>v1.0 MVP</span>
+        <span>2026-07-28</span>
+      </div>
+    </div>
+    <ul class="toc">
+      <li><a href="#sec-0">§0 设计目标与范围</a></li>
+      <li><a href="#sec-1">§1 已锁定决策表（18 项）</a></li>
+      <li><a href="#sec-2">§2 账号体系</a></li>
+      <li><a href="#sec-2-1" class="lvl-3">· 2.1 users 字段</a></li>
+      <li><a href="#sec-2-1-1" class="lvl-3">· 2.1.1 user_profiles 字段</a></li>
+      <li><a href="#sec-2-2" class="lvl-3">· 2.2 username 命名规则</a></li>
+      <li><a href="#sec-2-3" class="lvl-3">· 2.3 角色矩阵</a></li>
+      <li><a href="#sec-3">§3 首次注册管理员流程</a></li>
+      <li><a href="#sec-4">§4 注册流</a></li>
+      <li><a href="#sec-5">§5 登录流</a></li>
+      <li><a href="#sec-6">§6 找回密码</a></li>
+      <li><a href="#sec-7">§7 改密与改 username</a></li>
+      <li><a href="#sec-8">§8 首次登录引导</a></li>
+      <li><a href="#sec-9">§9 API 契约表</a></li>
+      <li><a href="#sec-10">§10 安全策略</a></li>
+      <li><a href="#sec-11">§11 数据模型迁移</a></li>
+      <li><a href="#sec-12">§12 验收清单</a></li>
+      <li><a href="#sec-13">§13 未来扩展</a></li>
+      <li><a href="#sec-14">§14 附录</a></li>
+      <li><a href="#sec-15">§15 变更记录</a></li>
+    </ul>
+  </aside>
+
+  <main class="main">
+
+    <div class="doc-header">
+      <span class="badge">设计文档 · v1.0</span>
+      <h1>🔐 Lifewise 认证与权限设计</h1>
+      <p class="subtitle">解决技术架构 §6.5「用户认证与权限设计」缺口；为研发提供单文件可开工的设计输入。</p>
+      <div class="doc-meta">
+        <div><strong>锁定日期</strong>2026-07-28</div>
+        <div><strong>适用版本</strong>v1.0 MVP</div>
+        <div><strong>依赖</strong>架构 §0/§5.1/§5.4；数据模型 v1.1.1 + v1.2；业务架构 §2/§6.1/§11</div>
+      </div>
+    </div>
+
+    <section class="section" id="sec-0">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-0);">§</div>
+        <h2>§0 设计目标与范围</h2>
+        <span class="section-num">0.0</span>
+      </div>
+      <div class="section-body">
+        <h3>0.1 目标</h3>
+        <ol>
+          <li>落实架构 §0「邮箱密码 + JWT + Refresh Token」决策</li>
+          <li>解决 PRD §6.5「用户认证与权限设计」缺口（高优先级）</li>
+          <li>不引入新的强外部依赖：SMTP 走可选降级路径，不阻塞本地部署</li>
+          <li>为未来扩展（OAuth、Passkey、双因素）预留接口</li>
+        </ol>
+        <h3>0.2 范围（MVP）</h3>
+        <ul>
+          <li>首次管理员注册（部署 §5.4 已埋点）</li>
+          <li>普通用户注册</li>
+          <li>账号/邮箱 + 密码登录</li>
+          <li>找回密码（邮箱验证码）</li>
+          <li>主动改密</li>
+          <li>改 username（7 天冷却期）</li>
+          <li>首次登录引导（昵称 + 时区）</li>
+          <li>AI/通知同意 Modal</li>
+          <li>主动登出</li>
+        </ul>
+        <h3>0.3 不在范围（MVP 留口）</h3>
+        <ul>
+          <li>OAuth 第三方登录（微信、Google、Apple）—— 架构 §0「可扩展 OAuth」</li>
+          <li>Passkey（WebAuthn）</li>
+          <li>双因素（TOTP / SMS）</li>
+          <li>短信找回密码</li>
+          <li>SSO / SAML / OIDC</li>
+        </ul>
+        <h3>0.4 与已有约定的关系</h3>
+        <ul>
+          <li>架构 §0 已锁：「邮箱密码 + JWT + Refresh Token」——本文档是其落地方案</li>
+          <li>架构 §5.1 已锁：bcrypt cost=12、JWT HS256、登录限流、失败锁定——本文档引用 + 补充实现细节</li>
+          <li>业务架构 §6.1：<code>User</code>、<code>UserPreference</code>、<code>UserProfile</code> 三表分离——本文档对齐</li>
+          <li>数据模型 v1.1.1：<code>users</code> 已占位、<code>user_profiles</code> 表已存在（H-3）——本文档扩展 <code>users</code> 表</li>
+          <li>数据模型 v1.2 (auth amendment)：本文档 §11 提议</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-1">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-1);">§</div>
+        <h2>§1 已锁定决策表（18 项）</h2>
+        <span class="section-num">1.0</span>
+      </div>
+      <div class="section-body">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>决策项</th><th>方案</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>登录凭证</td><td>username <strong>或</strong> email + 密码（二选一登录）</td><td>本次</td></tr>
+            <tr><td>2</td><td>username 规则</td><td>注册时自定；3-20 字符；小写字母/数字/下划线；保留字禁用</td><td>本次</td></tr>
+            <tr><td>3</td><td>username 改名</td><td>7 天冷却期可改；不走重定向</td><td>本次</td></tr>
+            <tr><td>4</td><td>昵称 (nickname)</td><td>首次进入系统设置；随时可改；永远可改</td><td>本次</td></tr>
+            <tr><td>5</td><td>email 字段</td><td>保留 <code>email TEXT UNIQUE NOT NULL</code>（架构已锁）</td><td>架构 §0</td></tr>
+            <tr><td>6</td><td>密码强度</td><td>8 位起 + 大写+小写+数字</td><td>本次</td></tr>
+            <tr><td>7</td><td>密码哈希</td><td>bcrypt cost=12</td><td>架构 §5.1</td></tr>
+            <tr><td>8</td><td>JWT</td><td>Access 15min HS256 + Refresh 30天 HttpOnly Secure SameSite=Strict Cookie</td><td>架构 §5.1</td></tr>
+            <tr><td>9</td><td>找回密码</td><td>邮箱 6 位数字验证码；5min 过期；单次使用</td><td>本次</td></tr>
+            <tr><td>10</td><td>找回密码 SMTP 降级</td><td>本地未配 SMTP 时，验证码写入 admin console 系统消息</td><td>本次</td></tr>
+            <tr><td>11</td><td>注册流程</td><td>username + email + password + 服务条款勾选 → 创建</td><td>本次</td></tr>
+            <tr><td>12</td><td>首次登录引导</td><td>2 步轻引导（昵称 + 时区）</td><td>本次</td></tr>
+            <tr><td>13</td><td>AI/通知同意</td><td>进系统后弹 Modal（不阻塞主流程）</td><td>业务架构 §6.1</td></tr>
+            <tr><td>14</td><td>角色</td><td>USER / ADMIN（架构已锁）；首个注册 = ADMIN</td><td>架构 §5.1 + 部署 §5.4</td></tr>
+            <tr><td>15</td><td>协议勾选</td><td>注册页底部单一复选框（合并服务条款 + 隐私政策）</td><td>本次</td></tr>
+            <tr><td>16</td><td>第三方登录</td><td>MVP 不做；架构 §0 已留 OAuth 扩展口</td><td>架构 §0</td></tr>
+            <tr><td>17</td><td>限流</td><td>登录 10 req/min/IP；失败 5 次锁 15min（架构已锁）</td><td>架构 §5.1</td></tr>
+            <tr><td>18</td><td>跨用户访问</td><td>统一返回 404（防枚举）</td><td>架构 §5.1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="sec-2">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-2);">§</div>
+        <h2>§2 账号体系</h2>
+        <span class="section-num">2.0</span>
+      </div>
+      <div class="section-body">
+        <h3 id="sec-2-1">2.1 users 字段语义</h3>
+        <table class="tbl">
+          <thead><tr><th>字段</th><th>含义</th><th>时机</th><th>可改性</th></tr></thead>
+          <tbody>
+            <tr><td><code>username</code>（亦称 login_id）</td><td>登录账号</td><td>注册时定</td><td>7 天冷却期可改</td></tr>
+            <tr><td><code>email</code></td><td>找回通道、可选通知</td><td>注册时定（UNIQUE NOT NULL）</td><td>当前 MVP 不允许改（v1.1+ 再议）</td></tr>
+            <tr><td><code>password_hash</code></td><td>密码哈希</td><td>注册/改密</td><td>—</td></tr>
+            <tr><td><code>role</code></td><td>USER / ADMIN</td><td>注册时根据「是否首位」决定</td><td>不可改（管理员后台手动改）</td></tr>
+            <tr><td><code>status</code></td><td>ACTIVE / LOCKED / DISABLED</td><td>登录失败锁定 / 管理员封禁</td><td>—</td></tr>
+            <tr><td><code>last_username_change_at</code></td><td>上次改 username 时间</td><td>改 username 时写</td><td>—</td></tr>
+            <tr><td><code>token_version</code></td><td>JWT 版本号</td><td>注册时=0；改密 / 找回密码后 +1</td><td>由系统自动维护，用于 Refresh 校验（详见 §5.5）</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="sec-2-1-1">2.1.1 user_profiles 字段语义</h3>
+        <table class="tbl">
+          <thead><tr><th>字段</th><th>含义</th><th>时机</th><th>可改性</th></tr></thead>
+          <tbody>
+            <tr><td><code>nickname</code></td><td>展示名</td><td>首次进入系统设置</td><td>永远可改</td></tr>
+            <tr><td><code>timezone</code> / <code>locale</code></td><td>时区 / 语言</td><td>首次进入设置</td><td>随时可改</td></tr>
+            <tr><td><code>is_password_reset_pending</code></td><td>找回密码后强制改密标记</td><td>找回密码成功后置 true；强制改密后置 false</td><td>由系统自动维护</td></tr>
+            <tr><td><code>profile_complete</code></td><td>首次登录引导完成标志</td><td>onboarding 两步均完成后置 true</td><td>由系统自动维护</td></tr>
+            <tr><td><code>ai_interpretation_enabled</code></td><td>AI 解读开关</td><td>onboarding / 默认 ON</td><td>设置页可改</td></tr>
+            <tr><td><code>notification_email_enabled</code></td><td>邮件通知开关</td><td>onboarding / 默认 ON</td><td>设置页可改</td></tr>
+            <tr><td><code>notification_inapp_enabled</code></td><td>站内通知开关</td><td>onboarding / 默认 ON</td><td>设置页可改</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="sec-2-2">2.2 username 命名规则</h3>
+        <table class="tbl">
+          <thead><tr><th>项</th><th>规则</th></tr></thead>
+          <tbody>
+            <tr><td>长度</td><td>3-20 字符</td></tr>
+            <tr><td>字符集</td><td><code>[a-z0-9_]</code></td></tr>
+            <tr><td>开头</td><td>不能以数字开头（避开纯数字混淆用户名/编号）</td></tr>
+            <tr><td>保留字</td><td><code>admin</code>、<code>root</code>、<code>system</code>、<code>api</code>、<code>auth</code>、<code>login</code>、<code>register</code>、<code>null</code>、<code>undefined</code>、<code>nan</code> 及其大小写变体</td></tr>
+            <tr><td>唯一性</td><td>全库 UNIQUE；不区分大小写（应用层强制 <code>lower(username)</code> 比较与写入）</td></tr>
+            <tr><td>修改</td><td>7 天冷却期（详见 §7.3）</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="sec-2-3">2.3 角色矩阵</h3>
+        <table class="tbl">
+          <thead><tr><th>资源/操作</th><th>USER</th><th>ADMIN</th></tr></thead>
+          <tbody>
+            <tr><td>注册</td><td class="ok">✅（首位除外）</td><td class="ok">✅</td></tr>
+            <tr><td>登录</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+            <tr><td>找回密码</td><td class="ok">✅（本人）</td><td class="ok">✅（本人 + 重置任意 USER）</td></tr>
+            <tr><td>改密（本人）</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+            <tr><td>改 username（本人）</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+            <tr><td>改 nickname（本人）</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+            <tr><td>业务 CRUD（本人数据）</td><td class="ok">✅（隔离）</td><td class="ok">✅（隔离）</td></tr>
+            <tr><td>重置任意 USER 密码</td><td class="no">❌</td><td class="ok">✅</td></tr>
+            <tr><td>锁定 / 解锁任意 USER</td><td class="no">❌</td><td class="ok">✅</td></tr>
+            <tr><td>查看审计日志（本人）</td><td class="ok">✅（仅本人）</td><td class="ok">✅（全部）</td></tr>
+            <tr><td>列表所有 USER</td><td class="no">❌</td><td class="ok">✅</td></tr>
+          </tbody>
+        </table>
+        <div class="callout info"><strong>原则</strong>：ADMIN 仅用于「运营动作」，无业务数据访问特权。</div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-3">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-3);">§</div>
+        <h2>§3 首次注册管理员流程</h2>
+        <span class="section-num">3.0</span>
+      </div>
+      <div class="section-body">
+        <h3>3.1 触发条件</h3>
+        <ul>
+          <li>服务启动 + <code>SELECT COUNT(*) FROM users = 0</code> → 进入「首次管理员注册」特殊页（前端 SPA 检测、后端独立端点强制）</li>
+          <li>不允许并发创建多个首位 ADMIN（注册接口持分布式锁）</li>
+        </ul>
+        <div class="callout warn">
+          <strong>分布式锁实现</strong>：
+          <ul>
+            <li>Key：<code>lifewise:bootstrap:admin</code></li>
+            <li>Backend：Redis</li>
+            <li>加锁：<code>SET lifewise:bootstrap:admin &lt;requestId&gt; NX EX 30</code></li>
+            <li>解锁：Lua 脚本 CAS 删除（仅当 value == requestId）</li>
+            <li>拿锁后再次校验 <code>COUNT(*) = 0</code>，否则释放锁并返回 <code>SETUP_ADMIN_RACE</code></li>
+            <li>整个流程（校验 + 写入）必须在锁 TTL 内完成，否则回滚事务并释放锁</li>
+          </ul>
+        </div>
+        <h3>3.2 流程</h3>
+        <ol class="steps">
+          <li>用户访问 <code>https://localhost/</code> → 检测到首位注册态 → 进入 <code>/setup/admin</code> 路由</li>
+          <li>强制填写：username、email、password、勾选服务条款</li>
+          <li>服务端加分布式锁 → 校验首位条件（仍是首位）→ 写入 <code>users</code> 表（role=ADMIN）</li>
+          <li>写入 Outbox 事件 <code>user.admin_created</code>（v1.1+ 用于审计与告警）</li>
+          <li>写入 <code>user_profiles</code>（user_id 关联、字段待首次登录引导补全）</li>
+          <li>释放分布式锁 → 跳转登录页 → 自动登录（返回 Set-Cookie refresh_token）</li>
+        </ol>
+        <h3>3.3 不变量</h3>
+        <ul>
+          <li>首位 ADMIN 创建后，<strong><code>POST /api/v1/setup/admin</code> 立即返回 409 + <code>SETUP_ADMIN_ALREADY_DONE</code></strong>（防探测）</li>
+          <li>首位 ADMIN 创建后，普通注册入口开放</li>
+          <li>后续注册均 role=USER</li>
+          <li>ADMIN 角色变更只能通过管理员后台手动设置（不在 MVP UI 范围）</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-4">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-4);">§</div>
+        <h2>§4 注册流</h2>
+        <span class="section-num">4.0</span>
+      </div>
+      <div class="section-body">
+        <h3>4.1 输入字段</h3>
+        <table class="tbl">
+          <thead><tr><th>字段</th><th>客户端校验</th><th>服务端校验</th></tr></thead>
+          <tbody>
+            <tr><td><code>username</code></td><td>3-20 字符、<code>[a-z0-9_]</code>、不数字开头、保留字检查（实时异步）</td><td>Bean Validation @Pattern；DB UNIQUE</td></tr>
+            <tr><td><code>email</code></td><td>RFC 5322 简单正则、trim lowercase</td><td>Bean Validation @Email；DB UNIQUE</td></tr>
+            <tr><td><code>password</code></td><td>8+ 长度、大写+小写+数字</td><td>同步服务端正则</td></tr>
+            <tr><td><code>agreedToTerms</code></td><td>必须 true</td><td>Bean Validation @AssertTrue</td></tr>
+          </tbody>
+        </table>
+        <h3>4.2 流程</h3>
+        <ol class="steps">
+          <li>客户端 POST <code>/api/v1/auth/register</code></li>
+          <li>服务端 Bean Validation + 唯一性校验</li>
+          <li>密码 bcrypt(cost=12) 哈希</li>
+          <li>写入 <code>users</code> 表（status=ACTIVE、role=USER 或 ADMIN 见 §3）</li>
+          <li>写入 <code>user_profiles</code>（AI/通知默认开启、nickname NULL）</li>
+          <li>写入 Outbox 事件 <code>user.registered</code></li>
+          <li>返回标准 API 信封 <code>{ code: 0, data: { userId, username } }</code></li>
+        </ol>
+        <h3>4.3 防枚举</h3>
+        <ul>
+          <li>重复 username / email：响应统一 <code>REGISTER_FAILED</code>，不区分「账号已存在」或「email 已存在」</li>
+          <li>内部：写审计日志记录具体原因</li>
+          <li>客户端：仅给一句「注册失败，请检查输入或换个账号」</li>
+        </ul>
+        <h3>4.4 服务条款</h3>
+        <ul>
+          <li>注册页底部单一复选框「我已阅读并同意《服务条款》和《隐私政策》」</li>
+          <li>两份文档链接为 SPA 内折叠页（不弹窗，避免视觉打断）</li>
+          <li>复选框 unchecked 时禁用提交按钮</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-5">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-5);">§</div>
+        <h2>§5 登录流</h2>
+        <span class="section-num">5.0</span>
+      </div>
+      <div class="section-body">
+        <h3>5.1 输入</h3>
+        <ul>
+          <li><code>identifier</code>：username <strong>或</strong> email（前端自动 trim + lowercase）</li>
+          <li><code>password</code></li>
+        </ul>
+        <h3>5.2 流程</h3>
+        <ol class="steps">
+          <li>客户端 POST <code>/api/v1/auth/login</code></li>
+          <li>服务端按 <code>identifier</code> 形态路由：
+            <ul>
+              <li>含 <code>@</code> → email 匹配</li>
+              <li>否则 → <code>lower(username) = lower(?)</code></li>
+            </ul>
+          </li>
+          <li>用户不存在 → 走「未注册路径」（fake bcrypt 100ms 延迟 + 失败计数 +1）</li>
+          <li>存在 → bcrypt 校验密码</li>
+          <li>失败计数（Redis <code>rl:auth:fail:{userOrIp}</code>）</li>
+          <li>校验通过：
+            <ul>
+              <li>清空失败计数</li>
+              <li>生成 JWT Access（HS256、payload <code>{ sub: userId, role, tokenVersion }</code>、15min）</li>
+              <li>生成 JWT Refresh（同 payload、30 天、jti 随机）</li>
+              <li>下发 Refresh：Set-Cookie <code>refresh_token</code>；HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/refresh</li>
+              <li>响应体 <code>{ accessToken, user: { id, username, nickname, role, timezone } }</code></li>
+            </ul>
+          </li>
+          <li>写入审计日志 <code>auth.login</code></li>
+        </ol>
+        <h3>5.3 错误响应</h3>
+        <table class="tbl">
+          <thead><tr><th>错误</th><th>HTTP</th><th>code</th><th>客户端文案</th></tr></thead>
+          <tbody>
+            <tr><td>账号或密码错误</td><td>401</td><td><code>AUTH_INVALID_CREDENTIALS</code></td><td>账号或密码错误</td></tr>
+            <tr><td>账号被锁定</td><td>423</td><td><code>AUTH_LOCKED</code></td><td>登录失败次数过多，请 15 分钟后再试</td></tr>
+            <tr><td>账号已禁用</td><td>403</td><td><code>AUTH_DISABLED</code></td><td>账号已被禁用，请联系管理员</td></tr>
+            <tr><td>限流</td><td>429</td><td><code>RATE_LIMITED</code></td><td>请求过于频繁，请稍后再试</td></tr>
+          </tbody>
+        </table>
+        <h3>5.4 JWT 结构（payload）</h3>
+        <div class="code-wrap">
+          <div class="code-label">JSON</div>
+          <pre class="code-block"><span class="com">{</span>
+  <span class="str">"sub"</span>: <span class="str">"1001"</span>,
+  <span class="str">"role"</span>: <span class="str">"USER"</span>,
+  <span class="str">"tokenVersion"</span>: 1,
+  <span class="str">"iat"</span>: 1788000000,
+  <span class="str">"exp"</span>: 1788000900,
+  <span class="str">"jti"</span>: <span class="str">"uuid"</span>
+<span class="com">}</span></pre>
+        </div>
+        <ul>
+          <li><code>tokenVersion</code>：密码修改后 +1，使旧 token 失效</li>
+          <li><code>jti</code>：Refresh token 唯一标识，登出时入黑名单</li>
+        </ul>
+        <h3>5.5 Refresh 旋转</h3>
+        <ul>
+          <li>POST <code>/api/v1/auth/refresh</code>（强制 Cookie 路径）</li>
+          <li>校验顺序：
+            <ol>
+              <li>签名 + 过期（JWT 库）</li>
+              <li>黑名单（Redis <code>rl:auth:refresh:bl:{jti}</code>）</li>
+              <li><strong><code>tokenVersion</code> 一致性</strong>：payload 的 <code>tokenVersion</code> 必须等于 <code>users.token_version</code> 当前值；不匹配则拒绝并审计 <code>auth.refresh_token_version_mismatch</code></li>
+            </ol>
+          </li>
+          <li>校验通过 → 发新 Refresh + 新 Access</li>
+          <li>旧 Refresh 立即入黑名单 30 天</li>
+          <li>异常码：<code>AUTH_REFRESH_INVALID</code> / <code>AUTH_REFRESH_TOKEN_VERSION_MISMATCH</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-6">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-6);">§</div>
+        <h2>§6 找回密码</h2>
+        <span class="section-num">6.0</span>
+      </div>
+      <div class="section-body">
+        <h3>6.1 触发</h3>
+        <ul><li>登录页「忘记密码」链接 → 输入账号或 email</li></ul>
+        <h3>6.2 流程</h3>
+        <div class="sub-section">
+          <h4>步骤 1：申请验证码</h4>
+          <ol class="steps">
+            <li>POST <code>/api/v1/auth/forgot-password</code>（Body：identifier）</li>
+            <li>服务端按 identifier 形态查用户</li>
+            <li>用户不存在：响应统一 <code>OK</code>，不暴露存在性（但写「未注册路径」延迟 + 审计）</li>
+            <li>用户存在：
+              <ul>
+                <li>生成 6 位数字验证码</li>
+                <li>写入 <code>password_reset_tokens</code>（token_hash、identifier、expires_at、used_at NULL、attempt_count=0）</li>
+                <li><strong>有 SMTP</strong> → 发送邮件「验证码：XXXXXX，5 分钟内有效」</li>
+                <li><strong>无 SMTP</strong>（本地降级） → 写入 <code>admin_console_messages</code> 表 + 在 ADMIN 控制台「系统消息」中可见</li>
+              </ul>
+            </li>
+            <li>响应 <code>{ ok: true }</code>（无论是否存在用户）</li>
+          </ol>
+        </div>
+        <div class="sub-section">
+          <h4>步骤 2：提交验证码 + 新密码</h4>
+          <ol class="steps">
+            <li>POST <code>/api/v1/auth/reset-password</code>（Body：identifier + code + newPassword）</li>
+            <li>校验验证码：未过期、未使用、未超 5 次错误</li>
+            <li>校验密码强度（§4.1）</li>
+            <li>bcrypt 哈希新密码 → 更新 <code>users.password_hash</code></li>
+            <li><code>tokenVersion++</code> → 使所有旧 token 失效</li>
+            <li>标记 token <code>used_at = NOW()</code>、记录 IP</li>
+            <li>写入 <code>user_profiles.is_password_reset_pending = true</code>（首次登录检测，强制改密）</li>
+            <li>写入审计日志 <code>auth.password_reset</code></li>
+          </ol>
+        </div>
+        <h3>6.3 限流</h3>
+        <ul>
+          <li><code>/forgot-password</code>：1 req/30s/identifier + 5 req/h/identifier</li>
+          <li><code>/reset-password</code>：1 req/min/identifier + 10 req/h/identifier</li>
+        </ul>
+        <h3>6.4 安全</h3>
+        <ul>
+          <li>验证码：6 位数字、<code>lower()</code> 比较</li>
+          <li>单次使用：标记 used_at 后失效</li>
+          <li>错误 5 次后该验证码提前作废</li>
+          <li>新密码不可与旧密码相同（同密码拒绝）</li>
+        </ul>
+        <h3>6.5 本地无 SMTP 降级细节</h3>
+        <ul>
+          <li>配置项 <code>app.smtp.enabled</code>（默认 false）</li>
+          <li>应用启动时检测：<code>true</code> → 走邮件；<code>false</code> → 降级路径</li>
+          <li>验证码文本追加在 ADMIN 控制台顶部横幅（仅 ADMIN 可见）+ 持久化到 <code>admin_console_messages</code></li>
+          <li>ADMIN 用户通过 <code>/admin/console-messages</code>（管理后台）查看</li>
+          <li>隐私：仅 ADMIN 可见（role=ADMIN 才返回列表）</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-7">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-7);">§</div>
+        <h2>§7 改密与改 username</h2>
+        <span class="section-num">7.0</span>
+      </div>
+      <div class="section-body">
+        <h3>7.1 主动改密（已登录）</h3>
+        <ol class="steps">
+          <li>POST <code>/api/v1/users/me/password</code>（Body：oldPassword + newPassword）</li>
+          <li>校验旧密码</li>
+          <li>校验新密码强度</li>
+          <li>新密码不可与旧密码相同</li>
+          <li>bcrypt 哈希 → 更新</li>
+          <li><code>tokenVersion++</code> → 当前会话 Access 失效，强制下次请求走 Refresh 旋转</li>
+          <li>限流：5 req/h/user</li>
+          <li>写入审计 <code>auth.password_change</code></li>
+        </ol>
+        <h3>7.2 找回后强制改密</h3>
+        <ul>
+          <li><code>user_profiles.is_password_reset_pending = true</code> 时，所有非 <code>/auth/*</code> 请求中间件拦截 → 跳转 <code>/password-change-required</code></li>
+          <li>用户提交新密码（无需旧密码）→ 清标记</li>
+        </ul>
+        <h3>7.3 改 username</h3>
+        <ol class="steps">
+          <li>POST <code>/api/v1/users/me/username</code>（Body：newUsername）</li>
+          <li>校验新 username 合规（§2.2）</li>
+          <li>校验冷却期：
+            <ul>
+              <li><code>last_username_change_at IS NULL</code> → 允许</li>
+              <li><code>last_username_change_at &gt; NOW() - INTERVAL '7 days'</code> → 拒绝 <code>USERNAME_CHANGE_COOLDOWN</code></li>
+            </ul>
+          </li>
+          <li>唯一性：DB UNIQUE（应用层并发靠 <code>SELECT FOR UPDATE</code>）</li>
+          <li>更新 <code>username</code> + <code>last_username_change_at = NOW()</code></li>
+          <li>写入审计 <code>user.username_changed</code></li>
+          <li>限流：3 req/h/user</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section" id="sec-8">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-8);">§</div>
+        <h2>§8 首次登录引导</h2>
+        <span class="section-num">8.0</span>
+      </div>
+      <div class="section-body">
+        <h3>8.1 触发条件</h3>
+        <ul>
+          <li>登录响应中 <code>user.profileComplete: false</code>（来自 <code>user_profiles.profile_complete</code> 标志，详见 §2.1.1）</li>
+          <li>注册时 <code>profile_complete = false</code>；onboarding 两步完成后 <code>profile_complete = true</code></li>
+          <li>中间件检测到 → 跳转 <code>/onboarding</code></li>
+        </ul>
+        <h3>8.2 2 步轻引导</h3>
+        <table class="tbl">
+          <thead><tr><th>步骤</th><th>字段</th><th>校验</th></tr></thead>
+          <tbody>
+            <tr><td>第 1 步</td><td><code>nickname</code></td><td>必填、1-30 字符、不含控制字符</td></tr>
+            <tr><td>第 2 步</td><td><code>timezone</code></td><td>IANA 时区列表、默认 <code>Asia/Shanghai</code></td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>两步可分别保存，单步完成即写一次 DB</li>
+          <li>第 2 步保存后写 <code>profileComplete = true</code></li>
+        </ul>
+        <h3>8.3 AI/通知同意 Modal（不阻塞）</h3>
+        <ul>
+          <li>完成引导后进入主页 → 立即弹 Modal：
+            <ul>
+              <li>「是否启用 AI 解读？」+ 「是否启用通知提醒？」两个独立 toggle，默认 ON</li>
+              <li>「不再提醒」勾选 → 本次会话不再弹</li>
+            </ul>
+          </li>
+          <li>「同意 / 跳过」二选一即可关掉</li>
+          <li>写入 <code>user_profiles.ai_interpretation_enabled</code> 和 <code>*_push_enabled</code></li>
+          <li>Modal 走过一次后不再弹（除非用户重置偏好）</li>
+        </ul>
+        <h3>8.4 业务架构对齐</h3>
+        <div class="callout info">
+          业务架构 §6.1 要求"AI/通知同意状态可撤回"——Modal 写入字段后可在 <code>/settings/notifications</code> 与 <code>/settings/ai</code> 单独撤回；不在首次引导内强制。
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-9">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-9);">§</div>
+        <h2>§9 API 契约表</h2>
+        <span class="section-num">9.0</span>
+      </div>
+      <div class="section-body">
+        <table class="tbl">
+          <thead>
+            <tr><th>#</th><th>Method</th><th>Path</th><th>鉴权</th><th>Body</th><th>响应</th><th>限流</th><th>错误码</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>POST</td><td><code>/api/v1/auth/register</code></td><td>公开</td><td><code>{username,email,password,agreedToTerms}</code></td><td><code>{userId,username}</code></td><td>5/h/IP</td><td><code>REGISTER_FAILED</code></td></tr>
+            <tr><td>2</td><td>POST</td><td><code>/api/v1/auth/login</code></td><td>公开</td><td><code>{identifier,password}</code></td><td><code>{accessToken,user{...}}</code> + Set-Cookie</td><td>10/min/IP</td><td><code>AUTH_INVALID_CREDENTIALS</code> / <code>AUTH_LOCKED</code> / <code>AUTH_DISABLED</code></td></tr>
+            <tr><td>3</td><td>POST</td><td><code>/api/v1/auth/refresh</code></td><td>Refresh Cookie</td><td>—</td><td><code>{accessToken}</code> + Set-Cookie</td><td>30/min/user</td><td><code>AUTH_REFRESH_INVALID</code> / <code>AUTH_REFRESH_TOKEN_VERSION_MISMATCH</code></td></tr>
+            <tr><td>4</td><td>POST</td><td><code>/api/v1/auth/logout</code></td><td>已登录</td><td>—</td><td><code>{ok}</code> + 清 Cookie</td><td>—</td><td>—</td></tr>
+            <tr><td>5</td><td>POST</td><td><code>/api/v1/auth/forgot-password</code></td><td>公开</td><td><code>{identifier}</code></td><td><code>{ok}</code></td><td>1/30s + 5/h/identifier</td><td><code>RATE_LIMITED</code></td></tr>
+            <tr><td>6</td><td>POST</td><td><code>/api/v1/auth/reset-password</code></td><td>公开</td><td><code>{identifier,code,newPassword}</code></td><td><code>{ok}</code></td><td>1/min + 10/h/identifier</td><td><code>RESET_CODE_INVALID</code> / <code>RESET_CODE_EXPIRED</code> / <code>RESET_CODE_USED</code> / <code>PASSWORD_TOO_WEAK</code> / <code>PASSWORD_SAME_AS_OLD</code></td></tr>
+            <tr><td>7</td><td>GET</td><td><code>/api/v1/setup/admin-required</code></td><td>公开</td><td>—</td><td><code>{required:boolean}</code></td><td>—</td><td>—</td></tr>
+            <tr><td>7a</td><td>POST</td><td><code>/api/v1/setup/admin</code></td><td>公开</td><td><code>{username,email,password,agreedToTerms}</code></td><td><code>{userId,username}</code> + Set-Cookie</td><td>1 total/lifetime</td><td><code>SETUP_ADMIN_ALREADY_DONE</code> / <code>SETUP_ADMIN_RACE</code></td></tr>
+            <tr><td>8</td><td>POST</td><td><code>/api/v1/users/me</code></td><td>已登录（<code>is_password_reset_pending=false</code>）</td><td><code>{nickname?,timezone?}</code></td><td><code>{user{...}}</code></td><td>60/min/user</td><td><code>VALIDATION_FAILED</code></td></tr>
+            <tr><td>9</td><td>POST</td><td><code>/api/v1/users/me/password</code></td><td>已登录</td><td><code>{oldPassword,newPassword}</code></td><td><code>{ok}</code></td><td>5/h/user</td><td><code>AUTH_INVALID_OLD_PASSWORD</code> / <code>PASSWORD_TOO_WEAK</code> / <code>PASSWORD_SAME_AS_OLD</code></td></tr>
+            <tr><td>9a</td><td>POST</td><td><code>/api/v1/users/me/password/reset-required</code></td><td>已登录 + <code>is_password_reset_pending=true</code></td><td><code>{newPassword}</code></td><td><code>{ok}</code></td><td>5/h/user</td><td><code>PASSWORD_TOO_WEAK</code> / <code>PASSWORD_SAME_AS_OLD</code></td></tr>
+            <tr><td>10</td><td>POST</td><td><code>/api/v1/users/me/username</code></td><td>已登录</td><td><code>{username}</code></td><td><code>{username}</code></td><td>3/h/user</td><td><code>USERNAME_INVALID</code> / <code>USERNAME_TAKEN</code> / <code>USERNAME_CHANGE_COOLDOWN</code></td></tr>
+            <tr><td>11</td><td>POST</td><td><code>/api/v1/users/me/profile/onboarding/complete</code></td><td>已登录（<code>profile_complete=false</code>）</td><td>—</td><td><code>{ok}</code></td><td>60/min/user</td><td><code>VALIDATION_FAILED</code></td></tr>
+            <tr><td>12</td><td>GET</td><td><code>/api/v1/admin/console-messages</code></td><td>ADMIN</td><td>—</td><td><code>{messages:[...]}</code></td><td>60/min/user</td><td><code>FORBIDDEN</code></td></tr>
+            <tr><td>13</td><td>POST</td><td><code>/api/v1/admin/console-messages/{id}/read</code></td><td>ADMIN</td><td>—</td><td><code>{ok}</code></td><td>60/min/user</td><td><code>FORBIDDEN</code></td></tr>
+          </tbody>
+        </table>
+        <div class="callout info">
+          <strong>公共错误码</strong>：标准 API 信封，<code>code</code> 非 0 即失败；HTTP 状态码映射见各端点文段。
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-10">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-10);">§</div>
+        <h2>§10 安全策略</h2>
+        <span class="section-num">10.0</span>
+      </div>
+      <div class="section-body">
+        <h3>10.1 密码与认证</h3>
+        <ul>
+          <li>密码 bcrypt cost=12（架构 §5.1）</li>
+          <li>密码强度：8+、大写+小写+数字（§1 决策 6）</li>
+          <li>JWT：HS256、Access 15min、Refresh 30 天（架构 §5.1）</li>
+          <li>Refresh 旋转：每次刷新作废旧 Refresh、入黑名单</li>
+          <li>主动登出黑名单：Refresh jti 入 Redis 黑名单 30 天</li>
+          <li>改密 / 找回密码后：<code>tokenVersion++</code> → 旧 token 全失效</li>
+        </ul>
+        <h3>10.2 限流总表</h3>
+        <table class="tbl">
+          <thead><tr><th>端点</th><th>限流</th><th>实现</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /auth/login</code></td><td>10 req/min/IP</td><td>Redis token-bucket</td></tr>
+            <tr><td><code>POST /auth/register</code></td><td>5 req/h/IP</td><td>Redis counter</td></tr>
+            <tr><td><code>POST /auth/forgot-password</code></td><td>1/30s + 5/h/identifier</td><td>Redis token-bucket + counter</td></tr>
+            <tr><td><code>POST /auth/reset-password</code></td><td>1/min + 10/h/identifier</td><td>Redis counter</td></tr>
+            <tr><td><code>POST /auth/refresh</code></td><td>30/min/user</td><td>Redis token-bucket</td></tr>
+            <tr><td><code>POST /setup/admin</code></td><td>1 total/lifetime</td><td>Redis 标志位 + DB 兜底（详见 §3.1）</td></tr>
+            <tr><td><code>POST /users/me/password</code></td><td>5/h/user</td><td>Redis counter</td></tr>
+            <tr><td><code>POST /users/me/password/reset-required</code></td><td>5/h/user</td><td>Redis counter</td></tr>
+            <tr><td><code>POST /users/me/username</code></td><td>3/h/user</td><td>Redis counter</td></tr>
+            <tr><td><code>POST /users/me</code></td><td>60/min/user</td><td>Redis token-bucket</td></tr>
+            <tr><td><code>POST /users/me/profile/onboarding/complete</code></td><td>60/min/user</td><td>Redis token-bucket</td></tr>
+            <tr><td><code>GET /admin/console-messages</code></td><td>60/min/user</td><td>Redis token-bucket</td></tr>
+            <tr><td><code>POST /admin/console-messages/{id}/read</code></td><td>60/min/user</td><td>Redis token-bucket</td></tr>
+          </tbody>
+        </table>
+        <h3>10.3 失败锁定</h3>
+        <ul>
+          <li>登录失败 5 次锁 15 分钟（架构 §5.1）</li>
+          <li>Redis key：<code>rl:auth:lock:{userOrIp}</code>、TTL=900s</li>
+          <li>解锁：等待 TTL 自然过期 / 管理员后台手动</li>
+          <li>ADMIN 不锁定（防误锁唯一管理员）</li>
+        </ul>
+        <h3>10.4 跨用户访问</h3>
+        <ul>
+          <li>业务接口一律从 <code>SecurityContext.userId</code> 取当前用户</li>
+          <li>跨用户访问统一返回 404（防枚举）+ 写安全审计</li>
+        </ul>
+        <h3>10.5 审计日志</h3>
+        <table class="tbl">
+          <thead><tr><th>事件</th><th>字段</th></tr></thead>
+          <tbody>
+            <tr><td><code>auth.login</code></td><td>userId, ip, userAgent, result, errorCode</td></tr>
+            <tr><td><code>auth.logout</code></td><td>userId, ip</td></tr>
+            <tr><td><code>auth.register</code></td><td>userId, ip, userAgent</td></tr>
+            <tr><td><code>auth.password_reset</code></td><td>userId, ip</td></tr>
+            <tr><td><code>auth.password_change</code></td><td>userId, ip, self, source：<code>self=true</code> 主动改密（§7.1），<code>self=false</code> 找回密码后改密（§7.2）</td></tr>
+            <tr><td><code>auth.refresh_token_version_mismatch</code></td><td>userId, expected, actual, ip</td></tr>
+            <tr><td><code>user.username_changed</code></td><td>userId, oldUsername, newUsername, ip</td></tr>
+            <tr><td><code>user.locked</code> / <code>user.unlocked</code></td><td>actorUserId, targetUserId, reason, ip</td></tr>
+            <tr><td><code>auth.cross_user_access_attempt</code></td><td>actorUserId, targetUserId, resourceType, ip</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li>保留 180 天（架构 §5.1）</li>
+          <li>仅 ADMIN 可见审计；普通 USER 仅看本人日志</li>
+        </ul>
+        <h3>10.6 双因素预留</h3>
+        <ul>
+          <li><code>users.two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE</code></li>
+          <li><code>users.two_factor_secret VARCHAR(255)</code>（加密）</li>
+          <li><code>users.two_factor_backup_codes TEXT[]</code></li>
+          <li>端点 <code>/api/v1/auth/2fa/*</code> 留 stub（MVP 不实现 UI）</li>
+        </ul>
+        <h3>10.7 防滥用</h3>
+        <ul>
+          <li>注册：同 IP 5 次/小时</li>
+          <li>找回：同 identifier 30 秒/次、5 次/小时</li>
+          <li>所有端点：超限返 <code>RATE_LIMITED</code> + 审计「ratelimit_exceeded」</li>
+          <li>验证码错误计数独立于登录失败计数</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-11">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-11);">§</div>
+        <h2>§11 数据模型迁移</h2>
+        <span class="section-num">11.0</span>
+      </div>
+      <div class="section-body">
+        <h3>11.1 新增迁移 <code>V2_1__add_username_to_users.sql</code></h3>
+        <div class="code-wrap">
+          <div class="code-label">SQL · PostgreSQL</div>
+          <pre class="code-block"><span class="com">-- v1.2 amendment: 扩展 users 表支持 username 登录 + 改名冷却期 + JWT 失效控制 + 2FA 预留</span>
+
+ALTER TABLE users
+    ADD COLUMN username TEXT,
+    ADD COLUMN last_username_change_at TIMESTAMPTZ,
+    ADD COLUMN token_version INT NOT NULL DEFAULT 0,
+    <span class="com">-- 双因素预留（v1.0 不启用 UI，字段先埋好；详见 §10.6）</span>
+    ADD COLUMN two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN two_factor_secret VARCHAR(255) NULL,
+    ADD COLUMN two_factor_backup_codes TEXT[] NULL;
+
+<span class="com">-- 旧账号无 username 的回填策略（v1.0 上线前 users 表为空，理论影响 0 行；
+-- 仍写回填以防测试库已有数据）
+-- 用 lpad 固定 14 位数字 + 'user_' 前缀 = 19 字符，避免 BIGINT id 超过 20 字符上限（详见 §2.2）</span>
+UPDATE users SET username = <span class="str">'user_'</span> || lpad(id::text, 14, <span class="str">'0'</span>) WHERE username IS NULL;
+
+ALTER TABLE users
+    ALTER COLUMN username SET NOT NULL,
+    ADD CONSTRAINT users_username_unique UNIQUE (username),
+    <span class="com">-- 应用层已强校验 3-20 字符；DB 层加 CHECK 兜底</span>
+    ADD CONSTRAINT users_username_length CHECK (char_length(username) BETWEEN 3 AND 20);
+
+CREATE INDEX idx_users_username_lower ON users (lower(username));
+
+<span class="com">-- 强制改密标记 + onboarding 完成标志</span>
+ALTER TABLE user_profiles
+    ADD COLUMN is_password_reset_pending BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN profile_complete BOOLEAN NOT NULL DEFAULT FALSE;
+
+<span class="com">-- 找回密码验证码</span>
+CREATE TABLE password_reset_tokens (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    identifier      TEXT NOT NULL,        <span class="com">-- 申请时使用的 username 或 email（小写）</span>
+    token_hash      TEXT NOT NULL,        <span class="com">-- 验证码 sha256</span>
+    expires_at      TIMESTAMPTZ NOT NULL,
+    used_at         TIMESTAMPTZ NULL,
+    attempt_count   INT NOT NULL DEFAULT 0,
+    ip              TEXT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    <span class="com">-- 错误 5 次后验证码作废（§6.2 step 2 + §6.4）；CHECK 兜底</span>
+    CONSTRAINT password_reset_tokens_attempt_count_range CHECK (attempt_count BETWEEN 0 AND 5)
+);
+
+CREATE INDEX idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+CREATE INDEX idx_password_reset_tokens_hash ON password_reset_tokens(token_hash);
+
+<span class="com">-- 找回密码降级：本地无 SMTP 时，验证码写入此处供 ADMIN 在控制台查看（详见 §6.5）</span>
+CREATE TABLE admin_console_messages (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id         BIGINT NULL REFERENCES users(id) ON DELETE SET NULL,
+    type            TEXT NOT NULL,        <span class="com">-- 'PASSWORD_RESET_CODE' / 'SYSTEM' 等</span>
+    payload         JSONB NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    read_at         TIMESTAMPTZ NULL
+);
+
+CREATE INDEX idx_admin_console_messages_user ON admin_console_messages(user_id);
+CREATE INDEX idx_admin_console_messages_unread ON admin_console_messages(created_at) WHERE read_at IS NULL;
+</pre>
+        </div>
+        <h3>11.2 数据模型变更申请</h3>
+        <div class="callout info">
+          由于本变更与"账号体系设计"强耦合，建议另起一份 <code>docs/lifewise/architecture/versions/data-model-design-v1.2-auth-amendment.md</code>，引用本 §11。
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-12">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-12);">§</div>
+        <h2>§12 验收清单</h2>
+        <span class="section-num">12.0</span>
+      </div>
+      <div class="section-body">
+        <h3>12.1 功能验收</h3>
+        <ul class="checklist">
+          <li>首次启动 → 自动跳转 <code>/setup/admin</code>、创建首位 ADMIN 成功</li>
+          <li>首位 ADMIN 已存在 → <code>POST /api/v1/setup/admin</code> 返回 409 + <code>SETUP_ADMIN_ALREADY_DONE</code></li>
+          <li>首位 ADMIN 并发创建 → 第二个请求返回 <code>SETUP_ADMIN_RACE</code></li>
+          <li>注册：username、email、password、勾选条款 → 成功；任一字段不合法 → 拒绝</li>
+          <li>重复 username → <code>REGISTER_FAILED</code>（不区分原因）</li>
+          <li>重复 email → <code>REGISTER_FAILED</code>（不区分原因）</li>
+          <li>登录用 username：成功 + JWT 下发</li>
+          <li>登录用 email：成功 + JWT 下发</li>
+          <li>登录失败 5 次：账号锁定 15min</li>
+          <li>改密：旧密码错、新密码弱、与旧密码相同 → 拒绝</li>
+          <li>找回密码：有 SMTP → 收邮件；无 SMTP → ADMIN 控制台可见验证码（<code>/admin/console-messages</code> 列表）</li>
+          <li>找回密码首次登录：业务接口被中间件拦截 → 跳转 <code>/password-change-required</code> → <code>POST /api/v1/users/me/password/reset-required</code> 成功后清标记</li>
+          <li>改 username：首次允许；冷却期内拒绝；过期后允许</li>
+          <li>首次登录引导：2 步完成 → <code>profile_complete = true</code></li>
+          <li>AI/通知 Modal：弹一次、可关、可在设置撤回</li>
+          <li>主动登出：清除 Access + Refresh、Refresh 入黑名单</li>
+          <li>Refresh 旋转：旧 Refresh 立即失效</li>
+          <li class="emphasized"><strong>tokenVersion 校验</strong>：改密 / 找回密码后，旧 Refresh 即使未到期、也未在黑名单，仍因 <code>tokenVersion</code> 失配被拒绝（错误码 <code>AUTH_REFRESH_TOKEN_VERSION_MISMATCH</code>）</li>
+        </ul>
+        <h3>12.2 安全验收</h3>
+        <ul class="checklist">
+          <li>密码入库 bcrypt cost=12</li>
+          <li>密码明文不落日志</li>
+          <li>JWT 篡改 → 401</li>
+          <li>跨用户访问 → 404 + 审计</li>
+          <li>限流超限 → 429 + 标准错误码</li>
+          <li>失败锁定到期自动解锁</li>
+          <li>ADMIN 用户不被锁定</li>
+          <li>审计日志完整可查</li>
+        </ul>
+        <h3>12.3 性能验收</h3>
+        <ul class="checklist">
+          <li>登录 P95 ≤ 200ms（不含网络）</li>
+          <li>JWT 校验 ≤ 10ms</li>
+          <li>bcrypt 校验 P95 ≤ 300ms（cost=12 单次）</li>
+        </ul>
+        <h3>12.4 测试用例</h3>
+        <ul>
+          <li><strong>单元测试</strong>：§4 / §5 / §6 / §7 各流程状态机、边界</li>
+          <li><strong>集成测试</strong>：跨表唯一性、并发改名、限流、Refresh 旋转</li>
+          <li><strong>E2E</strong>：首次注册 → 登录 → 引导 → 改密 → 找回 → 改 username 全链路</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="sec-13">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-13);">§</div>
+        <h2>§13 未来扩展（v1.1+，仅留口）</h2>
+        <span class="section-num">13.0</span>
+      </div>
+      <div class="section-body">
+        <table class="tbl">
+          <thead><tr><th>扩展</th><th>预留点</th></tr></thead>
+          <tbody>
+            <tr><td>OAuth（微信 / Google / Apple）</td><td>安全模块加 OAuth2 filter；users 表加 <code>oauth_accounts</code> 副表</td></tr>
+            <tr><td>Passkey（WebAuthn）</td><td>users 表加 <code>passkeys</code> 副表；端点 <code>/auth/passkey/*</code></td></tr>
+            <tr><td>双因素（TOTP / SMS）</td><td>§10.6 已加字段；端点 <code>/auth/2fa/*</code> 留 stub</td></tr>
+            <tr><td>username 重定向</td><td><code>username_history</code> 表；端点按历史映射查询</td></tr>
+            <tr><td>邮箱强制验证</td><td>users 表加 <code>email_verified_at</code> 字段；发邮件 + 验证端点</td></tr>
+            <tr><td>多设备登录管理</td><td><code>active_sessions</code> 表；查看 + 强制下线</td></tr>
+          </tbody>
+        </table>
+        <div class="callout success">
+          <strong>兼容性</strong>：上述扩展均不破坏 v1.0 现有数据契约。
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sec-14">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-14);">§</div>
+        <h2>§14 附录</h2>
+        <span class="section-num">14.0</span>
+      </div>
+      <div class="section-body">
+        <h3>14.1 与架构 §0、§5.1 的对齐检查</h3>
+        <table class="tbl">
+          <thead><tr><th>架构条目</th><th>本文档对应</th><th>一致性</th></tr></thead>
+          <tbody>
+            <tr><td>§0 邮箱密码 + JWT + Refresh Token</td><td>§5 + §1 决策 1、8</td><td class="ok">✅ 一致</td></tr>
+            <tr><td>§5.1 bcrypt cost=12</td><td>§10.1</td><td class="ok">✅ 一致</td></tr>
+            <tr><td>§5.1 JWT HS256、Access 15min、Refresh 30d HttpOnly Secure SameSite=Strict</td><td>§5.4、§10.1</td><td class="ok">✅ 一致</td></tr>
+            <tr><td>§5.1 登录失败 5 次锁 15min</td><td>§10.3</td><td class="ok">✅ 一致</td></tr>
+            <tr><td>§0 可扩展 OAuth</td><td>§13 扩展口</td><td class="ok">✅ 一致</td></tr>
+            <tr><td>§5.4 首次注册管理员</td><td>§3</td><td class="ok">✅ 一致</td></tr>
+            <tr><td>§5.1 跨用户 404</td><td>§10.4</td><td class="ok">✅ 一致</td></tr>
+          </tbody>
+        </table>
+        <h3>14.2 与数据模型 v1.1.1 / v1.2 (auth amendment) 的对齐检查</h3>
+        <table class="tbl">
+          <thead><tr><th>数据模型条目</th><th>本文档对应</th><th>一致性</th></tr></thead>
+          <tbody>
+            <tr><td><code>users(id,email,timezone,locale,status,created_at)</code></td><td>§11.1 扩展 username、last_username_change_at、token_version、2FA 预留字段；保留所有原字段</td><td class="ok">✅ 一致</td></tr>
+            <tr><td><code>user_profiles(nickname, timezone, locale, *_enabled flags)</code></td><td>§2.1.1 字段语义 + §8.3 写入字段对齐 H-3 / M-3</td><td class="ok">✅ 一致</td></tr>
+            <tr><td><code>user_profiles.is_password_reset_pending</code> (新增)</td><td>§11.1 DDL</td><td class="ok">✅ 一致（v1.2 amendment）</td></tr>
+            <tr><td><code>user_profiles.profile_complete</code> (新增)</td><td>§11.1 DDL</td><td class="ok">✅ 一致（v1.2 amendment）</td></tr>
+            <tr><td><code>password_reset_tokens</code> (新增)</td><td>§11.1 DDL</td><td class="ok">✅ 一致（v1.2 amendment）</td></tr>
+            <tr><td><code>admin_console_messages</code> (新增)</td><td>§11.1 DDL</td><td class="ok">✅ 一致（v1.2 amendment）</td></tr>
+          </tbody>
+        </table>
+        <h3>14.3 与业务架构 §6.1 的对齐</h3>
+        <table class="tbl">
+          <thead><tr><th>不变量</th><th>本文档对应</th><th>一致性</th></tr></thead>
+          <tbody>
+            <tr><td>时区必须有效</td><td>§8.2 第 2 步 IANA 校验</td><td class="ok">✅</td></tr>
+            <tr><td>AI/通知同意状态可撤回</td><td>§8.3 + §8.4</td><td class="ok">✅</td></tr>
+            <tr><td>敏感画像按最小权限暴露</td><td>§2.3 角色矩阵</td><td class="ok">✅</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="sec-15">
+      <div class="section-header">
+        <div class="icon" style="background: var(--sec-15);">§</div>
+        <h2>§15 变更记录</h2>
+        <span class="section-num">15.0</span>
+      </div>
+      <div class="section-body">
+        <table class="tbl">
+          <thead><tr><th>版本</th><th>日期</th><th>作者</th><th>摘要</th></tr></thead>
+          <tbody>
+            <tr><td>v1.0</td><td>2026-07-28</td><td>Claude</td><td>初稿：落实 18 项决策 + 接口契约 + 数据模型迁移</td></tr>
+            <tr><td>v1.0a</td><td>2026-07-28</td><td>Claude</td><td>修补：补 <code>token_version</code>字段定义与 SQL、回填改 lpad、<code>attempt_count</code> CHECK、新增 setup/admin、password/reset-required、admin/console-messages 端点、§3.1 分布式锁实现、§5.5 tokenVersion 校验、§11.1 补 admin_console_messages 表、§14.2 对齐 v1.2 amendment</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer style="text-align: center; color: var(--text-3); font-size: 12px; padding: 40px 0 20px;">
+      Lifewise 认证与权限设计 v1.0 · 2026-07-28 · 锁定版本，自动生成 HTML
+    </footer>
+
+  </main>
+</div>
+
+<script>
+const tocLinks = document.querySelectorAll('.toc a');
+const sections = document.querySelectorAll('.section[id]');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      tocLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(section => observer.observe(section));
+tocLinks.forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.pushState(null, '', link.getAttribute('href'));
+    }
+  });
+});
+</script>
+
+</body>
+</html>

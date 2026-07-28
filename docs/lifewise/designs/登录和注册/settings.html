@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置中心 — Lifewise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: #F8FAFC;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+
+.app { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; }
+.brand .logo-mark { width: 32px; height: 32px; background: linear-gradient(135deg, #84CC16 0%, #65A30D 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+.user-chip { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; background: white; border: 1px solid #E2E8F0; border-radius: 100px; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #84CC16, #65A30D); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.user-chip .name { font-size: 13px; font-weight: 500; }
+
+.layout { display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+
+.sidebar { background: white; border-radius: 16px; border: 1px solid #E2E8F0; padding: 12px; height: fit-content; position: sticky; top: 32px; }
+.sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #94A3B8; padding: 8px 12px 12px; font-weight: 600; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; color: #475569; font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 2px; }
+.nav-item:hover { background: #F1F5F9; }
+.nav-item.active { background: #ECFCCB; color: #365314; font-weight: 600; }
+.nav-item .ico { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+.nav-divider { height: 1px; background: #F1F5F9; margin: 8px 0; }
+
+.panel { background: white; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; }
+.panel-header { padding: 24px 32px 20px; border-bottom: 1px solid #F1F5F9; }
+.panel-header h2 { font-size: 18px; margin: 0 0 4px; }
+.panel-header p { font-size: 13px; color: #64748B; margin: 0; }
+.panel-body { padding: 24px 32px; }
+
+.section { display: none; }
+.section.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.field { margin-bottom: 20px; }
+.field-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #334155; }
+.field-hint { font-size: 12px; color: #94A3B8; margin-top: 4px; }
+.input-wrap { display: flex; align-items: center; border: 1px solid #E2E8F0; border-radius: 10px; background: white; transition: all 0.15s; }
+.input-wrap:hover { border-color: #CBD5E1; }
+.input-wrap:focus-within { border-color: #65A30D; box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.12); }
+.input { flex: 1; border: none; outline: none; padding: 11px 14px; font-size: 14px; background: transparent; color: #0F172A; }
+.input::placeholder { color: #94A3B8; }
+.input-wrap .suffix { padding: 0 12px; color: #94A3B8; font-size: 12px; }
+textarea.input { min-height: 80px; resize: vertical; padding: 12px 14px; }
+
+.avatar-row { display: flex; align-items: center; gap: 20px; padding: 4px 0 20px; }
+.avatar-lg { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #84CC16, #65A30D); color: white; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 600; }
+.avatar-actions { display: flex; gap: 8px; }
+.btn-ghost { background: white; border: 1px solid #E2E8F0; color: #475569; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; }
+.btn-ghost:hover { background: #F1F5F9; border-color: #CBD5E1; }
+.btn-primary { background: #65A30D; color: white; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.btn-primary:hover { background: #4D7C0F; }
+.btn-danger { background: white; border: 1px solid #FECACA; color: #DC2626; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; }
+.btn-danger:hover { background: #FEF2F2; }
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.setting-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid #F1F5F9; gap: 20px; }
+.setting-item:last-child { border-bottom: none; }
+.setting-info { flex: 1; }
+.setting-info .title { font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 2px; }
+.setting-info .desc { font-size: 12px; color: #64748B; margin: 0; }
+.setting-control { flex-shrink: 0; }
+
+.switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; cursor: pointer; inset: 0; background: #CBD5E1; border-radius: 22px; transition: 0.3s; }
+.switch .slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 2px; bottom: 2px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.switch input:checked + .slider { background: #65A30D; }
+.switch input:checked + .slider:before { transform: translateX(18px); }
+
+.chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { padding: 8px 14px; border: 1px solid #E2E8F0; border-radius: 100px; font-size: 13px; color: #475569; cursor: pointer; transition: all 0.15s; background: white; }
+.chip:hover { border-color: #CBD5E1; }
+.chip.selected { background: #ECFCCB; border-color: #65A30D; color: #365314; font-weight: 600; }
+
+.bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #F1F5F9; margin-top: 8px; }
+.bar > div { flex: 1; transition: background 0.2s; cursor: pointer; }
+.bar > div.on { background: #65A30D; }
+.bar > div:not(.on) { background: transparent; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.device { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid #E2E8F0; border-radius: 12px; margin-bottom: 10px; }
+.device.current { border-color: #65A30D; background: #F0FDF4; }
+.device .ico { width: 40px; height: 40px; border-radius: 10px; background: #ECFCCB; color: #65A30D; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.device .name { font-size: 14px; font-weight: 600; }
+.device .meta { font-size: 12px; color: #64748B; }
+.device .badge { font-size: 10px; padding: 2px 8px; background: #65A30D; color: white; border-radius: 100px; font-weight: 600; margin-left: 8px; }
+
+.event-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #F1F5F9; }
+.event-row:last-child { border-bottom: none; }
+.event-name { font-size: 13px; font-weight: 500; }
+.event-name .meta { font-size: 11px; color: #94A3B8; margin-left: 6px; }
+.event-channels { display: flex; gap: 6px; }
+.chan { width: 32px; height: 28px; border: 1px solid #E2E8F0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; color: #94A3B8; background: white; transition: all 0.15s; }
+.chan:hover { border-color: #CBD5E1; }
+.chan.on { background: #ECFCCB; border-color: #65A30D; color: #365314; }
+.chan.disabled { opacity: 0.35; cursor: not-allowed; }
+
+.danger-zone { margin-top: 32px; padding: 20px; border: 1px solid #FECACA; border-radius: 12px; background: #FEF2F2; }
+.danger-zone h4 { font-size: 14px; color: #DC2626; margin: 0 0 4px; }
+.danger-zone p { font-size: 12px; color: #991B1B; margin: 0 0 14px; }
+
+.toast { position: fixed; bottom: 24px; right: 24px; background: #0F172A; color: white; padding: 12px 20px; border-radius: 10px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0; transform: translateY(20px); transition: all 0.3s; z-index: 1000; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .nav-group { display: flex; overflow-x: auto; gap: 4px; }
+  .nav-item { white-space: nowrap; flex-shrink: 0; }
+  .row { grid-template-columns: 1fr; }
+  .panel-body { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo-mark">L</div>
+      <span>Lifewise · 设置</span>
+    </div>
+    <div class="user-chip">
+      <div class="avatar">明</div>
+      <span class="name">明智生活家</span>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <aside class="sidebar">
+      <div class="sidebar-title">账户与偏好</div>
+      <nav class="nav-group" id="nav">
+        <div class="nav-item active" data-sec="profile"><span class="ico">👤</span><span>个人资料</span></div>
+        <div class="nav-item" data-sec="security"><span class="ico">🔒</span><span>账号安全</span></div>
+        <div class="nav-item" data-sec="ai"><span class="ico">🤖</span><span>AI 偏好</span></div>
+        <div class="nav-item" data-sec="notify"><span class="ico">🔔</span><span>通知设置</span></div>
+        <div class="nav-item" data-sec="privacy"><span class="ico">🛡️</span><span>隐私与数据</span></div>
+      </nav>
+      <div class="nav-divider"></div>
+      <a class="nav-item" href="login.html" style="color:#94A3B8"><span class="ico">↩️</span><span>返回主页</span></a>
+    </aside>
+
+    <main class="panel">
+
+      <!-- 个人资料 -->
+      <div class="section active" id="sec-profile">
+        <div class="panel-header">
+          <h2>个人资料</h2>
+          <p>这些信息会展示在你的主页上</p>
+        </div>
+        <div class="panel-body">
+          <div class="avatar-row">
+            <div class="avatar-lg">明</div>
+            <div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:4px">头像</div>
+              <div style="font-size:12px;color:#64748B;margin-bottom:8px">支持 JPG/PNG，≤ 2MB</div>
+              <div class="avatar-actions">
+                <button class="btn-ghost">上传新头像</button>
+                <button class="btn-ghost" style="color:#DC2626">移除</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="nickname">昵称</label>
+            <div class="input-wrap">
+              <input class="input" id="nickname" type="text" value="明智生活家" maxlength="30" />
+              <span class="suffix">5 / 30</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="username">用户名</label>
+            <div class="input-wrap">
+              <span class="suffix">lifewise.app/</span>
+              <input class="input" id="username" type="text" value="mingzhi" />
+            </div>
+            <div class="field-hint">用户名是 URL 的一部分，设置后每 90 天可改一次</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="bio">个人简介</label>
+            <textarea class="input" id="bio" name="bio" maxlength="160" autocomplete="off" placeholder="一句话介绍自己...">专注理性消费的第 247 天。</textarea>
+            <div class="field-hint">最多 160 字 · <span id="bioCount">17</span> / 160</div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label class="field-label" for="tzSel">时区</label>
+              <select class="input" id="tzSel" name="tz" style="border:1px solid #E2E8F0;border-radius:10px;width:100%;padding:11px 14px">
+                <option selected>Asia/Shanghai (UTC+08:00)</option>
+                <option>Asia/Tokyo (UTC+09:00)</option>
+                <option>America/New_York (UTC-05:00)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="localeSel">语言</label>
+              <select class="input" id="localeSel" name="locale" style="border:1px solid #E2E8F0;border-radius:10px;width:100%;padding:11px 14px">
+                <option selected>简体中文</option>
+                <option>繁體中文</option>
+                <option>English</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="padding-top:8px;border-top:1px solid #F1F5F9;display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn-ghost">取消</button>
+            <button class="btn-primary" onclick="save('profile')">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 账号安全 -->
+      <div class="section" id="sec-security">
+        <div class="panel-header">
+          <h2>账号安全</h2>
+          <p>密码、登录设备与两步验证</p>
+        </div>
+        <div class="panel-body">
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">登录密码</div>
+              <div class="desc">上次修改：37 天前 · 强度：强</div>
+            </div>
+            <div class="setting-control">
+              <button class="btn-ghost">修改密码</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">两步验证（2FA）</div>
+              <div class="desc">推荐开启 · 通过认证器 App 生成 6 位动态码</div>
+            </div>
+            <div class="setting-control">
+              <label class="switch"><input type="checkbox" /><span class="slider"></span><span class="visually-hidden">两步验证</span></label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">备用邮箱</div>
+              <div class="desc">用于找回账号 · <span style="color:#65A30D">ming***@example.com</span></div>
+            </div>
+            <div class="setting-control">
+              <button class="btn-ghost">更换</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">备用手机</div>
+              <div class="desc">用于短信验证 · 未绑定</div>
+            </div>
+            <div class="setting-control">
+              <button class="btn-ghost">绑定</button>
+            </div>
+          </div>
+
+          <h3 style="margin:32px 0 12px;font-size:14px">活跃会话（3）</h3>
+          <div class="device current">
+            <div class="ico">💻</div>
+            <div style="flex:1">
+              <div class="name">MacBook Pro · Chrome 124<span class="badge">当前</span></div>
+              <div class="meta">上海 · IP 114.88.xx.xx · 活跃于 1 分钟前</div>
+            </div>
+            <button class="btn-ghost" style="color:#DC2626">登出</button>
+          </div>
+          <div class="device">
+            <div class="ico">📱</div>
+            <div style="flex:1">
+              <div class="name">iPhone 15 · Lifewise iOS</div>
+              <div class="meta">上海 · 活跃于 2 小时前</div>
+            </div>
+            <button class="btn-danger">登出</button>
+          </div>
+          <div class="device">
+            <div class="ico">🖥️</div>
+            <div style="flex:1">
+              <div class="name">Windows · Edge 124</div>
+              <div class="meta">北京 · 活跃于 3 天前</div>
+            </div>
+            <button class="btn-danger">登出</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 偏好 -->
+      <div class="section" id="sec-ai">
+        <div class="panel-header">
+          <h2>AI 偏好</h2>
+          <p>调整 AI 解读建议的语气与详细度</p>
+        </div>
+        <div class="panel-body">
+
+          <div class="field">
+            <label class="field-label">解读语气</label>
+            <div class="chip-group" id="tone">
+              <div class="chip selected" data-v="rational">🧠 理性</div>
+              <div class="chip" data-v="warm">🌱 鼓励</div>
+              <div class="chip" data-v="neutral">⚖️ 中性</div>
+            </div>
+            <div class="field-hint">影响 AI 回复的措辞与情感强度</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">解释详细度</label>
+            <div class="bar" id="depth">
+              <div class="on"></div>
+              <div class="on"></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <div class="field-hint" style="display:flex;justify-content:space-between"><span>简洁</span><span>详细</span></div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">使用我的账单与记录训练个性化模型</div>
+              <div class="desc">关闭后 AI 仍可使用通用模型回答，但不会基于你的历史</div>
+            </div>
+            <div class="setting-control">
+              <label class="switch"><input type="checkbox" checked /><span class="slider"></span><span class="visually-hidden">使用我的账单训练个性化模型</span></label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">允许 AI 主动建议</div>
+              <div class="desc">在仪表盘上展示 AI 主动发现的洞察</div>
+            </div>
+            <div class="setting-control">
+              <label class="switch"><input type="checkbox" checked /><span class="slider"></span><span class="visually-hidden">允许 AI 主动建议</span></label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">记忆窗口</div>
+              <div class="desc">AI 记住上下文的轮数 · 当前：<strong style="color:#65A30D">20 轮</strong></div>
+            </div>
+            <div class="setting-control">
+              <label class="visually-hidden" for="memoryWindow">记忆窗口</label>
+              <select class="input" id="memoryWindow" name="memoryWindow" style="border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;font-size:13px">
+                <option>5 轮</option>
+                <option>10 轮</option>
+                <option selected>20 轮</option>
+                <option>50 轮</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;padding:16px;background:#F8FAFC;border-radius:12px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:13px;font-weight:600">清除 AI 记忆</div>
+              <div style="font-size:12px;color:#64748B">删除所有学到的偏好与上下文，重新开始</div>
+            </div>
+            <button class="btn-danger">清除</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 通知设置 -->
+      <div class="section" id="sec-notify">
+        <div class="panel-header">
+          <h2>通知设置</h2>
+          <p>选择你关心的提醒方式</p>
+        </div>
+        <div class="panel-body">
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">勿扰时段</div>
+              <div class="desc">此时段内除紧急账单外不发送通知</div>
+            </div>
+            <div class="setting-control">
+              <div style="display:flex;gap:6px;align-items:center">
+                <label class="visually-hidden" for="dndStart">勿扰开始</label>
+                <input class="input" type="time" id="dndStart" name="dndStart" value="22:00" style="border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;width:80px;font-size:13px" />
+                <span style="color:#94A3B8">→</span>
+                <label class="visually-hidden" for="dndEnd">勿扰结束</label>
+                <input class="input" type="time" id="dndEnd" name="dndEnd" value="08:00" style="border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;width:80px;font-size:13px" />
+              </div>
+            </div>
+          </div>
+
+          <h3 style="margin:24px 0 12px;font-size:14px">事件订阅</h3>
+          <div style="font-size:11px;color:#94A3B8;display:flex;gap:80px;justify-content:flex-end;margin-bottom:8px">
+            <span>站内</span><span>邮件</span><span>推送</span>
+          </div>
+
+          <div class="event-row">
+            <span class="event-name">每周收支报告<span class="meta">每周一 09:00</span></span>
+            <div class="event-channels">
+              <div class="chan on" data-c="inapp">🔔</div>
+              <div class="chan on" data-c="email">✉️</div>
+              <div class="chan disabled" data-c="push">📲</div>
+            </div>
+          </div>
+          <div class="event-row">
+            <span class="event-name">异常消费提醒<span class="meta">超过均值 2 倍时</span></span>
+            <div class="event-channels">
+              <div class="chan on" data-c="inapp">🔔</div>
+              <div class="chan on" data-c="email">✉️</div>
+              <div class="chan on" data-c="push">📲</div>
+            </div>
+          </div>
+          <div class="event-row">
+            <span class="event-name">账单到期<span class="meta">到期前 3 天</span></span>
+            <div class="event-channels">
+              <div class="chan on" data-c="inapp">🔔</div>
+              <div class="chan on" data-c="email">✉️</div>
+              <div class="chan on" data-c="push">📲</div>
+            </div>
+          </div>
+          <div class="event-row">
+            <span class="event-name">新评论 / @ 提及</span>
+            <div class="event-channels">
+              <div class="chan on" data-c="inapp">🔔</div>
+              <div class="chan" data-c="email">✉️</div>
+              <div class="chan on" data-c="push">📲</div>
+            </div>
+          </div>
+          <div class="event-row">
+            <span class="event-name">AI 解读建议</span>
+            <div class="event-channels">
+              <div class="chan" data-c="inapp">🔔</div>
+              <div class="chan on" data-c="email">✉️</div>
+              <div class="chan disabled" data-c="push">📲</div>
+            </div>
+          </div>
+          <div class="event-row">
+            <span class="event-name">产品更新 / 公告</span>
+            <div class="event-channels">
+              <div class="chan on" data-c="inapp">🔔</div>
+              <div class="chan" data-c="email">✉️</div>
+              <div class="chan disabled" data-c="push">📲</div>
+            </div>
+          </div>
+
+          <div style="padding-top:24px;display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn-primary" onclick="save('notify')">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 隐私与数据 -->
+      <div class="section" id="sec-privacy">
+        <div class="panel-header">
+          <h2>隐私与数据</h2>
+          <p>你的数据，你做主</p>
+        </div>
+        <div class="panel-body">
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">个人主页可见性</div>
+              <div class="desc">其他人能否在 Lifewise 内查看你的主页</div>
+            </div>
+            <div class="setting-control">
+              <div class="chip-group" style="gap:4px">
+                <div class="chip selected" style="font-size:12px;padding:6px 12px">公开</div>
+                <div class="chip" style="font-size:12px;padding:6px 12px">仅好友</div>
+                <div class="chip" style="font-size:12px;padding:6px 12px">仅自己</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">出现在「发现」推荐</div>
+              <div class="desc">基于你的公开内容被其他用户看到</div>
+            </div>
+            <div class="setting-control">
+              <label class="switch"><input type="checkbox" checked /><span class="slider"></span><span class="visually-hidden">出现在发现推荐</span></label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">允许搜索引擎收录</div>
+              <div class="desc">关闭后搜索引擎不会索引你的公开主页</div>
+            </div>
+            <div class="setting-control">
+              <label class="switch"><input type="checkbox" /><span class="slider"></span><span class="visually-hidden">允许搜索引擎收录</span></label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">数据导出</div>
+              <div class="desc">下载你的全部数据（JSON 格式）· 含记录、配置、AI 历史</div>
+            </div>
+            <div class="setting-control">
+              <button class="btn-ghost">📥 请求导出</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <div class="title">数据可移植性</div>
+              <div class="desc">导出格式兼容 Standard Notes、Bear 等第三方 App</div>
+            </div>
+            <div class="setting-control">
+              <span style="font-size:12px;color:#65A30D;font-weight:600">✓ 已支持</span>
+            </div>
+          </div>
+
+          <div class="danger-zone">
+            <h4>危险操作</h4>
+            <p>注销账号将永久删除所有数据，且不可恢复。请先导出你的数据。</p>
+            <button class="btn-danger" onclick="confirm('⚠️ 演示版：将跳转到注销确认页（当前为 UI 原型，未连接后端）')">注销账号</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ 已保存</div>
+
+<script>
+document.querySelectorAll('.nav-item[data-sec]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + item.dataset.sec).classList.add('active');
+  });
+});
+
+document.querySelectorAll('#tone .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#tone .chip').forEach(x => x.classList.remove('selected'));
+    c.classList.add('selected');
+  });
+});
+
+document.querySelectorAll('#depth > div').forEach((seg, idx, arr) => {
+  seg.addEventListener('click', () => {
+    arr.forEach((s, i) => s.classList.toggle('on', i <= idx));
+  });
+});
+
+document.querySelectorAll('.event-channels').forEach(group => {
+  group.querySelectorAll('.chan').forEach(c => {
+    if (c.classList.contains('disabled')) return;
+    c.addEventListener('click', () => c.classList.toggle('on'));
+  });
+});
+
+document.getElementById('bio').addEventListener('input', e => {
+  document.getElementById('bioCount').textContent = e.target.value.length;
+});
+
+function save(section) {
+  const toast = document.getElementById('toast');
+  toast.textContent = '✓ 已保存';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1800);
+  console.log('[demo] saved', section);
+}
+</script>
+
+</body>
+</html>

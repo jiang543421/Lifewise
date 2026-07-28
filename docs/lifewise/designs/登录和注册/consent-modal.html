@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 与通知设置 — Lifewise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: #F8FAFC;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.main-mock { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+.main-mock h1 { font-size: 24px; margin: 0 0 8px; }
+.main-mock p { color: #64748B; margin: 0 0 24px; }
+.mock-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #E2E8F0; margin-bottom: 16px; }
+.mock-card h3 { margin: 0 0 8px; font-size: 16px; }
+.mock-card .skeleton { background: linear-gradient(90deg, #F1F5F9 0%, #E2E8F0 50%, #F1F5F9 100%); background-size: 200% 100%; height: 12px; border-radius: 4px; margin: 8px 0; animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.mock-bar { display: flex; gap: 8px; margin-top: 16px; }
+.mock-bar > div { flex: 1; height: 60px; background: #F1F5F9; border-radius: 8px; }
+.open-modal-btn { background: #65A30D; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 600; margin-top: 20px; }
+
+.overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; animation: overlayIn 0.2s ease; }
+.overlay.show { display: flex; }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal { background: white; border-radius: 20px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); animation: modalIn 0.25s ease; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.modal-header { padding: 24px 28px 16px; text-align: center; border-bottom: 1px solid #F1F5F9; position: relative; }
+.modal-header .icon { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #ECFCCB 0%, #D9F99D 100%); color: #65A30D; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 12px; }
+.modal-header h2 { font-size: 20px; margin: 0 0 6px; }
+.modal-header p { font-size: 13px; color: #64748B; margin: 0; }
+.modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #94A3B8; transition: all 0.15s; }
+.modal-close:hover { background: #F1F5F9; color: #475569; }
+
+.modal-body { padding: 8px 28px; }
+.pref-item { padding: 16px 0; border-bottom: 1px solid #F1F5F9; display: flex; align-items: flex-start; gap: 14px; }
+.pref-item:last-child { border-bottom: none; }
+.pref-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.pref-icon.ai { background: #ECFCCB; color: #65A30D; }
+.pref-icon.email { background: #E0F2FE; color: #0284C7; }
+.pref-icon.inapp { background: #FEF3C7; color: #D97706; }
+.pref-content { flex: 1; }
+.pref-content .title { font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.pref-content .title .recommended { font-size: 10px; padding: 2px 6px; background: #ECFCCB; color: #65A30D; border-radius: 10px; font-weight: 600; }
+.pref-content .desc { font-size: 12px; color: #64748B; margin: 0; line-height: 1.5; }
+
+.switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; cursor: pointer; inset: 0; background: #CBD5E1; border-radius: 22px; transition: 0.3s; }
+.switch .slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 2px; bottom: 2px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.switch input:checked + .slider { background: #65A30D; }
+.switch input:checked + .slider:before { transform: translateX(18px); }
+
+.modal-footer { padding: 16px 28px 24px; border-top: 1px solid #F1F5F9; background: #F8FAFC; border-radius: 0 0 20px 20px; }
+.dont-ask { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748B; margin-bottom: 12px; cursor: pointer; }
+.dont-ask input { display: none; }
+.dont-ask .chk { width: 16px; height: 16px; border: 1.5px solid #CBD5E1; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.dont-ask input:checked + .chk { background: #65A30D; border-color: #65A30D; }
+.dont-ask input:checked + .chk::after { content: ''; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); margin-bottom: 1px; }
+.modal-actions { display: flex; gap: 10px; }
+.btn { flex: 1; padding: 11px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-skip { background: white; color: #475569; border: 1px solid #E2E8F0; }
+.btn-skip:hover { background: #F1F5F9; }
+.btn-confirm { background: #65A30D; color: white; }
+.btn-confirm:hover { background: #4D7C0F; }
+
+@media (max-width: 480px) {
+  .modal { border-radius: 16px; }
+  .modal-header, .modal-body, .modal-footer { padding-left: 20px; padding-right: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="main-mock">
+  <h1>👋 你好，明智生活家</h1>
+  <p>这是 Lifewise 主页预览（Mock）。AI/通知同意 Modal 会在主流程之后弹出，不阻塞主页面。</p>
+  <div class="mock-card">
+    <h3>📊 本月概览</h3>
+    <div class="skeleton" style="width:60%"></div>
+    <div class="skeleton" style="width:80%"></div>
+    <div class="skeleton" style="width:40%"></div>
+    <div class="mock-bar">
+      <div></div><div></div><div></div><div></div>
+    </div>
+  </div>
+  <div class="mock-card">
+    <h3>📝 近期记录</h3>
+    <div class="skeleton" style="width:90%"></div>
+    <div class="skeleton" style="width:70%"></div>
+    <div class="skeleton" style="width:85%"></div>
+  </div>
+  <button class="open-modal-btn" onclick="openModal()">🔄 重新打开同意 Modal</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal()" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="icon">✦</div>
+      <h2 id="modalTitle">让 Lifewise 更懂你</h2>
+      <p>选择你想要的体验，随时可在设置中调整</p>
+    </div>
+    <div class="modal-body">
+      <div class="pref-item">
+        <div class="pref-icon ai">🤖</div>
+        <div class="pref-content">
+          <div class="title">AI 解读建议 <span class="recommended">推荐</span></div>
+          <p class="desc">AI 分析你的账单和日常，生成个性化建议。所有数据仅在你的账号内推理，不上传共享。</p>
+        </div>
+        <label class="switch"><input type="checkbox" id="aiOn" checked /><span class="slider"></span></label>
+      </div>
+      <div class="pref-item">
+        <div class="pref-icon email">📧</div>
+        <div class="pref-content">
+          <div class="title">邮件通知</div>
+          <p class="desc">每周收支报告、异常消费提醒、账单到期提醒；最多 1 封/周。</p>
+        </div>
+        <label class="switch"><input type="checkbox" id="emailOn" checked /><span class="slider"></span></label>
+      </div>
+      <div class="pref-item">
+        <div class="pref-icon inapp">🔔</div>
+        <div class="pref-content">
+          <div class="title">站内通知</div>
+          <p class="desc">新评论、@ 提及、系统消息等实时站内通知。</p>
+        </div>
+        <label class="switch"><input type="checkbox" id="inappOn" checked /><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <label class="dont-ask">
+        <input type="checkbox" id="dontAsk" />
+        <span class="chk"></span>
+        <span>不再提醒（可在设置中重新开启）</span>
+      </label>
+      <div class="modal-actions">
+        <button class="btn btn-skip" onclick="closeModal()">稍后再说</button>
+        <button class="btn btn-confirm" onclick="confirmModal()">保存设置</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function confirmModal() {
+  const ai = document.getElementById('aiOn').checked;
+  const email = document.getElementById('emailOn').checked;
+  const inapp = document.getElementById('inappOn').checked;
+  const dontAsk = document.getElementById('dontAsk').checked;
+  alert('✅ 演示版：设置已保存\n\n· AI 解读：' + (ai ? '✅ 开启' : '❌ 关闭') + '\n· 邮件通知：' + (email ? '✅ 开启' : '❌ 关闭') + '\n· 站内通知：' + (inapp ? '✅ 开启' : '❌ 关闭') + '\n· 不再提醒：' + (dontAsk ? '✅' : '❌'));
+  closeModal();
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+document.getElementById('overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeModal(); });
+setTimeout(openModal, 500);
+</script>
+
+</body>
+</html>

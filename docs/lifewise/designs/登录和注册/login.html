@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 — Lifewise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: linear-gradient(135deg, #F0FDF4 0%, #ECFCCB 50%, #FEFCE8 100%);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+a { color: #65A30D; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.page { width: 100%; max-width: 960px; display: grid; grid-template-columns: 1fr 1fr; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12); min-height: 600px; }
+
+.brand-side {
+  background: linear-gradient(135deg, #84CC16 0%, #65A30D 100%);
+  color: white;
+  padding: 48px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.brand-side::before { content: ''; position: absolute; top: -100px; right: -100px; width: 300px; height: 300px; background: rgba(255,255,255,0.1); border-radius: 50%; filter: blur(40px); }
+.brand-side::after { content: ''; position: absolute; bottom: -80px; left: -80px; width: 250px; height: 250px; background: rgba(255,255,255,0.08); border-radius: 50%; filter: blur(30px); }
+.brand-logo { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; position: relative; z-index: 1; }
+.brand-logo .logo-mark { width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; backdrop-filter: blur(10px); }
+.brand-content { position: relative; z-index: 1; }
+.brand-content h2 { font-size: 28px; font-weight: 700; margin: 0 0 12px; line-height: 1.3; }
+.brand-content p { font-size: 14px; opacity: 0.9; margin: 0; line-height: 1.7; }
+.brand-features { margin-top: 32px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
+.brand-feature { display: flex; align-items: center; gap: 10px; font-size: 13px; opacity: 0.95; }
+.brand-feature .ico { width: 24px; height: 24px; background: rgba(255,255,255,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.brand-footer { font-size: 12px; opacity: 0.7; position: relative; z-index: 1; }
+
+.form-side { padding: 48px 48px; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
+.form-header { margin-bottom: 24px; }
+.form-header h1 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: #0F172A; }
+.form-header p { font-size: 14px; color: #64748B; margin: 0; }
+
+.form-tabs { display: flex; gap: 4px; background: #F1F5F9; padding: 4px; border-radius: 10px; margin-bottom: 24px; }
+.form-tab { flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 500; color: #64748B; border-radius: 7px; text-align: center; transition: all 0.15s; }
+.form-tab.active { background: white; color: #65A30D; box-shadow: 0 1px 3px rgba(0,0,0,0.08); font-weight: 600; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.field { margin-bottom: 16px; }
+.field-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #334155; }
+.field-label .helper { font-size: 12px; color: #94A3B8; font-weight: 400; }
+.input-wrap { position: relative; display: flex; align-items: center; border: 1px solid #E2E8F0; border-radius: 10px; background: white; transition: all 0.15s; }
+.input-wrap:hover { border-color: #CBD5E1; }
+.input-wrap:focus-within { border-color: #65A30D; box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.12); }
+.input-wrap .leading { padding: 0 12px; color: #94A3B8; display: flex; align-items: center; }
+.input-wrap .leading svg { width: 18px; height: 18px; }
+.input { flex: 1; border: none; outline: none; padding: 12px 14px 12px 0; font-size: 14px; font-family: inherit; background: transparent; color: #0F172A; }
+.input::placeholder { color: #94A3B8; }
+.input.has-trailing { padding-right: 44px; }
+.input-wrap .trailing { position: absolute; right: 12px; color: #94A3B8; display: flex; align-items: center; cursor: pointer; padding: 6px; border-radius: 4px; }
+.input-wrap .trailing:hover { color: #475569; background: #F1F5F9; }
+
+.field-error { display: none; margin-top: 6px; font-size: 12px; color: #EF4444; }
+.field-error.show { display: flex; align-items: center; gap: 4px; }
+.input-wrap.error { border-color: #EF4444; }
+.input-wrap.error:focus-within { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+.input-wrap.success { border-color: #10B981; }
+
+.row-options { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.checkbox { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #475569; user-select: none; }
+.checkbox input { display: none; }
+.checkbox .check { width: 18px; height: 18px; border: 1.5px solid #CBD5E1; border-radius: 5px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: white; }
+.checkbox input:checked + .check { background: #65A30D; border-color: #65A30D; }
+.checkbox input:checked + .check::after { content: ''; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); margin-bottom: 2px; }
+.link-inline { font-size: 13px; color: #65A30D; font-weight: 500; }
+.link-inline:hover { text-decoration: underline; }
+
+.btn-primary { width: 100%; padding: 13px; background: #65A30D; color: white; border-radius: 10px; font-size: 14px; font-weight: 600; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-primary:hover { background: #4D7C0F; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(101, 163, 13, 0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { background: #94A3B8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; color: #94A3B8; font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
+
+.btn-secondary { width: 100%; padding: 12px; background: white; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 500; color: #334155; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+.btn-secondary:hover { background: #F8FAFC; border-color: #CBD5E1; }
+
+.form-footer { margin-top: 28px; text-align: center; font-size: 13px; color: #64748B; }
+.form-footer a { font-weight: 500; }
+
+/* 手机号 Tab 专属样式 */
+.phone-prefix { padding: 0 12px; color: #334155; font-size: 14px; font-weight: 500; border-right: 1px solid #E2E8F0; align-self: stretch; display: flex; align-items: center; background: #F8FAFC; border-radius: 10px 0 0 10px; }
+.phone-input { padding-left: 12px !important; }
+.sms-btn { background: #ECFCCB; color: #65A30D; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 7px; transition: all 0.15s; margin-right: 6px; }
+.sms-btn:hover { background: #D9F99D; }
+.sms-btn:disabled { background: #F1F5F9; color: #94A3B8; cursor: not-allowed; }
+.sms-btn.counting { background: #F1F5F9; color: #64748B; }
+.code-input { letter-spacing: 8px; font-family: 'JetBrains Mono', monospace; font-size: 18px; text-align: center; font-weight: 600; }
+.agreement-row { margin-top: 14px; font-size: 12px; color: #64748B; line-height: 1.5; }
+.agreement-row a { color: #65A30D; }
+
+@media (max-width: 720px) {
+  .page { grid-template-columns: 1fr; max-width: 440px; }
+  .brand-side { display: none; }
+  .form-side { padding: 32px 24px; }
+}
+@media (max-width: 480px) {
+  body { padding: 0; background: white; }
+  .page { box-shadow: none; border-radius: 0; min-height: 100vh; }
+  .form-side { padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <aside class="brand-side">
+    <div class="brand-logo">
+      <div class="logo-mark">L</div>
+      <span>Lifewise</span>
+    </div>
+    <div class="brand-content">
+      <h2>欢迎回来</h2>
+      <p>记录生活，明智决策。Lifewise 帮你把每一笔账、每一次选择都变得清晰可循。</p>
+      <div class="brand-features">
+        <div class="brand-feature"><span class="ico">📊</span>智能账单分析</div>
+        <div class="brand-feature"><span class="ico">🤖</span>AI 解读建议</div>
+        <div class="brand-feature"><span class="ico">🔒</span>端到端加密存储</div>
+      </div>
+    </div>
+    <div class="brand-footer">© 2026 Lifewise · 让生活更清晰</div>
+  </aside>
+
+  <main class="form-side">
+    <div class="form-header">
+      <h1>登录账号</h1>
+      <p>选择登录方式，开始管理你的生活</p>
+    </div>
+
+    <div class="form-tabs">
+      <button class="form-tab active" data-tab="identifier">账号 / 邮箱</button>
+      <button class="form-tab" data-tab="phone">手机号</button>
+    </div>
+
+    <!-- 账号 / 邮箱面板 -->
+    <div class="tab-panel active" id="panel-identifier">
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label class="field-label" for="identifier">
+            <span>用户名 / 邮箱</span>
+            <span class="helper">username 或 email@example.com</span>
+          </label>
+          <div class="input-wrap" id="identifierWrap">
+            <span class="leading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input class="input" type="text" id="identifier" name="identifier" placeholder="请输入用户名或邮箱" autocomplete="username" />
+          </div>
+          <div class="field-error" id="identifierError">请输入有效的用户名或邮箱</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">
+            <span>密码</span>
+            <span class="helper">8 位以上，含大小写数字</span>
+          </label>
+          <div class="input-wrap" id="passwordWrap">
+            <span class="leading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <input class="input has-trailing" type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password" />
+            <span class="trailing" id="togglePassword" title="显示密码">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+          <div class="field-error" id="passwordError">密码不正确</div>
+        </div>
+
+        <div class="row-options">
+          <label class="checkbox">
+            <input type="checkbox" id="remember" />
+            <span class="check"></span>
+            <span>记住我</span>
+          </label>
+          <a href="forgot-password.html" class="link-inline">忘记密码？</a>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <span>登录</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <div class="divider">或</div>
+        <button type="button" class="btn-secondary" disabled style="opacity:0.5;cursor:not-allowed">
+          <span>🚀</span> 第三方登录（v1.1+ 上线）
+        </button>
+      </form>
+    </div>
+
+    <!-- 手机号面板 -->
+    <div class="tab-panel" id="panel-phone">
+      <form id="phoneForm" novalidate>
+        <div class="field">
+          <label class="field-label" for="phone">
+            <span>手机号</span>
+            <span class="helper">未注册手机号将自动创建账号</span>
+          </label>
+          <div class="input-wrap" id="phoneWrap">
+            <span class="phone-prefix">+86</span>
+            <input class="input phone-input" type="tel" id="phone" name="phone" placeholder="请输入手机号" autocomplete="tel" maxlength="11" inputmode="numeric" />
+          </div>
+          <div class="field-error" id="phoneError">请输入有效的手机号</div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="smsCode">
+            <span>短信验证码</span>
+            <span class="helper">6 位数字，5 分钟内有效</span>
+          </label>
+          <div class="input-wrap" id="smsWrap">
+            <span class="leading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <input class="input has-trailing" type="text" id="smsCode" name="smsCode" placeholder="6 位验证码" maxlength="6" inputmode="numeric" style="letter-spacing: 6px; font-weight: 600; text-align: center;" />
+            <button type="button" class="sms-btn" id="getCodeBtn">获取验证码</button>
+          </div>
+          <div class="field-error" id="smsError">验证码错误或已过期</div>
+        </div>
+
+        <div class="row-options">
+          <label class="checkbox">
+            <input type="checkbox" id="phoneRemember" />
+            <span class="check"></span>
+            <span>记住设备，下次自动登录</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-primary" id="phoneLoginBtn">
+          <span>登录 / 注册</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <div class="agreement-row">
+          登录即表示您已阅读并同意 <a href="#" onclick="event.preventDefault();alert('📋 服务条款')">《服务条款》</a> 和 <a href="#" onclick="event.preventDefault();alert('🔒 隐私政策')">《隐私政策》</a>；未注册手机号将自动创建账号
+        </div>
+      </form>
+    </div>
+
+    <div class="form-footer">
+      还没有账号？<a href="register.html">立即注册</a>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ===== Tab 切换 =====
+const tabs = document.querySelectorAll('.form-tab');
+const panels = document.querySelectorAll('.tab-panel');
+tabs.forEach(t => {
+  t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== 账号/邮箱 登录 =====
+const togglePwd = document.getElementById('togglePassword');
+const pwdInput = document.getElementById('password');
+togglePwd.addEventListener('click', () => {
+  pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+});
+
+const form = document.getElementById('loginForm');
+const identifierInput = document.getElementById('identifier');
+const identifierWrap = document.getElementById('identifierWrap');
+const identifierError = document.getElementById('identifierError');
+const passwordWrap = document.getElementById('passwordWrap');
+const passwordError = document.getElementById('passwordError');
+
+function validateIdentifier() {
+  const v = identifierInput.value.trim();
+  if (!v) {
+    identifierWrap.classList.add('error');
+    identifierWrap.classList.remove('success');
+    identifierError.textContent = '请输入用户名或邮箱';
+    identifierError.classList.add('show');
+    return false;
+  }
+  const isEmail = v.includes('@');
+  if (isEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      identifierWrap.classList.add('error');
+      identifierWrap.classList.remove('success');
+      identifierError.textContent = '邮箱格式不正确';
+      identifierError.classList.add('show');
+      return false;
+    }
+  } else {
+    if (!/^[a-z][a-z0-9_]{2,19}$/.test(v)) {
+      identifierWrap.classList.add('error');
+      identifierWrap.classList.remove('success');
+      identifierError.textContent = '用户名 3-20 字符，小写字母/数字/下划线，字母开头';
+      identifierError.classList.add('show');
+      return false;
+    }
+  }
+  identifierWrap.classList.remove('error');
+  identifierWrap.classList.add('success');
+  identifierError.classList.remove('show');
+  return true;
+}
+
+function validatePassword() {
+  const v = pwdInput.value;
+  if (!v) {
+    passwordWrap.classList.add('error');
+    passwordError.textContent = '请输入密码';
+    passwordError.classList.add('show');
+    return false;
+  }
+  if (v.length < 8) {
+    passwordWrap.classList.add('error');
+    passwordError.textContent = '密码至少 8 位';
+    passwordError.classList.add('show');
+    return false;
+  }
+  passwordWrap.classList.remove('error');
+  passwordError.classList.remove('show');
+  return true;
+}
+
+identifierInput.addEventListener('blur', validateIdentifier);
+pwdInput.addEventListener('blur', validatePassword);
+identifierInput.addEventListener('input', () => { identifierWrap.classList.remove('error'); identifierError.classList.remove('show'); });
+pwdInput.addEventListener('input', () => { passwordWrap.classList.remove('error'); passwordError.classList.remove('show'); });
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const ok1 = validateIdentifier();
+  const ok2 = validatePassword();
+  if (ok1 && ok2) {
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<span>登录中...</span>';
+    setTimeout(() => {
+      alert('✅ 演示版：账号/邮箱登录成功\n\n实际流程请参见 auth-design.md §5');
+      btn.disabled = false;
+      btn.innerHTML = '<span>登录</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    }, 800);
+  }
+});
+
+// ===== 手机号 登录 =====
+const phoneInput = document.getElementById('phone');
+const phoneWrap = document.getElementById('phoneWrap');
+const phoneError = document.getElementById('phoneError');
+const smsInput = document.getElementById('smsCode');
+const smsWrap = document.getElementById('smsWrap');
+const smsError = document.getElementById('smsError');
+const getCodeBtn = document.getElementById('getCodeBtn');
+const phoneForm = document.getElementById('phoneForm');
+const phoneLoginBtn = document.getElementById('phoneLoginBtn');
+
+function validatePhone() {
+  const v = phoneInput.value.trim();
+  if (!v) {
+    phoneWrap.classList.add('error');
+    phoneWrap.classList.remove('success');
+    phoneError.textContent = '请输入手机号';
+    phoneError.classList.add('show');
+    return false;
+  }
+  if (!/^1[3-9]\d{9}$/.test(v)) {
+    phoneWrap.classList.add('error');
+    phoneWrap.classList.remove('success');
+    phoneError.textContent = '请输入有效的 11 位手机号';
+    phoneError.classList.add('show');
+    return false;
+  }
+  phoneWrap.classList.remove('error');
+  phoneWrap.classList.add('success');
+  phoneError.classList.remove('show');
+  return true;
+}
+
+function validateCode() {
+  const v = smsInput.value.trim();
+  if (!v) {
+    smsWrap.classList.add('error');
+    smsError.textContent = '请输入验证码';
+    smsError.classList.add('show');
+    return false;
+  }
+  if (!/^\d{6}$/.test(v)) {
+    smsWrap.classList.add('error');
+    smsError.textContent = '验证码为 6 位数字';
+    smsError.classList.add('show');
+    return false;
+  }
+  smsWrap.classList.remove('error');
+  smsError.classList.remove('show');
+  return true;
+}
+
+phoneInput.addEventListener('input', () => {
+  phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
+  phoneWrap.classList.remove('error');
+});
+smsInput.addEventListener('input', () => {
+  smsInput.value = smsInput.value.replace(/\D/g, '').slice(0, 6);
+  smsWrap.classList.remove('error');
+});
+
+// 倒计时
+let countdown = 0;
+let timer = null;
+function startCountdown(seconds) {
+  countdown = seconds;
+  getCodeBtn.disabled = true;
+  getCodeBtn.classList.add('counting');
+  getCodeBtn.textContent = countdown + 's 后重发';
+  timer = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      getCodeBtn.disabled = false;
+      getCodeBtn.classList.remove('counting');
+      getCodeBtn.textContent = '重新获取';
+    } else {
+      getCodeBtn.textContent = countdown + 's 后重发';
+    }
+  }, 1000);
+}
+
+getCodeBtn.addEventListener('click', () => {
+  if (!validatePhone()) {
+    phoneInput.focus();
+    return;
+  }
+  const original = getCodeBtn.textContent;
+  getCodeBtn.disabled = true;
+  getCodeBtn.textContent = '发送中...';
+  setTimeout(() => {
+    startCountdown(60);
+    smsInput.focus();
+    alert('📱 演示版：验证码已发送（' + phoneInput.value + '）\n\n实际流程请参见 auth-design.md §6.6');
+  }, 600);
+});
+
+phoneForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const ok1 = validatePhone();
+  const ok2 = validateCode();
+  if (ok1 && ok2) {
+    phoneLoginBtn.disabled = true;
+    phoneLoginBtn.innerHTML = '<span>登录中...</span>';
+    setTimeout(() => {
+      const isNew = Math.random() > 0.5;
+      alert(isNew
+        ? '✅ 演示版：手机号首次登录，已自动创建账号并登录\n\n流程见 auth-design.md'
+        : '✅ 演示版：手机号登录成功\n\n流程见 auth-design.md §5');
+      phoneLoginBtn.disabled = false;
+      phoneLoginBtn.innerHTML = '<span>登录 / 注册</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    }, 800);
+  }
+});
+</script>
+
+</body>
+</html>
