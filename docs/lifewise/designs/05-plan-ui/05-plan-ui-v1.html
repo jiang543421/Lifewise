@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>🎯 计划管理 — Lifewise v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   0. Reset & Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+
+/* ============================================================
+   1. Design Tokens（沿用 01-task-ui + plan 模块扩展）
+   ============================================================ */
+:root {
+  /* Base（复用 01-task-ui） */
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-1: #0F172A;
+  --text-2: #475569;
+  --text-3: #94A3B8;
+  --text-on-primary: #FFFFFF;
+  --success: #10B981;
+  --success-soft: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-soft: #FEF3C7;
+  --danger: #EF4444;
+  --danger-soft: #FEE2E2;
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Radius */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* Font size */
+  --fs-display: 24px;
+  --fs-h1: 20px;
+  --fs-h2: 16px;
+  --fs-body: 14px;
+  --fs-small: 12px;
+  --fs-micro: 11px;
+
+  /* Plan 模块专属 */
+  --plan-primary: #6366F1;
+  --plan-primary-soft: #EEF2FF;
+  --plan-primary-deep: #4338CA;
+
+  --plan-status-active: var(--plan-primary);
+  --plan-status-done: var(--success);
+  --plan-status-abandoned: var(--text-3);
+
+  --plan-missed-soft: #FEF3C7;
+  --plan-missed-ink: #92400E;
+  --plan-missed-icon: #B45309;
+
+  /* 6 分类 */
+  --cat-study: #6366F1;
+  --cat-study-soft: #EEF2FF;
+  --cat-work: #0EA5E9;
+  --cat-work-soft: #E0F2FE;
+  --cat-health: #10B981;
+  --cat-health-soft: #D1FAE5;
+  --cat-life: #F59E0B;
+  --cat-life-soft: #FEF3C7;
+  --cat-finance: #8B5CF6;
+  --cat-finance-soft: #EDE9FE;
+  --cat-other: #6B7280;
+  --cat-other-soft: #F3F4F6;
+
+  /* 进度环 */
+  --progress-track: #E5E7EB;
+  --progress-fill: var(--plan-primary);
+  --progress-done: var(--success);
+  --progress-missed: var(--warning);
+
+  /* Day badge */
+  --day-fresh: var(--plan-primary);
+  --day-fresh-soft: var(--plan-primary-soft);
+  --day-soon: var(--warning);
+  --day-soon-soft: var(--warning-soft);
+  --day-urgent: var(--danger);
+  --day-urgent-soft: var(--danger-soft);
+  --day-overdue: var(--plan-missed-ink);
+  --day-overdue-soft: var(--plan-missed-soft);
+}
+
+/* ============================================================
+   2. App Shell — Tab Bar
+   ============================================================ */
+.app-shell { max-width: 1440px; margin: 0 auto; padding: 0; }
+.tab-bar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 var(--sp-4);
+  height: 60px;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-1);
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s;
+}
+.tab-item[aria-current="page"] {
+  color: var(--plan-primary);
+  border-bottom-color: var(--plan-primary);
+}
+.tab-item .tab-icon { font-size: 22px; line-height: 1; }
+
+/* ============================================================
+   3. V1 PlanHub — 顶部 + Sub-Tab + FilterBar
+   ============================================================ */
+.plan-hub { padding: var(--sp-5) var(--sp-4); }
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+.page-title {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.page-title-icon { font-size: 28px; }
+
+.sub-tabs {
+  display: inline-flex;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+.sub-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 7px;
+  transition: all 0.2s;
+}
+.sub-tab[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--plan-primary);
+  box-shadow: var(--shadow-sm);
+}
+.sub-tab:hover:not([aria-pressed="true"]) { color: var(--text-1); }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+.filter-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  padding: 6px var(--sp-3);
+  border-radius: 999px;
+  font-size: var(--fs-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.filter-chip:hover { border-color: var(--border-strong); }
+.filter-chip[aria-pressed="true"] {
+  border-color: var(--plan-primary);
+  background: var(--plan-primary-soft);
+  color: var(--plan-primary);
+}
+.filter-count {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  margin-left: auto;
+}
+
+/* ============================================================
+   4. PlanCard
+   ============================================================ */
+.plan-grid {
+  column-count: 4;
+  column-gap: var(--sp-4);
+}
+@media (max-width: 1200px) { .plan-grid { column-count: 3; } }
+@media (max-width: 900px)  { .plan-grid { column-count: 2; } }
+@media (max-width: 600px)  { .plan-grid { column-count: 1; } }
+
+.plan-card {
+  break-inside: avoid;
+  margin-bottom: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.plan-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+}
+.plan-card:focus-visible {
+  outline: 2px solid var(--plan-primary);
+  outline-offset: 2px;
+}
+.plan-card[role="article"] { display: flex; }
+
+.status-bar {
+  height: 4px;
+  width: 100%;
+}
+.status-bar.active    { background: var(--plan-status-active); }
+.status-bar.done      { background: var(--plan-status-done); }
+.status-bar.abandoned { background: var(--plan-status-abandoned); }
+
+.plan-card-body { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
+.plan-card-title {
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-1);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.8em;
+}
+.plan-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.cat-study   { background: var(--cat-study-soft);   color: var(--cat-study); }
+.cat-work    { background: var(--cat-work-soft);    color: var(--cat-work); }
+.cat-health  { background: var(--cat-health-soft);  color: var(--cat-health); }
+.cat-life    { background: var(--cat-life-soft);    color: var(--cat-life); }
+.cat-finance { background: var(--cat-finance-soft); color: var(--cat-finance); }
+.cat-other   { background: var(--cat-other-soft);   color: var(--cat-other); }
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.progress-ring-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.progress-ring-wrap svg { transform: rotate(-90deg); }
+.progress-ring-track { stroke: var(--progress-track); fill: none; stroke-width: 6; }
+.progress-ring-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s;
+}
+.progress-ring-fill.active  { stroke: var(--progress-fill); }
+.progress-ring-fill.done    { stroke: var(--progress-done); }
+.progress-ring-fill.missed  { stroke: var(--progress-missed); }
+.progress-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.5px;
+}
+
+.progress-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.progress-meta .count { font-weight: 600; color: var(--text-1); font-size: var(--fs-h2); }
+.progress-meta .label { font-size: var(--fs-micro); color: var(--text-3); }
+
+.plan-card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  border-top: 1px dashed var(--border);
+  padding-top: var(--sp-3);
+}
+
+.day-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+}
+.day-fresh   { background: var(--day-fresh-soft);    color: var(--day-fresh); }
+.day-soon    { background: var(--day-soon-soft);     color: var(--day-soon); }
+.day-urgent  { background: var(--day-urgent-soft);   color: var(--day-urgent); }
+.day-overdue { background: var(--day-overdue-soft);  color: var(--day-overdue); }
+
+.last-updated {
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  margin-left: auto;
+}
+.last-updated.stale { color: var(--warning); font-weight: 500; }
+.last-updated.stale::before { content: "⚠ "; }
+
+/* ============================================================
+   5. EmptyState
+   ============================================================ */
+.empty-state {
+  text-align: center;
+  padding: 80px var(--sp-4);
+}
+.empty-state-illust { font-size: 96px; margin-bottom: var(--sp-4); }
+.empty-state-title { font-size: var(--fs-h1); font-weight: 600; color: var(--text-1); margin: 0 0 var(--sp-2); }
+.empty-state-desc { font-size: var(--fs-body); color: var(--text-2); margin: 0 0 var(--sp-5); }
+
+/* ============================================================
+   6. FAB
+   ============================================================ */
+.fab {
+  position: fixed;
+  right: var(--sp-5);
+  bottom: 80px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--plan-primary);
+  color: var(--text-on-primary);
+  border: none;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab:hover { transform: scale(1.05); box-shadow: 0 16px 36px rgba(99, 102, 241, 0.4); }
+.fab:focus-visible { outline: 3px solid var(--plan-primary-soft); outline-offset: 2px; }
+
+/* ============================================================
+   7. Sheet (V2 / V4 / V5 / V6)
+   ============================================================ */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.sheet {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 100%);
+  width: min(560px, 100%);
+  max-height: 88vh;
+  background: var(--surface);
+  border-top-left-radius: var(--r-xl);
+  border-top-right-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  z-index: 201;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+.sheet.open { transform: translate(-50%, 0); }
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-strong);
+  border-radius: 2px;
+  margin: 8px auto;
+  flex-shrink: 0;
+}
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-5) var(--sp-2);
+  flex-shrink: 0;
+}
+.sheet-title {
+  font-size: var(--fs-h1);
+  font-weight: 600;
+  margin: 0;
+}
+.sheet-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--text-3);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sheet-close:hover { background: var(--surface-2); color: var(--text-1); }
+.sheet-body {
+  padding: var(--sp-3) var(--sp-5);
+  overflow-y: auto;
+  flex: 1;
+}
+.sheet-footer {
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+/* Form */
+.field { margin-bottom: var(--sp-4); }
+.field-label {
+  display: block;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: var(--sp-1);
+}
+.field-label .req { color: var(--danger); margin-left: 2px; }
+.field-input, .field-textarea, .field-select {
+  width: 100%;
+  padding: 10px var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body);
+  background: var(--surface);
+  color: var(--text-1);
+}
+.field-input:focus, .field-textarea:focus, .field-select:focus {
+  outline: none;
+  border-color: var(--plan-primary);
+  box-shadow: 0 0 0 3px var(--plan-primary-soft);
+}
+.field-textarea { resize: vertical; min-height: 80px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+
+/* Buttons */
+.btn {
+  padding: 10px var(--sp-4);
+  border-radius: var(--r-md);
+  border: none;
+  font-size: var(--fs-body);
+  font-weight: 500;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn:focus-visible { outline: 2px solid var(--plan-primary); outline-offset: 2px; }
+.btn-primary { background: var(--plan-primary); color: var(--text-on-primary); flex: 1; }
+.btn-primary:hover { background: var(--plan-primary-deep); }
+.btn-primary:disabled { background: var(--text-3); cursor: not-allowed; }
+.btn-secondary { background: var(--surface-2); color: var(--text-1); flex: 1; }
+.btn-secondary:hover { background: var(--border); }
+.btn-ghost { background: transparent; color: var(--text-2); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--text-1); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #DC2626; }
+
+/* Category picker */
+.cat-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+}
+.cat-option {
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--text-2);
+  transition: all 0.15s;
+}
+.cat-option:hover { border-color: var(--border-strong); }
+.cat-option[aria-pressed="true"] {
+  border-color: var(--plan-primary);
+  background: var(--plan-primary-soft);
+  color: var(--plan-primary);
+}
+.cat-option .emoji { font-size: 24px; }
+
+/* ============================================================
+   8. V3 Drawer (右侧 / 移动端全屏)
+   ============================================================ */
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  z-index: 200;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(640px, 100%);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.drawer.open { transform: translateX(0); }
+@media (max-width: 768px) {
+  .drawer { width: 100%; }
+}
+
+.drawer-hero {
+  padding: var(--sp-5);
+  background: linear-gradient(135deg, var(--plan-primary-soft) 0%, var(--surface) 100%);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.drawer-hero-close {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  background: var(--surface);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.drawer-hero-close:hover { background: var(--surface-2); }
+.drawer-hero-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+}
+.drawer-hero-status.active    { background: var(--plan-primary-soft); color: var(--plan-primary); }
+.drawer-hero-status.done      { background: var(--success-soft); color: var(--success); }
+.drawer-hero-status.abandoned { background: var(--surface-2); color: var(--text-3); }
+.drawer-hero-title {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  margin: 0 0 var(--sp-2);
+  color: var(--text-1);
+  padding-right: 40px;
+}
+.drawer-hero-meta {
+  display: flex;
+  gap: var(--sp-3);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  flex-wrap: wrap;
+}
+.drawer-hero-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+.drawer-hero-progress-ring { width: 80px; height: 80px; }
+
+.drawer-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 var(--sp-3);
+  flex-shrink: 0;
+}
+.drawer-tab {
+  border: none;
+  background: transparent;
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--text-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.drawer-tab[aria-selected="true"] {
+  color: var(--plan-primary);
+  border-bottom-color: var(--plan-primary);
+}
+.drawer-tab-count {
+  display: inline-block;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-micro);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.drawer-add-btn {
+  width: 100%;
+  margin-top: var(--sp-4);
+  padding: var(--sp-3);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+.drawer-add-btn:hover { border-color: var(--plan-primary); color: var(--plan-primary); background: var(--plan-primary-soft); }
+
+/* ============================================================
+   9. V3a MilestoneRow + Long Press Drag
+   ============================================================ */
+.milestone-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.milestone-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  min-height: 48px;
+  transition: all 0.15s;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.milestone-row.dragging {
+  cursor: grabbing;
+  opacity: 0.4;
+  transform: scale(0.96);
+  background: var(--plan-primary-soft);
+}
+.milestone-row.missed {
+  background: var(--plan-missed-soft);
+  border-color: var(--plan-missed-icon);
+}
+.milestone-row.done { background: var(--success-soft); border-color: var(--success); }
+.milestone-row.drop-target { border-top: 3px solid var(--plan-primary); }
+
+.milestone-handle {
+  color: var(--text-3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: grab;
+  padding: 4px;
+  flex-shrink: 0;
+}
+.milestone-handle:hover { color: var(--text-1); }
+
+.milestone-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.milestone-checkbox:hover { border-color: var(--plan-primary); }
+.milestone-checkbox.checked {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+.milestone-checkbox.checked::after {
+  content: "✓";
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.milestone-content { flex: 1; min-width: 0; }
+.milestone-title {
+  font-size: var(--fs-body);
+  color: var(--text-1);
+  margin: 0;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.milestone-row.done .milestone-title { text-decoration: line-through; color: var(--text-3); }
+.milestone-due {
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.milestone-row.missed .milestone-due { color: var(--plan-missed-ink); font-weight: 600; }
+.milestone-status {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: var(--fs-micro);
+  margin-left: var(--sp-2);
+}
+.status-pending { background: var(--surface-2); color: var(--text-2); }
+.status-done    { background: var(--success-soft); color: var(--success); }
+.status-missed  { background: var(--plan-missed-soft); color: var(--plan-missed-ink); }
+
+.milestone-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+.icon-btn {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text-1); }
+.icon-btn.primary { color: var(--plan-primary); }
+.icon-btn.warn    { color: var(--plan-missed-icon); }
+
+/* ============================================================
+   10. V5 TaskPicker
+   ============================================================ */
+.task-search {
+  width: 100%;
+  padding: 10px var(--sp-3) 10px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body);
+  background: var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>") no-repeat 12px center;
+  color: var(--text-1);
+}
+.task-search:focus { outline: none; border-color: var(--plan-primary); box-shadow: 0 0 0 3px var(--plan-primary-soft); }
+
+.task-group-title {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: var(--sp-4) 0 var(--sp-2);
+}
+.task-list { display: flex; flex-direction: column; gap: var(--sp-1); }
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.task-item:hover { background: var(--surface-2); }
+.task-item-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.task-item.checked .task-item-checkbox {
+  background: var(--plan-primary);
+  border-color: var(--plan-primary);
+  color: white;
+}
+.task-item.checked .task-item-checkbox::after { content: "✓"; font-size: 12px; font-weight: 700; }
+.task-item-text { font-size: var(--fs-body); color: var(--text-1); flex: 1; }
+.task-item.done .task-item-text { text-decoration: line-through; color: var(--text-3); }
+
+/* ============================================================
+   11. V6 MISSED AdjustSheet
+   ============================================================ */
+.adjust-options { display: flex; flex-direction: column; gap: var(--sp-2); }
+.adjust-option {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s;
+}
+.adjust-option:hover { border-color: var(--plan-primary); background: var(--plan-primary-soft); }
+.adjust-option-icon { font-size: 28px; flex-shrink: 0; }
+.adjust-option-text strong { display: block; font-size: var(--fs-body); color: var(--text-1); margin-bottom: 2px; }
+.adjust-option-text small { font-size: var(--fs-small); color: var(--text-3); }
+
+/* ============================================================
+   12. V7 Kanban
+   ============================================================ */
+.kanban-wrap {
+  display: flex;
+  gap: var(--sp-3);
+  overflow-x: auto;
+  padding-bottom: var(--sp-3);
+  scroll-snap-type: x mandatory;
+}
+.kanban-col {
+  flex: 1 0 calc((100% - 5 * var(--sp-3)) / 6);
+  min-width: 240px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  scroll-snap-align: start;
+}
+.kanban-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-2);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+}
+.kanban-col-count {
+  background: var(--surface);
+  color: var(--text-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-micro);
+}
+.kanban-card {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  cursor: grab;
+}
+.kanban-card:active { cursor: grabbing; }
+
+/* 空列 CTA：把空白转化为引导入口 */
+.kanban-empty-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: 160px;
+  padding: var(--sp-4);
+  background: transparent;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.kanban-empty-cta:hover {
+  border-color: var(--plan-primary);
+  background: var(--plan-primary-soft);
+  transform: translateY(-1px);
+}
+.kanban-empty-cta:focus-visible {
+  outline: 2px solid var(--plan-primary);
+  outline-offset: 2px;
+}
+.kanban-empty-cta .cta-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-3);
+  font-weight: 300;
+  transition: all 0.2s ease;
+}
+.kanban-empty-cta:hover .cta-icon {
+  background: var(--plan-primary);
+  border-color: var(--plan-primary);
+  color: var(--text-on-primary);
+}
+.kanban-empty-cta .cta-text {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.kanban-empty-cta .cta-hint {
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  line-height: 1.4;
+  max-width: 180px;
+}
+.kanban-card-title {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0 0 var(--sp-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.kanban-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+
+/* Mobile kanban: dot indicator */
+@media (max-width: 768px) {
+  .kanban-col { flex: 0 0 100%; min-width: 100%; }
+  .kanban-wrap { scroll-snap-type: x mandatory; }
+}
+
+/* ============================================================
+   13. V8 Timeline
+   ============================================================ */
+.timeline-wrap { padding: var(--sp-4) 0; }
+.timeline-months {
+  display: grid;
+  grid-template-columns: 100px repeat(12, 1fr);
+  gap: 1px;
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+  margin-bottom: var(--sp-2);
+  position: sticky;
+  top: 60px;
+  background: var(--bg);
+  padding: var(--sp-2) 0;
+  z-index: 5;
+}
+.timeline-months .plan-label { font-weight: 600; color: var(--text-2); }
+.timeline-rows { display: flex; flex-direction: column; gap: var(--sp-3); }
+.timeline-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: var(--sp-3);
+  align-items: center;
+  min-height: 48px;
+}
+.timeline-row-label {
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.timeline-track {
+  position: relative;
+  height: 32px;
+  background: linear-gradient(to right, var(--surface-2) 0%, var(--surface-2) 100%);
+  border-radius: var(--r-sm);
+}
+.timeline-segment {
+  position: absolute;
+  top: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+.timeline-dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.timeline-dot:hover { transform: translate(-50%, -50%) scale(1.3); }
+.timeline-dot.done    { background: var(--progress-done); }
+.timeline-dot.pending { background: var(--plan-primary); }
+.timeline-dot.missed  { background: var(--progress-missed); }
+
+@media (max-width: 768px) {
+  .timeline-months { display: none; }
+  .timeline-row { grid-template-columns: 1fr; }
+  .timeline-row-label { font-size: var(--fs-body); }
+}
+
+/* ============================================================
+   14. Toast
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text-1);
+  color: white;
+  padding: 10px var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--success); }
+.toast.warn { background: var(--warning); }
+
+/* ============================================================
+   15. Recycle Bin stub
+     ============================================================ */
+.recycle-banner {
+  background: var(--plan-missed-soft);
+  color: var(--plan-missed-ink);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--fs-small);
+  margin-bottom: var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* ============================================================
+   16. Accessibility focus rings
+     ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--plan-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   17. Mobile responsive
+     ============================================================ */
+@media (max-width: 640px) {
+  .page-header { flex-direction: column; align-items: stretch; }
+  .page-title { font-size: 20px; }
+  .plan-card-body { padding: var(--sp-3); }
+  .drawer-hero { padding: var(--sp-4); }
+  .drawer-body { padding: var(--sp-3); }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     App Shell — Tab Bar
+     ============================================================ -->
+<div class="app-shell">
+  <nav class="tab-bar" role="tablist" aria-label="主导航">
+    <button class="tab-item" role="tab" aria-current="false" data-tab="home">
+      <span class="tab-icon">🏠</span>
+      <span>Home</span>
+    </button>
+    <button class="tab-item" role="tab" aria-current="false" data-tab="task">
+      <span class="tab-icon">📋</span>
+      <span>Task</span>
+    </button>
+    <button class="tab-item" role="tab" aria-current="page" data-tab="plan">
+      <span class="tab-icon">🎯</span>
+      <span>Plan</span>
+    </button>
+    <button class="tab-item" role="tab" aria-current="false" data-tab="daily">
+      <span class="tab-icon">📝</span>
+      <span>Daily</span>
+    </button>
+    <button class="tab-item" role="tab" aria-current="false" data-tab="me">
+      <span class="tab-icon">👤</span>
+      <span>Me</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       V1 PlanHub
+       ============================================================ -->
+  <main class="plan-hub">
+    <header class="page-header">
+      <h1 class="page-title">
+        <span class="page-title-icon">🎯</span>
+        <span>计划</span>
+      </h1>
+      <div style="display:flex; gap: var(--sp-2); align-items: center;">
+        <div class="sub-tabs" role="tablist" aria-label="视图模式">
+          <button class="sub-tab" role="tab" aria-pressed="true" data-view="masonry">瀑布</button>
+          <button class="sub-tab" role="tab" aria-pressed="false" data-view="timeline">时间轴</button>
+          <button class="sub-tab" role="tab" aria-pressed="false" data-view="kanban">看板</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="filter-bar">
+      <button class="filter-chip" aria-pressed="false" data-filter="status" data-value="all">全部状态</button>
+      <button class="filter-chip" aria-pressed="false" data-filter="category" data-value="all">全部分类</button>
+      <button class="filter-chip" aria-pressed="false" data-filter="sort" data-value="updated">最近更新</button>
+      <span class="filter-count" id="filter-count">6 个计划</span>
+    </div>
+
+    <!-- Masonry view -->
+    <div id="view-masonry" class="plan-grid" role="list"></div>
+
+    <!-- Timeline view -->
+    <div id="view-timeline" class="timeline-wrap" hidden></div>
+
+    <!-- Kanban view -->
+    <div id="view-kanban" class="kanban-wrap" hidden></div>
+  </main>
+</div>
+
+<!-- ============================================================
+     FAB
+     ============================================================ -->
+<button class="fab" id="fab-add" aria-label="新建计划">+</button>
+
+<!-- ============================================================
+     V2 PlanSheet (创建/编辑)
+     ============================================================ -->
+<div class="sheet-backdrop" id="plan-sheet-backdrop"></div>
+<aside class="sheet" id="plan-sheet" role="dialog" aria-modal="true" aria-labelledby="plan-sheet-title">
+  <div class="sheet-handle"></div>
+  <header class="sheet-header">
+    <h2 class="sheet-title" id="plan-sheet-title">新建计划</h2>
+    <button class="sheet-close" data-close-sheet="plan-sheet" aria-label="关闭">✕</button>
+  </header>
+  <div class="sheet-body">
+    <div class="field">
+      <label class="field-label" for="plan-title-input">标题<span class="req">*</span></label>
+      <input id="plan-title-input" class="field-input" type="text" placeholder="例如：学完一本英文书" maxlength="40">
+    </div>
+    <div class="field">
+      <label class="field-label" for="plan-desc-input">描述</label>
+      <textarea id="plan-desc-input" class="field-textarea" placeholder="简单描述一下" maxlength="500"></textarea>
+    </div>
+    <div class="field">
+      <label class="field-label">分类</label>
+      <div class="cat-picker" id="plan-cat-picker">
+        <button type="button" class="cat-option" aria-pressed="false" data-cat="study"><span class="emoji">📚</span><span>学习</span></button>
+        <button type="button" class="cat-option" aria-pressed="false" data-cat="work"><span class="emoji">💼</span><span>工作</span></button>
+        <button type="button" class="cat-option" aria-pressed="false" data-cat="health"><span class="emoji">💪</span><span>健康</span></button>
+        <button type="button" class="cat-option" aria-pressed="false" data-cat="life"><span class="emoji">🏡</span><span>生活</span></button>
+        <button type="button" class="cat-option" aria-pressed="false" data-cat="finance"><span class="emoji">💰</span><span>财务</span></button>
+        <button type="button" class="cat-option" aria-pressed="false" data-cat="other"><span class="emoji">📌</span><span>其他</span></button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label" for="plan-start-input">开始日期<span class="req">*</span></label>
+        <input id="plan-start-input" class="field-input" type="date">
+      </div>
+      <div class="field">
+        <label class="field-label" for="plan-end-input">结束日期<span class="req">*</span></label>
+        <input id="plan-end-input" class="field-input" type="date">
+      </div>
+    </div>
+  </div>
+  <footer class="sheet-footer">
+    <button class="btn btn-secondary" data-close-sheet="plan-sheet">取消</button>
+    <button class="btn btn-primary" id="plan-save-btn">保存</button>
+  </footer>
+</aside>
+
+<!-- ============================================================
+     V3 Drawer (Plan Detail)
+     ============================================================ -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+<aside class="drawer" id="plan-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <div class="drawer-hero">
+    <button class="drawer-hero-close" data-close-drawer aria-label="关闭">✕</button>
+    <span class="drawer-hero-status active" id="drawer-status">ACTIVE</span>
+    <h2 class="drawer-hero-title" id="drawer-title">学完一本英文书</h2>
+    <div class="drawer-hero-meta" id="drawer-meta"></div>
+    <div class="drawer-hero-progress" id="drawer-progress"></div>
+  </div>
+  <div class="drawer-tabs" role="tablist">
+    <button class="drawer-tab" role="tab" aria-selected="true" data-drawer-tab="milestone">里程碑 <span class="drawer-tab-count" id="drawer-milestone-count">0</span></button>
+    <button class="drawer-tab" role="tab" aria-selected="false" data-drawer-tab="linked">关联任务 <span class="drawer-tab-count" id="drawer-linked-count">0</span></button>
+    <button class="drawer-tab" role="tab" aria-selected="false" data-drawer-tab="history">历史</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<!-- ============================================================
+     V4 MilestoneSheet
+     ============================================================ -->
+<aside class="sheet" id="milestone-sheet" role="dialog" aria-modal="true" aria-labelledby="milestone-sheet-title">
+  <div class="sheet-handle"></div>
+  <header class="sheet-header">
+    <h2 class="sheet-title" id="milestone-sheet-title">新建里程碑</h2>
+    <button class="sheet-close" data-close-sheet="milestone-sheet" aria-label="关闭">✕</button>
+  </header>
+  <div class="sheet-body">
+    <div class="field">
+      <label class="field-label" for="milestone-title-input">里程碑标题<span class="req">*</span></label>
+      <input id="milestone-title-input" class="field-input" type="text" placeholder="例如：读完前 5 章" maxlength="30">
+    </div>
+    <div class="field">
+      <label class="field-label" for="milestone-due-input">计划完成日<span class="req">*</span></label>
+      <input id="milestone-due-input" class="field-input" type="date">
+    </div>
+  </div>
+  <footer class="sheet-footer">
+    <button class="btn btn-secondary" data-close-sheet="milestone-sheet">取消</button>
+    <button class="btn btn-primary" id="milestone-save-btn">保存</button>
+  </footer>
+</aside>
+
+<!-- ============================================================
+     V5 TaskPickerSheet
+     ============================================================ -->
+<aside class="sheet" id="task-picker-sheet" role="dialog" aria-modal="true" aria-labelledby="task-picker-title">
+  <div class="sheet-handle"></div>
+  <header class="sheet-header">
+    <h2 class="sheet-title" id="task-picker-title">关联任务</h2>
+    <button class="sheet-close" data-close-sheet="task-picker-sheet" aria-label="关闭">✕</button>
+  </header>
+  <div class="sheet-body">
+    <input type="search" class="task-search" id="task-search-input" placeholder="搜索任务...">
+    <div class="task-group-title">今日</div>
+    <div class="task-list" id="task-list-today"></div>
+    <div class="task-group-title">本周</div>
+    <div class="task-list" id="task-list-week"></div>
+    <div class="task-group-title">全部</div>
+    <div class="task-list" id="task-list-all"></div>
+  </div>
+  <footer class="sheet-footer">
+    <button class="btn btn-secondary" data-close-sheet="task-picker-sheet">取消</button>
+    <button class="btn btn-primary" id="task-picker-confirm">确认 <span id="task-picker-count">0</span> 项</button>
+  </footer>
+</aside>
+
+<!-- ============================================================
+     V6 MISSED AdjustSheet
+     ============================================================ -->
+<aside class="sheet" id="adjust-sheet" role="dialog" aria-modal="true" aria-labelledby="adjust-title">
+  <div class="sheet-handle"></div>
+  <header class="sheet-header">
+    <h2 class="sheet-title" id="adjust-title">📍 调整里程碑</h2>
+    <button class="sheet-close" data-close-sheet="adjust-sheet" aria-label="关闭">✕</button>
+  </header>
+  <div class="sheet-body">
+    <p style="font-size: var(--fs-small); color: var(--text-2); margin: 0 0 var(--sp-4);">
+      这条里程碑已过期。选一个方向继续：
+    </p>
+    <div class="adjust-options">
+      <button class="adjust-option" data-adjust="deadline">
+        <span class="adjust-option-icon">📅</span>
+        <span class="adjust-option-text"><strong>调整 deadline</strong><small>把完成日往后挪，回到 PENDING</small></span>
+      </button>
+      <button class="adjust-option" data-adjust="split">
+        <span class="adjust-option-icon">✂️</span>
+        <span class="adjust-option-text"><strong>拆为子里程碑</strong><small>把这一段拆成多个小段</small></span>
+      </button>
+      <button class="adjust-option" data-adjust="abandon">
+        <span class="adjust-option-icon">⏭</span>
+        <span class="adjust-option-text"><strong>跳过</strong><small>标记 ABANDONED，从进度中移除</small></span>
+      </button>
+    </div>
+  </div>
+  <footer class="sheet-footer">
+    <button class="btn btn-secondary" data-close-sheet="adjust-sheet">取消</button>
+  </footer>
+</aside>
+
+<!-- ============================================================
+     Toast
+     ============================================================ -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+     Mock Data — 对接 §8 数据模型
+     ============================================================ */
+const CATEGORIES = {
+  study:   { emoji: '📚', label: '学习', cls: 'cat-study' },
+  work:    { emoji: '💼', label: '工作', cls: 'cat-work' },
+  health:  { emoji: '💪', label: '健康', cls: 'cat-health' },
+  life:    { emoji: '🏡', label: '生活', cls: 'cat-life' },
+  finance: { emoji: '💰', label: '财务', cls: 'cat-finance' },
+  other:   { emoji: '📌', label: '其他', cls: 'cat-other' },
+};
+
+// 空分类的引导文案（Kanban 6 列空白时显示）
+const EMPTY_HINTS = {
+  study:   '读书、课程、技能提升都算学习类',
+  work:    '项目、绩效、职业发展都算工作类',
+  health:  '运动、饮食、作息都算健康类',
+  life:    '家庭、爱好、装修都算生活类',
+  finance: '储蓄、投资、预算都算财务类',
+  other:   '暂时没想好分类的可以放这里',
+};
+function emptyHint(catKey) { return EMPTY_HINTS[catKey] || ''; }
+
+const TODAY = new Date('2026-07-28T12:00:00Z');
+
+function daysUntil(iso) {
+  const target = new Date(iso);
+  return Math.ceil((target - TODAY) / (1000 * 60 * 60 * 24));
+}
+function daysSince(iso) {
+  const past = new Date(iso);
+  return Math.floor((TODAY - past) / (1000 * 60 * 60 * 24));
+}
+function formatDate(iso) {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+const PLANS = [
+  {
+    id: 'p1', title: '学完一本英文书',
+    description: '2026 下半年读完一本英文原版书并输出读书笔记',
+    category: 'study', status: 'ACTIVE',
+    startAt: '2026-07-01', endAt: '2026-12-31',
+    createdAt: '2026-07-15T10:00:00Z',
+    updatedAt: '2026-07-25T14:30:00Z',
+  },
+  {
+    id: 'p2', title: '减重 5kg',
+    description: '通过控制饮食 + 每周 3 次有氧运动',
+    category: 'health', status: 'ACTIVE',
+    startAt: '2026-06-01', endAt: '2026-12-31',
+    createdAt: '2026-06-01T08:00:00Z',
+    updatedAt: '2026-07-20T19:15:00Z',
+  },
+  {
+    id: 'p3', title: '新房装修',
+    description: '客厅+主卧翻新，11 月前完工',
+    category: 'life', status: 'ACTIVE',
+    startAt: '2026-07-01', endAt: '2026-11-30',
+    createdAt: '2026-07-01T09:00:00Z',
+    updatedAt: '2026-07-22T11:00:00Z',
+  },
+  {
+    id: 'p4', title: 'CFA Level 3 备考',
+    description: '8 月模考，目标 70%+',
+    category: 'study', status: 'ACTIVE',
+    startAt: '2026-05-01', endAt: '2026-08-31',
+    createdAt: '2026-05-01T08:00:00Z',
+    updatedAt: '2026-07-15T20:00:00Z',
+  },
+  {
+    id: 'p5', title: '读 24 本书（年度）',
+    description: '2026 年度阅读 24 本书',
+    category: 'other', status: 'DONE',
+    startAt: '2026-01-01', endAt: '2026-06-30',
+    createdAt: '2026-01-01T08:00:00Z',
+    updatedAt: '2026-06-30T18:00:00Z',
+  },
+  {
+    id: 'p6', title: '学钢琴',
+    description: '学会 3 首完整的曲子',
+    category: 'health', status: 'ABANDONED',
+    startAt: '2026-03-01', endAt: '2026-12-31',
+    createdAt: '2026-03-01T08:00:00Z',
+    updatedAt: '2026-04-15T10:00:00Z',
+  },
+];
+
+const MILESTONES = [
+  // p1
+  { id: 'm1', planId: 'p1', title: '读完前 5 章', dueDate: '2026-07-31',
+    status: 'DONE', order: 0, linkedTaskIds: [], createdAt: '2026-07-15T10:00:00Z',
+    updatedAt: '2026-07-25T14:30:00Z', completedAt: '2026-07-25T14:30:00Z' },
+  { id: 'm2', planId: 'p1', title: '完成第 6-10 章', dueDate: '2026-08-31',
+    status: 'PENDING', order: 1, linkedTaskIds: ['t1'], createdAt: '2026-07-15T10:00:00Z',
+    updatedAt: '2026-07-15T10:00:00Z' },
+  { id: 'm3', planId: 'p1', title: '写读书笔记 1', dueDate: '2026-09-15',
+    status: 'PENDING', order: 2, linkedTaskIds: [], createdAt: '2026-07-15T10:00:00Z',
+    updatedAt: '2026-07-15T10:00:00Z' },
+  { id: 'm4', planId: 'p1', title: '读完 11-15 章', dueDate: '2026-10-31',
+    status: 'PENDING', order: 3, linkedTaskIds: [], createdAt: '2026-07-15T10:00:00Z',
+    updatedAt: '2026-07-15T10:00:00Z' },
+  // p2
+  { id: 'm5', planId: 'p2', title: '本月跑步 12 次', dueDate: '2026-07-25',
+    status: 'MISSED', order: 0, linkedTaskIds: [], createdAt: '2026-07-01T10:00:00Z',
+    updatedAt: '2026-07-26T21:00:00Z' },
+  { id: 'm6', planId: 'p2', title: '本月减重 1kg', dueDate: '2026-07-31',
+    status: 'PENDING', order: 1, linkedTaskIds: [], createdAt: '2026-07-01T10:00:00Z',
+    updatedAt: '2026-07-15T10:00:00Z' },
+  { id: 'm7', planId: 'p2', title: '本月跑步 12 次', dueDate: '2026-08-25',
+    status: 'PENDING', order: 2, linkedTaskIds: [], createdAt: '2026-08-01T10:00:00Z',
+    updatedAt: '2026-08-01T10:00:00Z' },
+  // p3
+  { id: 'm8', planId: 'p3', title: '设计方案确认', dueDate: '2026-07-20',
+    status: 'DONE', order: 0, linkedTaskIds: ['t2'], createdAt: '2026-07-01T10:00:00Z',
+    updatedAt: '2026-07-20T16:00:00Z', completedAt: '2026-07-20T16:00:00Z' },
+  { id: 'm9', planId: 'p3', title: '开工', dueDate: '2026-08-05',
+    status: 'PENDING', order: 1, linkedTaskIds: [], createdAt: '2026-07-01T10:00:00Z',
+    updatedAt: '2026-07-22T11:00:00Z' },
+  { id: 'm10', planId: 'p3', title: '水电验收', dueDate: '2026-09-01',
+    status: 'PENDING', order: 2, linkedTaskIds: [], createdAt: '2026-07-01T10:00:00Z',
+    updatedAt: '2026-07-01T10:00:00Z' },
+  // p4
+  { id: 'm11', planId: 'p4', title: 'Ethics 模考', dueDate: '2026-08-10',
+    status: 'PENDING', order: 0, linkedTaskIds: [], createdAt: '2026-05-01T10:00:00Z',
+    updatedAt: '2026-07-15T20:00:00Z' },
+  { id: 'm12', planId: 'p4', title: '冲刺刷题 200 题', dueDate: '2026-08-25',
+    status: 'PENDING', order: 1, linkedTaskIds: [], createdAt: '2026-05-01T10:00:00Z',
+    updatedAt: '2026-05-01T10:00:00Z' },
+  // p5 - DONE plan
+  { id: 'm13', planId: 'p5', title: '上半年读完 12 本', dueDate: '2026-06-30',
+    status: 'DONE', order: 0, linkedTaskIds: [], createdAt: '2026-01-01T10:00:00Z',
+    updatedAt: '2026-06-30T18:00:00Z', completedAt: '2026-06-30T18:00:00Z' },
+  // p6 - ABANDONED plan
+];
+
+// Mock tasks (from 01-task-ui)
+const TASKS = [
+  { id: 't1', title: '买《Atomic Habits》', group: 'today', done: false },
+  { id: 't2', title: '和设计师确认客厅方案', group: 'today', done: true },
+  { id: 't3', title: '整理本周读书笔记', group: 'week', done: false },
+  { id: 't4', title: '晨跑 30 分钟', group: 'week', done: false },
+  { id: 't5', title: 'CFA Ethics 章节练习', group: 'week', done: false },
+  { id: 't6', title: '完成 CFA mock 1', group: 'all', done: false },
+  { id: 't7', title: '采购客厅灯具', group: 'all', done: false },
+  { id: 't8', title: '更新 LinkedIn 个人页', group: 'all', done: true },
+];
+
+/* ============================================================
+     State
+     ============================================================ */
+const state = {
+  view: 'masonry',
+  filter: { status: 'all', category: 'all', sort: 'updated' },
+  currentPlanId: null,
+  currentDrawerTab: 'milestone',
+  currentMilestoneId: null,
+  selectedTasks: new Set(),
+  searchQuery: '',
+  longPressTimer: null,
+  longPressTarget: null,
+};
+
+function milestonesFor(planId) {
+  return MILESTONES
+    .filter(m => m.planId === planId)
+    .sort((a, b) => {
+      // 未完成正序排前,完成置灰
+      if (a.status === 'DONE' && b.status !== 'DONE') return 1;
+      if (a.status !== 'DONE' && b.status === 'DONE') return -1;
+      return a.order - b.order;
+    });
+}
+
+function planProgress(planId) {
+  const ms = milestonesFor(planId);
+  const total = ms.length;
+  const done = ms.filter(m => m.status === 'DONE').length;
+  const missed = ms.filter(m => m.status === 'MISSED').length;
+  return { total, done, missed, pct: total ? Math.round(done / total * 100) : 0 };
+}
+
+function dayBadge(days) {
+  if (days < 0) return { cls: 'day-overdue', label: `已过 ${-days} 天` };
+  if (days < 7)  return { cls: 'day-urgent',  label: `还剩 ${days} 天` };
+  if (days <= 14) return { cls: 'day-soon',    label: `还剩 ${days} 天` };
+  return { cls: 'day-fresh', label: `还剩 ${days} 天` };
+}
+
+/* ============================================================
+     Render — V1 Masonry
+     ============================================================ */
+function renderMasonry() {
+  const wrap = document.getElementById('view-masonry');
+  if (!wrap) return;
+  const filtered = PLANS.filter(p => {
+    if (state.filter.status !== 'all' && p.status !== state.filter.status) return false;
+    if (state.filter.category !== 'all' && p.category !== state.filter.category) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <div class="empty-state-illust">🌱</div>
+        <h3 class="empty-state-title">还没有计划</h3>
+        <p class="empty-state-desc">把第一件想做的事立起来吧</p>
+        <button class="btn btn-primary" onclick="openPlanSheet()" style="max-width: 240px; margin: 0 auto;">+ 新建计划</button>
+      </div>
+    `;
+    document.getElementById('filter-count').textContent = '0 个计划';
+    return;
+  }
+
+  wrap.innerHTML = filtered.map(p => {
+    const cat = CATEGORIES[p.category];
+    const prog = planProgress(p.id);
+    const days = daysUntil(p.endAt);
+    const badge = dayBadge(days);
+    const lastDays = daysSince(p.updatedAt);
+    const staleClass = lastDays > 14 ? 'stale' : '';
+    return `
+      <article class="plan-card" role="article" data-plan-id="${p.id}" tabindex="0"
+        aria-label="${p.title}, ${cat.label}, 进度 ${prog.pct}%, ${badge.label}">
+        <div class="status-bar ${p.status.toLowerCase()}"></div>
+        <div class="plan-card-body">
+          <h3 class="plan-card-title">${escapeHtml(p.title)}</h3>
+          <div class="plan-card-meta">
+            <span class="category-tag ${cat.cls}">${cat.emoji} ${cat.label}</span>
+          </div>
+          <div class="progress-row">
+            <div class="progress-ring-wrap">
+              ${progressRingSvg(prog.pct, p.status)}
+              <span class="progress-ring-text">${prog.pct}%</span>
+            </div>
+            <div class="progress-meta">
+              <span class="count">${prog.done}/${prog.total}</span>
+              <span class="label">已完成里程碑</span>
+            </div>
+          </div>
+          <div class="plan-card-footer">
+            <span class="day-badge ${badge.cls}">${badge.label}</span>
+            <span class="last-updated ${staleClass}">${lastDays === 0 ? '今天更新' : `${lastDays} 天前更新`}</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  document.getElementById('filter-count').textContent = `${filtered.length} 个计划`;
+
+  wrap.querySelectorAll('.plan-card').forEach(card => {
+    card.addEventListener('click', () => openDrawer(card.dataset.planId));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrawer(card.dataset.planId); }
+    });
+  });
+}
+
+function progressRingSvg(pct, status) {
+  const r = 28, c = 2 * Math.PI * r;
+  const offset = c * (1 - pct / 100);
+  const cls = status === 'DONE' ? 'done' : status === 'ABANDONED' ? 'missed' : 'active';
+  return `
+    <svg width="64" height="64" viewBox="0 0 64 64">
+      <circle class="progress-ring-track" cx="32" cy="32" r="${r}"></circle>
+      <circle class="progress-ring-fill ${cls}" cx="32" cy="32" r="${r}"
+        stroke-dasharray="${c}" stroke-dashoffset="${offset}"></circle>
+    </svg>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+/* ============================================================
+     Render — V7 Kanban
+     ============================================================ */
+function renderKanban() {
+  const wrap = document.getElementById('view-kanban');
+  if (!wrap) return;
+  const orderedCats = ['study', 'work', 'health', 'life', 'finance', 'other'];
+  wrap.innerHTML = orderedCats.map(catKey => {
+    const cat = CATEGORIES[catKey];
+    const items = PLANS.filter(p => p.category === catKey);
+    return `
+      <section class="kanban-col" data-cat="${catKey}">
+        <header class="kanban-col-header">
+          <span>${cat.emoji} ${cat.label}</span>
+          <span class="kanban-col-count">${items.length}</span>
+        </header>
+        ${items.map(p => {
+          const prog = planProgress(p.id);
+          const days = daysUntil(p.endAt);
+          const badge = dayBadge(days);
+          return `
+            <div class="kanban-card" draggable="true" data-plan-id="${p.id}">
+              <h4 class="kanban-card-title">${escapeHtml(p.title)}</h4>
+              <div class="kanban-card-meta">
+                <span class="day-badge ${badge.cls}" style="font-size:10px; padding:1px 6px;">${badge.label}</span>
+                <span style="font-weight:600;">${prog.pct}%</span>
+              </div>
+            </div>
+          `;
+        }).join('') || `<button class="kanban-empty-cta" data-empty-cat="${catKey}" aria-label="新建第一条${cat.label}计划">
+          <span class="cta-icon">+</span>
+          <span class="cta-text">新建第一条${cat.label}计划</span>
+          <span class="cta-hint">${emptyHint(catKey)}</span>
+        </button>`}
+      </section>
+    `;
+  }).join('');
+
+  // 点击打开
+  wrap.querySelectorAll('.kanban-card').forEach(card => {
+    card.addEventListener('click', () => openDrawer(card.dataset.planId));
+  });
+
+  // 空列 CTA → 打开新建 Sheet 并预填分类
+  wrap.querySelectorAll('[data-empty-cat]').forEach(btn => {
+    btn.addEventListener('click', () => openPlanSheet(null, btn.dataset.emptyCat));
+  });
+}
+
+/* ============================================================
+     Render — V8 Timeline
+     ============================================================ */
+function renderTimeline() {
+  const wrap = document.getElementById('view-timeline');
+  if (!wrap) return;
+  // 显示当前月 ±6 月
+  const baseYear = 2026;
+  const months = [];
+  for (let m = 1; m <= 12; m++) months.push({ y: baseYear, m });
+
+  // Header
+  let html = `<div class="timeline-months">
+    <div class="plan-label">计划</div>
+    ${months.map(({ m }) => `<div style="text-align:center;">${m}月</div>`).join('')}
+  </div>`;
+
+  html += `<div class="timeline-rows">`;
+  PLANS.forEach(p => {
+    const cat = CATEGORIES[p.category];
+    const start = new Date(p.startAt);
+    const end = new Date(p.endAt);
+    const startM = (start.getFullYear() - baseYear) * 12 + start.getMonth() + 1;
+    const endM = (end.getFullYear() - baseYear) * 12 + end.getMonth() + 1;
+    const milestones = milestonesFor(p.id);
+
+    html += `
+      <div class="timeline-row">
+        <div class="timeline-row-label">${cat.emoji} ${escapeHtml(p.title.slice(0, 12))}</div>
+        <div class="timeline-track">
+          <div class="timeline-segment" style="left:${startM * (100/12)}%; width:${(endM - startM + 1) * (100/12)}%; background: var(--cat-${p.category});"></div>
+          ${milestones.map(m => {
+            const due = new Date(m.dueDate);
+            const dm = (due.getFullYear() - baseYear) * 12 + due.getMonth() + 1;
+            const dotCls = m.status === 'DONE' ? 'done' : m.status === 'MISSED' ? 'missed' : 'pending';
+            const left = dm * (100/12);
+            return `<div class="timeline-dot ${dotCls}" style="left:${left}%;" title="${escapeHtml(m.title)} (${m.status})"></div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+
+/* ============================================================
+     V2 PlanSheet
+     ============================================================ */
+function openPlanSheet(planId, presetCategory) {
+  const sheet = document.getElementById('plan-sheet');
+  const title = document.getElementById('plan-sheet-title');
+  const back = document.getElementById('plan-sheet-backdrop');
+  title.textContent = planId ? '编辑计划' : '新建计划';
+
+  if (planId) {
+    const p = PLANS.find(x => x.id === planId);
+    if (p) {
+      document.getElementById('plan-title-input').value = p.title;
+      document.getElementById('plan-desc-input').value = p.description || '';
+      document.getElementById('plan-start-input').value = p.startAt;
+      document.getElementById('plan-end-input').value = p.endAt;
+      document.querySelectorAll('#plan-cat-picker .cat-option').forEach(o => {
+        o.setAttribute('aria-pressed', o.dataset.cat === p.category ? 'true' : 'false');
+      });
+    }
+  } else {
+    document.getElementById('plan-title-input').value = '';
+    document.getElementById('plan-desc-input').value = '';
+    document.getElementById('plan-start-input').value = TODAY.toISOString().slice(0, 10);
+    document.getElementById('plan-end-input').value = '';
+    // 预填分类（来自 Kanban 空列 CTA）
+    const defaultCat = presetCategory && CATEGORIES[presetCategory] ? presetCategory : 'life';
+    document.querySelectorAll('#plan-cat-picker .cat-option').forEach(o => {
+      o.setAttribute('aria-pressed', o.dataset.cat === defaultCat ? 'true' : 'false');
+    });
+  }
+
+  sheet.classList.add('open');
+  back.classList.add('open');
+}
+
+function closeSheet(id) {
+  document.getElementById(id).classList.remove('open');
+  document.getElementById('plan-sheet-backdrop').classList.remove('open');
+}
+
+document.querySelectorAll('[data-close-sheet]').forEach(btn => {
+  btn.addEventListener('click', () => closeSheet(btn.dataset.closeSheet));
+});
+
+document.getElementById('plan-sheet-backdrop').addEventListener('click', () => {
+  closeSheet('plan-sheet');
+});
+
+// Category picker
+document.querySelectorAll('#plan-cat-picker .cat-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#plan-cat-picker .cat-option').forEach(o => o.setAttribute('aria-pressed', 'false'));
+    opt.setAttribute('aria-pressed', 'true');
+  });
+});
+
+document.getElementById('plan-save-btn').addEventListener('click', () => {
+  const title = document.getElementById('plan-title-input').value.trim();
+  const start = document.getElementById('plan-start-input').value;
+  const end = document.getElementById('plan-end-input').value;
+  if (!title) { showToast('请填写标题', 'warn'); return; }
+  if (!start || !end) { showToast('请填写起止日期', 'warn'); return; }
+
+  const cat = document.querySelector('#plan-cat-picker .cat-option[aria-pressed="true"]');
+  const newPlan = {
+    id: 'p' + (PLANS.length + 1),
+    title, description: document.getElementById('plan-desc-input').value.trim(),
+    category: cat ? cat.dataset.cat : 'other',
+    status: 'ACTIVE', startAt: start, endAt: end,
+    createdAt: TODAY.toISOString(), updatedAt: TODAY.toISOString(),
+  };
+  PLANS.unshift(newPlan);
+  closeSheet('plan-sheet');
+  renderAll();
+  showToast('✓ 已创建', 'success');
+});
+
+/* ============================================================
+     V3 Drawer
+     ============================================================ */
+function openDrawer(planId) {
+  state.currentPlanId = planId;
+  const p = PLANS.find(x => x.id === planId);
+  if (!p) return;
+  const cat = CATEGORIES[p.category];
+
+  document.getElementById('drawer-status').textContent = p.status;
+  document.getElementById('drawer-status').className = 'drawer-hero-status ' + p.status.toLowerCase();
+  document.getElementById('drawer-title').textContent = p.title;
+  document.getElementById('drawer-meta').innerHTML = `
+    <span class="category-tag ${cat.cls}">${cat.emoji} ${cat.label}</span>
+    <span>📅 ${p.startAt} ~ ${p.endAt}</span>
+  `;
+  const prog = planProgress(p.id);
+  document.getElementById('drawer-progress').innerHTML = `
+    <div class="progress-ring-wrap drawer-hero-progress-ring">
+      ${progressRingSvg(prog.pct, p.status)}
+      <span class="progress-ring-text">${prog.pct}%</span>
+    </div>
+    <div class="progress-meta">
+      <span class="count">${prog.done}/${prog.total}</span>
+      <span class="label">${prog.missed > 0 ? `${prog.missed} 个 MISSED` : '已完成里程碑'}</span>
+    </div>
+  `;
+
+  // Tab counts
+  const ms = milestonesFor(planId);
+  document.getElementById('drawer-milestone-count').textContent = ms.length;
+  const linkedCount = ms.reduce((s, m) => s + m.linkedTaskIds.length, 0);
+  document.getElementById('drawer-linked-count').textContent = linkedCount;
+
+  // 默认 tab
+  setDrawerTab('milestone');
+
+  document.getElementById('plan-drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('plan-drawer').classList.remove('open');
+  document.getElementById('drawer-backdrop').classList.remove('open');
+}
+
+document.querySelectorAll('[data-close-drawer]').forEach(btn => btn.addEventListener('click', closeDrawer));
+document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('plan-drawer').classList.contains('open')) closeDrawer();
+    document.querySelectorAll('.sheet.open').forEach(s => s.classList.remove('open'));
+    document.querySelectorAll('.sheet-backdrop.open, .drawer-backdrop.open').forEach(b => b.classList.remove('open'));
+  }
+});
+
+document.querySelectorAll('.drawer-tab').forEach(tab => {
+  tab.addEventListener('click', () => setDrawerTab(tab.dataset.drawerTab));
+});
+
+function setDrawerTab(name) {
+  state.currentDrawerTab = name;
+  document.querySelectorAll('.drawer-tab').forEach(t => {
+    t.setAttribute('aria-selected', t.dataset.drawerTab === name ? 'true' : 'false');
+  });
+  renderDrawerBody();
+}
+
+function renderDrawerBody() {
+  const body = document.getElementById('drawer-body');
+  if (!state.currentPlanId) return;
+  if (state.currentDrawerTab === 'milestone') {
+    renderMilestoneList(body);
+  } else if (state.currentDrawerTab === 'linked') {
+    renderLinkedTasks(body);
+  } else {
+    renderHistory(body);
+  }
+}
+
+/* ============================================================
+     V3a Milestone List + Long Press Drag
+     ============================================================ */
+function renderMilestoneList(container) {
+  const ms = milestonesFor(state.currentPlanId);
+  container.innerHTML = `
+    <div class="milestone-list">
+      ${ms.map(m => {
+        const isMissed = m.status === 'MISSED';
+        const isDone = m.status === 'DONE';
+        return `
+        <div class="milestone-row ${isMissed ? 'missed' : ''} ${isDone ? 'done' : ''}"
+          data-milestone-id="${m.id}" data-long-press="true"
+          role="listitem" tabindex="0"
+          aria-label="${escapeHtml(m.title)}, ${m.status}, ${formatDate(m.dueDate)}">
+          <span class="milestone-handle" aria-hidden="true">☰</span>
+          <button class="milestone-checkbox ${isDone ? 'checked' : ''}"
+            data-toggle-milestone="${m.id}"
+            aria-label="标记 ${escapeHtml(m.title)} ${isDone ? '未完成' : '完成'}"
+            aria-pressed="${isDone}"></button>
+          <div class="milestone-content">
+            <p class="milestone-title">${escapeHtml(m.title)}
+              <span class="milestone-status status-${m.status.toLowerCase()}">${m.status}</span>
+            </p>
+            <p class="milestone-due">📅 ${formatDate(m.dueDate)}
+              ${m.linkedTaskIds.length > 0 ? ` · 🔗 ${m.linkedTaskIds.length} 项任务` : ''}
+            </p>
+          </div>
+          <div class="milestone-actions">
+            ${isMissed ? `<button class="icon-btn warn" data-adjust-milestone="${m.id}" aria-label="调整" title="调整">📍</button>` : ''}
+            <button class="icon-btn primary" data-link-task="${m.id}" aria-label="关联任务" title="关联任务">🔗</button>
+          </div>
+        </div>
+      `}).join('')}
+    </div>
+    <button class="drawer-add-btn" id="add-milestone-btn">+ 新建里程碑</button>
+  `;
+
+  // Checkbox toggle
+  container.querySelectorAll('[data-toggle-milestone]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.toggleMilestone;
+      const m = MILESTONES.find(x => x.id === id);
+      if (!m) return;
+      // 状态机:仅在 PENDING/MISSED → DONE;反向不允许
+      if (m.status === 'DONE') return;
+      m.status = 'DONE';
+      m.completedAt = TODAY.toISOString();
+      m.updatedAt = TODAY.toISOString();
+      renderAll();
+      showToast('✓ 已完成', 'success');
+    });
+  });
+
+  // Adjust MISSED
+  container.querySelectorAll('[data-adjust-milestone]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      state.currentMilestoneId = btn.dataset.adjustMilestone;
+      document.getElementById('adjust-sheet').classList.add('open');
+    });
+  });
+
+  // Link task
+  container.querySelectorAll('[data-link-task]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      state.currentMilestoneId = btn.dataset.linkTask;
+      openTaskPicker();
+    });
+  });
+
+  // Add milestone
+  document.getElementById('add-milestone-btn').addEventListener('click', openMilestoneSheet);
+
+  // Long press drag (300ms)
+  setupLongPressDrag(container);
+}
+
+function setupLongPressDrag(container) {
+  const rows = container.querySelectorAll('[data-long-press]');
+  rows.forEach(row => {
+    let startY = 0, isDragging = false;
+    row.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return; // 按钮不触发拖拽
+      startY = e.clientY;
+      state.longPressTarget = row;
+      state.longPressTimer = setTimeout(() => {
+        isDragging = true;
+        row.classList.add('dragging');
+        showToast('拖动以重排', 'warn');
+      }, 300);
+    });
+    row.addEventListener('pointermove', e => {
+      if (!isDragging) return;
+      // 检测插入位
+      const rows = container.querySelectorAll('[data-long-press]');
+      rows.forEach(r => {
+        const rRect = r.getBoundingClientRect();
+        if (e.clientY > rRect.top && e.clientY < rRect.bottom && r !== row) {
+          r.classList.add('drop-target');
+        } else {
+          r.classList.remove('drop-target');
+        }
+      });
+    });
+    row.addEventListener('pointerup', e => {
+      clearTimeout(state.longPressTimer);
+      if (!isDragging) return;
+      isDragging = false;
+      row.classList.remove('dragging');
+      // 找最近的 drop target
+      const target = container.querySelector('.drop-target');
+      container.querySelectorAll('.drop-target').forEach(r => r.classList.remove('drop-target'));
+      if (target) {
+        const list = Array.from(container.querySelectorAll('[data-long-press]'));
+        const fromIdx = list.indexOf(row);
+        const toIdx = list.indexOf(target);
+        // 重排 MILESTONES
+        const ms = milestonesFor(state.currentPlanId);
+        const moved = ms.splice(fromIdx, 1)[0];
+        ms.splice(toIdx, 0, moved);
+        ms.forEach((m, i) => { m.order = i; m.updatedAt = TODAY.toISOString(); });
+        renderAll();
+        showToast('✓ 顺序已保存', 'success');
+      }
+      state.longPressTarget = null;
+    });
+    row.addEventListener('pointercancel', () => {
+      clearTimeout(state.longPressTimer);
+      row.classList.remove('dragging');
+      isDragging = false;
+    });
+  });
+}
+
+/* ============================================================
+     V3b Linked Tasks
+     ============================================================ */
+function renderLinkedTasks(container) {
+  const ms = milestonesFor(state.currentPlanId);
+  const allLinked = [];
+  ms.forEach(m => {
+    m.linkedTaskIds.forEach(tid => {
+      const t = TASKS.find(x => x.id === tid);
+      if (t) allLinked.push({ task: t, milestone: m });
+    });
+  });
+
+  if (allLinked.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px 16px;color:var(--text-3);">
+        <div style="font-size:48px;margin-bottom:8px;">🔗</div>
+        <p style="margin:0 0 16px;">还没有关联任务</p>
+        <p style="font-size:12px;color:var(--text-3);">到里程碑行点击 🔗 关联</p>
+      </div>
+    `;
+    return;
+  }
+  container.innerHTML = `
+    <div class="task-list">
+      ${allLinked.map(({ task, milestone }) => `
+        <div class="task-item ${task.done ? 'done' : ''}">
+          <div class="task-item-checkbox"></div>
+          <span class="task-item-text">${escapeHtml(task.title)}</span>
+          <span style="font-size:var(--fs-micro);color:var(--text-3);">→ ${escapeHtml(milestone.title)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================
+     V3c History
+     ============================================================ */
+function renderHistory(container) {
+  const p = PLANS.find(x => x.id === state.currentPlanId);
+  if (!p) return;
+  container.innerHTML = `
+    <div style="font-size: var(--fs-small); color: var(--text-2);">
+      <p style="margin:0 0 12px;">📝 创建于 ${formatDate(p.createdAt)}</p>
+      <p style="margin:0 0 12px;">🔄 最近更新 ${formatDate(p.updatedAt)}</p>
+      <p style="margin:0 0 12px;">📅 ${p.startAt} ~ ${p.endAt}</p>
+      <p style="margin:24px 0 0;color:var(--text-3);font-size:var(--fs-micro);">
+        MVP 原型阶段,详细变更日志将在 v1.1 实现。
+      </p>
+    </div>
+  `;
+}
+
+/* ============================================================
+     V4 MilestoneSheet
+     ============================================================ */
+function openMilestoneSheet() {
+  document.getElementById('milestone-sheet-title').textContent = '新建里程碑';
+  document.getElementById('milestone-title-input').value = '';
+  document.getElementById('milestone-due-input').value = '';
+  document.getElementById('milestone-sheet').classList.add('open');
+}
+
+document.getElementById('milestone-save-btn').addEventListener('click', () => {
+  const title = document.getElementById('milestone-title-input').value.trim();
+  const due = document.getElementById('milestone-due-input').value;
+  if (!title) { showToast('请填写标题', 'warn'); return; }
+  if (!due) { showToast('请填写完成日', 'warn'); return; }
+
+  const ms = milestonesFor(state.currentPlanId);
+  const newM = {
+    id: 'm' + (MILESTONES.length + 1),
+    planId: state.currentPlanId,
+    title, dueDate: due,
+    status: 'PENDING',
+    order: ms.length,
+    linkedTaskIds: [],
+    createdAt: TODAY.toISOString(),
+    updatedAt: TODAY.toISOString(),
+  };
+  MILESTONES.push(newM);
+  closeSheet('milestone-sheet');
+  renderAll();
+  showToast('✓ 已创建', 'success');
+});
+
+/* ============================================================
+     V5 TaskPickerSheet
+     ============================================================ */
+function openTaskPicker() {
+  state.selectedTasks.clear();
+  // 预填当前已关联的
+  const m = MILESTONES.find(x => x.id === state.currentMilestoneId);
+  if (m) m.linkedTaskIds.forEach(id => state.selectedTasks.add(id));
+  renderTaskPicker();
+  document.getElementById('task-picker-sheet').classList.add('open');
+}
+
+function renderTaskPicker() {
+  const q = state.searchQuery.toLowerCase();
+  const filterFn = t => !q || t.title.toLowerCase().includes(q);
+  const groups = { today: TASKS.filter(t => t.group === 'today' && filterFn(t)),
+                   week: TASKS.filter(t => t.group === 'week' && filterFn(t)),
+                   all: TASKS.filter(t => t.group === 'all' && filterFn(t)) };
+  document.getElementById('task-list-today').innerHTML = renderTaskGroup(groups.today);
+  document.getElementById('task-list-week').innerHTML = renderTaskGroup(groups.week);
+  document.getElementById('task-list-all').innerHTML = renderTaskGroup(groups.all);
+  document.getElementById('task-picker-count').textContent = state.selectedTasks.size;
+}
+
+function renderTaskGroup(items) {
+  if (items.length === 0) return '<div style="color:var(--text-3);font-size:var(--fs-small);padding:8px;">无任务</div>';
+  return items.map(t => `
+    <div class="task-item ${state.selectedTasks.has(t.id) ? 'checked' : ''} ${t.done ? 'done' : ''}"
+      data-task-id="${t.id}">
+      <div class="task-item-checkbox"></div>
+      <span class="task-item-text">${escapeHtml(t.title)}</span>
+    </div>
+  `).join('');
+}
+
+document.getElementById('task-search-input').addEventListener('input', e => {
+  state.searchQuery = e.target.value;
+  renderTaskPicker();
+});
+
+document.getElementById('task-picker-sheet').addEventListener('click', e => {
+  const item = e.target.closest('.task-item');
+  if (!item) return;
+  const id = item.dataset.taskId;
+  if (state.selectedTasks.has(id)) state.selectedTasks.delete(id);
+  else state.selectedTasks.add(id);
+  renderTaskPicker();
+});
+
+document.getElementById('task-picker-confirm').addEventListener('click', () => {
+  const m = MILESTONES.find(x => x.id === state.currentMilestoneId);
+  if (m) {
+    m.linkedTaskIds = Array.from(state.selectedTasks);
+    m.updatedAt = TODAY.toISOString();
+  }
+  closeSheet('task-picker-sheet');
+  renderAll();
+  showToast(`✓ 已关联 ${state.selectedTasks.size} 项`, 'success');
+});
+
+/* ============================================================
+     V6 MISSED AdjustSheet
+     ============================================================ */
+document.querySelectorAll('[data-adjust]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const m = MILESTONES.find(x => x.id === state.currentMilestoneId);
+    if (!m) return;
+    const action = btn.dataset.adjust;
+    if (action === 'deadline') {
+      m.status = 'PENDING';
+      m.dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      m.updatedAt = TODAY.toISOString();
+      closeSheet('adjust-sheet');
+      renderAll();
+      showToast('✓ deadline 已延后 7 天', 'success');
+    } else if (action === 'split') {
+      // 拆为子里程碑：标记父为 ABANDONED（MVP 简化），引导用户新建子项
+      m.status = 'ABANDONED';
+      m.updatedAt = TODAY.toISOString();
+      closeSheet('adjust-sheet');
+      renderAll();
+      showToast('✂️ 已拆为子里程碑，请添加新子项', 'success');
+      // MVP Mock: 实际应打开 MilestoneSheet 预填父信息（与 .md §5 F7 一致）
+      setTimeout(() => openMilestoneSheet(), 500);
+    } else if (action === 'abandon') {
+      m.status = 'ABANDONED';
+      m.updatedAt = TODAY.toISOString();
+      closeSheet('adjust-sheet');
+      renderAll();
+      showToast('⏭ 已跳过', 'success');
+    }
+  });
+});
+
+/* ============================================================
+     View switching (Sub-Tab)
+     ============================================================ */
+document.querySelectorAll('.sub-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sub-tab').forEach(t => t.setAttribute('aria-pressed', 'false'));
+    tab.setAttribute('aria-pressed', 'true');
+    state.view = tab.dataset.view;
+    document.getElementById('view-masonry').hidden = state.view !== 'masonry';
+    document.getElementById('view-timeline').hidden = state.view !== 'timeline';
+    document.getElementById('view-kanban').hidden = state.view !== 'kanban';
+    renderAll();
+  });
+});
+
+/* ============================================================
+     FAB
+     ============================================================ */
+document.getElementById('fab-add').addEventListener('click', () => openPlanSheet());
+
+/* ============================================================
+     Filter (basic)
+     ============================================================ */
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const type = chip.dataset.filter;
+    // 单选 each type (toggle)
+    document.querySelectorAll(`.filter-chip[data-filter="${type}"]`).forEach(c => {
+      if (c !== chip) c.setAttribute('aria-pressed', 'false');
+    });
+    chip.setAttribute('aria-pressed', chip.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    // 仅做演示切换状态,真实筛选按当前选中状态执行
+    renderMasonry();
+  });
+});
+
+/* ============================================================
+     Toast
+     ============================================================ */
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + type;
+  t.innerHTML = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2400);
+}
+
+/* ============================================================
+     Master render
+     ============================================================ */
+function renderAll() {
+  renderMasonry();
+  renderTimeline();
+  renderKanban();
+  if (state.currentPlanId && document.getElementById('plan-drawer').classList.contains('open')) {
+    renderDrawerBody();
+  }
+}
+
+renderAll();
+</script>
+</body>
+</html>
