@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>🤖 AI 分析 — Lifewise v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   0. Reset & Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ============================================================
+   1. Design Tokens（既有 + AI 模块扩展）
+   ============================================================ */
+:root {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-1: #0F172A;
+  --text-2: #475569;
+  --text-3: #94A3B8;
+  --text-on-primary: #FFFFFF;
+  --success: #10B981;
+  --success-soft: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-soft: #FEF3C7;
+  --danger: #EF4444;
+  --danger-soft: #FEE2E2;
+
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-pill: 16px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --fs-display: 24px; --fs-h1: 20px; --fs-h2: 16px; --fs-body: 14px; --fs-small: 12px; --fs-micro: 11px;
+
+  /* 5 模块分类色（**D 路径**：AI 模块不污染） */
+  --ai-task: #0EA5E9;
+  --ai-daily: #F59E0B;
+  --ai-expense: #2D5F3F;
+  --ai-diet: #06B6D4;
+  --ai-plan: #6366F1;
+
+  /* AI 模块专属（仅 6 个） */
+  --ai-accent: #3B5BFE;
+  --ai-accent-soft: #E8EEFF;
+  --ai-accent-deep: #1E3A8A;
+  --ai-glow: rgba(59, 91, 254, 0.16);
+  --ai-divider: #E8EEFF;
+  --ai-bubble-ai: #E8EEFF;
+  --ai-bubble-user: #2D5F3F;
+}
+
+/* ============================================================
+   2. App Shell — Tab Bar
+   ============================================================ */
+.app-shell { max-width: 1440px; margin: 0 auto; padding: 0; }
+.tab-bar {
+  display: flex; justify-content: space-around; align-items: center;
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 var(--sp-4); height: 60px;
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: var(--sp-2) var(--sp-1);
+  background: transparent; color: var(--text-3);
+  font-size: var(--fs-micro); font-weight: 500;
+  transition: color 0.2s;
+}
+.tab-item .tab-icon { font-size: 22px; line-height: 1; }
+.tab-item.active { color: var(--ai-expense); font-weight: 600; }
+.tab-item.active.ai-active { color: var(--ai-accent); }
+
+/* ============================================================
+   3. AI Tab Container
+   ============================================================ */
+.ai-tab {
+  position: relative; max-width: 720px; margin: 0 auto;
+  padding: 0; min-height: calc(100vh - 60px);
+}
+
+/* ============================================================
+   4. V1 — Hero
+   ============================================================ */
+.ai-hero {
+  background: linear-gradient(180deg, var(--ai-expense) 0%, #1F3F31 100%);
+  color: #fff;
+  padding: var(--sp-5) var(--sp-4) var(--sp-6);
+  position: relative; overflow: hidden;
+}
+.ai-hero::after {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, var(--ai-accent) 0%, transparent 70%);
+  opacity: 0.3; filter: blur(40px);
+}
+.ai-hero-greeting {
+  display: flex; align-items: center; gap: var(--sp-3);
+  font-size: var(--fs-h2); font-weight: 500; opacity: 0.9;
+}
+.ai-hero-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--ai-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; box-shadow: 0 4px 12px var(--ai-glow);
+}
+.ai-hero-title {
+  font-size: var(--fs-display); font-weight: 700;
+  margin: var(--sp-3) 0 var(--sp-2); letter-spacing: -0.02em;
+}
+.ai-hero-subtitle {
+  font-size: var(--fs-body); opacity: 0.85; line-height: 1.5;
+}
+.health-badge {
+  position: absolute; top: var(--sp-4); right: var(--sp-4);
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid #fff; cursor: pointer;
+  transition: transform 0.2s; z-index: 10;
+}
+.health-badge:hover { transform: scale(1.1); }
+.health-badge.healthy { background: var(--success); }
+.health-badge.slow { background: var(--warning); }
+.health-badge.unavailable { background: var(--danger); }
+.health-badge::after {
+  content: ''; position: absolute; inset: 6px;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================================
+   5. 快照 chips
+   ============================================================ */
+.snapshot-row {
+  display: flex; gap: var(--sp-3); padding: var(--sp-4);
+  overflow-x: auto; scrollbar-width: none;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.snapshot-row::-webkit-scrollbar { display: none; }
+.snapshot-chip {
+  flex: 0 0 auto; min-width: 130px;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  display: flex; flex-direction: column; gap: 2px;
+  cursor: pointer; transition: all 0.2s;
+}
+.snapshot-chip:hover {
+  border-color: var(--ai-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--ai-glow);
+}
+.snapshot-chip-icon { font-size: 18px; }
+.snapshot-chip-label { font-size: var(--fs-micro); color: var(--text-3); }
+.snapshot-chip-value { font-size: var(--fs-h1); font-weight: 700; color: var(--text-1); }
+
+/* ============================================================
+   6. 洞察 chips
+   ============================================================ */
+.insights-section {
+  padding: var(--sp-4); background: var(--surface);
+  border-bottom: 1px solid var(--border); display: none;
+}
+.insights-section.show { display: block; }
+.insights-section-title {
+  font-size: var(--fs-small); font-weight: 600;
+  color: var(--text-2); margin-bottom: var(--sp-3);
+}
+.insights-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.insight-chip {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-small); cursor: pointer;
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+.insight-chip::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; border-radius: var(--r-pill) 0 0 var(--r-pill);
+}
+.insight-chip[data-category="summary"]::before { background: var(--text-3); }
+.insight-chip[data-category="anomaly"]::before { background: var(--warning); }
+.insight-chip[data-category="tip"]::before { background: var(--ai-accent); }
+.insight-chip:hover { background: var(--ai-accent-soft); border-color: var(--ai-accent); }
+.insight-chip strong { color: var(--ai-expense); margin-right: 4px; }
+
+/* ============================================================
+   7. 历史折叠
+   ============================================================ */
+.history-fold {
+  padding: var(--sp-4); background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.history-fold-title {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: var(--fs-small); font-weight: 600;
+  color: var(--text-2); margin-bottom: var(--sp-3);
+}
+.history-fold-all { color: var(--ai-accent); cursor: pointer; }
+.history-fold-item {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  margin-bottom: var(--sp-2); cursor: pointer;
+  transition: background 0.2s;
+}
+.history-fold-item:hover { background: var(--ai-accent-soft); }
+.history-fold-item:last-child { margin-bottom: 0; }
+.history-fold-icon { font-size: 20px; }
+.history-fold-text { flex: 1; }
+.history-fold-text-main { font-size: var(--fs-body); font-weight: 500; }
+.history-fold-text-sub { font-size: var(--fs-micro); color: var(--text-3); }
+.history-fold-star { color: var(--warning); font-size: 14px; }
+
+/* ============================================================
+   8. 输入框
+   ============================================================ */
+.input-section {
+  position: fixed; bottom: 60px; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.04);
+  z-index: 50; max-width: 720px; margin: 0 auto;
+}
+.input-row { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.input-select {
+  flex: 1; padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: var(--fs-small); color: var(--text-1); cursor: pointer;
+}
+.input-textarea {
+  width: 100%; min-height: 40px; max-height: 100px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body); color: var(--text-1);
+  resize: none; margin-bottom: var(--sp-2);
+}
+.input-textarea::placeholder { color: var(--text-3); }
+.input-toggle {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--ai-accent-soft);
+  border: 1px solid var(--ai-accent);
+  border-radius: var(--r-md);
+  font-size: var(--fs-small); color: var(--ai-accent-deep);
+  margin-bottom: var(--sp-2); cursor: pointer;
+}
+.input-toggle input { margin: 0; }
+.input-submit {
+  width: 100%; padding: var(--sp-3);
+  background: var(--ai-expense);
+  color: #fff; border-radius: var(--r-md);
+  font-size: var(--fs-body); font-weight: 600;
+  transition: all 0.2s;
+}
+.input-submit:hover { background: #1F3F31; }
+.input-submit:disabled { background: var(--text-3); cursor: not-allowed; }
+.input-counter {
+  font-size: var(--fs-micro); color: var(--text-3);
+  text-align: right; margin-top: 4px;
+}
+
+/* ============================================================
+   9. V2 报告详情
+   ============================================================ */
+.v2-container { padding: var(--sp-4); padding-bottom: 120px; }
+.v2-header {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin-bottom: var(--sp-4); font-size: var(--fs-small); color: var(--text-2);
+}
+.v2-header-back {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px;
+}
+.v2-header-title { font-size: var(--fs-h1); font-weight: 600; color: var(--text-1); flex: 1; }
+
+.metric-cards {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3); margin-bottom: var(--sp-4);
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: var(--sp-3);
+}
+.metric-card-label { font-size: var(--fs-micro); color: var(--text-3); margin-bottom: 4px; }
+.metric-card-value { font-size: var(--fs-h1); font-weight: 700; color: var(--text-1); }
+.metric-card-trend { font-size: var(--fs-micro); color: var(--success); margin-top: 2px; }
+.metric-card-trend.down { color: var(--danger); }
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4); margin-bottom: var(--sp-4);
+}
+.chart-card-title {
+  font-size: var(--fs-h2); font-weight: 600; color: var(--text-1);
+  margin-bottom: var(--sp-3);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.chart-card-subtitle { font-size: var(--fs-micro); color: var(--text-3); font-weight: 400; }
+.chart-card svg { width: 100%; height: auto; display: block; }
+
+.llm-card {
+  background: linear-gradient(135deg, var(--ai-accent-soft) 0%, #F0F4FF 100%);
+  border: 1px solid var(--ai-accent);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4); margin-bottom: var(--sp-4);
+  position: relative;
+}
+.llm-card-header {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-h2); font-weight: 600;
+  color: var(--ai-accent-deep); margin-bottom: var(--sp-3);
+}
+.llm-card-content {
+  font-size: var(--fs-body); line-height: 1.7;
+  color: var(--text-1);
+  max-height: 70vh; overflow-y: auto;
+}
+.llm-card-content p { margin: 0 0 var(--sp-3); }
+.llm-card-content strong { color: var(--ai-expense); }
+.llm-section-title {
+  font-size: var(--fs-small); font-weight: 600;
+  color: var(--ai-accent-deep);
+  margin: var(--sp-3) 0 var(--sp-2);
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.llm-section-list {
+  margin: 0; padding-left: var(--sp-5);
+  font-size: var(--fs-body); color: var(--text-2);
+}
+.llm-section-list li { margin-bottom: var(--sp-1); }
+.llm-card-footer {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin-top: var(--sp-4); padding-top: var(--sp-3);
+  border-top: 1px solid var(--ai-divider);
+  font-size: var(--fs-small); color: var(--text-3);
+}
+.llm-card-footer button {
+  font-size: var(--fs-small); color: var(--text-2);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.llm-card-footer .regen { color: var(--ai-accent); }
+.llm-streaming-cursor {
+  display: inline-block;
+  width: 1px; height: 14px;
+  background: var(--ai-accent);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+.llm-card.degraded { background: var(--warning-soft); border-color: var(--warning); }
+.llm-card.degraded .llm-card-header { color: #92400E; }
+
+.v2-banner {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
+  display: flex; align-items: center; gap: var(--sp-3);
+  font-size: var(--fs-body); color: #991B1B;
+}
+.v2-banner button {
+  margin-left: auto;
+  padding: 6px 12px;
+  background: var(--danger); color: #fff;
+  border-radius: var(--r-sm); font-size: var(--fs-small);
+}
+
+.v2-llm-loading {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--ai-accent-soft);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body); color: var(--ai-accent-deep);
+  margin-bottom: var(--sp-4);
+}
+.v2-llm-loading::before {
+  content: '⚙️'; animation: ai-pulse 2s ease-in-out infinite;
+}
+@keyframes ai-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+.meta-bar {
+  position: fixed; bottom: 60px; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom));
+  display: flex; align-items: center; justify-content: space-around;
+  gap: var(--sp-4);
+  font-size: var(--fs-small); z-index: 50;
+  max-width: 720px; margin: 0 auto;
+}
+.meta-bar-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; color: var(--text-2); cursor: pointer;
+}
+.meta-bar-item .icon { font-size: 18px; }
+.meta-bar-item.primary { color: var(--ai-accent); font-weight: 600; }
+
+/* ============================================================
+   10. V6 抽屉
+   ============================================================ */
+.drawer-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 199; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+.drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-out;
+  display: flex; flex-direction: column;
+  max-width: 720px; margin: 0 auto;
+  height: 80vh; max-height: 80vh;
+}
+.drawer.open { transform: translateY(0); }
+.drawer.keyboard-open { height: 90vh; max-height: 90vh; }
+.drawer-handle {
+  width: 40px; height: 4px;
+  background: var(--border-strong);
+  border-radius: 2px; margin: 8px auto;
+}
+.drawer-header {
+  display: flex; align-items: center;
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
+  border-bottom: 1px solid var(--border); gap: var(--sp-3);
+}
+.drawer-close { font-size: 20px; cursor: pointer; padding: 4px; }
+.drawer-title { flex: 1; font-size: var(--fs-h2); font-weight: 600; }
+.drawer-actions { display: flex; gap: var(--sp-3); color: var(--text-2); font-size: 16px; }
+.drawer-actions span { cursor: pointer; }
+.drawer-body {
+  flex: 1; overflow-y: auto;
+  padding: var(--sp-4); background: var(--surface-2);
+}
+.drawer-footer {
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-3) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; align-items: center; gap: var(--sp-2);
+}
+.drawer-footer .health-mini { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+.drawer-footer input {
+  flex: 1; padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md); font-size: var(--fs-body);
+}
+.drawer-footer button {
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--ai-accent); color: #fff;
+  border-radius: var(--r-md); font-size: var(--fs-body);
+}
+
+.chat-bubble {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-lg);
+  font-size: var(--fs-body); line-height: 1.6;
+  max-width: 85%;
+}
+.chat-bubble.user {
+  background: var(--ai-bubble-user); color: #fff;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.ai {
+  background: var(--ai-bubble-ai); color: var(--ai-accent-deep);
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble-meta {
+  display: flex; gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-micro); color: var(--text-3);
+}
+.chat-bubble-meta span { cursor: pointer; }
+
+.data-source {
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border-radius: var(--r-md);
+  font-family: 'Courier New', monospace;
+  font-size: var(--fs-small); display: none;
+}
+.data-source.show { display: block; }
+
+.snapshot-detail-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.snapshot-detail-item {
+  background: var(--surface);
+  border-radius: var(--r-md); padding: var(--sp-3);
+}
+.snapshot-detail-item-title {
+  font-size: var(--fs-small); font-weight: 600;
+  color: var(--text-2); margin-bottom: var(--sp-2);
+}
+.snapshot-detail-item-value {
+  font-size: var(--fs-display); font-weight: 700; color: var(--text-1);
+}
+
+/* ============================================================
+   11. V5 健康度 Popover
+   ============================================================ */
+.popover-backdrop {
+  position: fixed; inset: 0; z-index: 149; display: none;
+}
+.popover-backdrop.open { display: block; }
+.popover {
+  position: absolute; top: 70px; right: var(--sp-4);
+  width: 320px;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--sp-4);
+  z-index: 150;
+  font-size: var(--fs-body); display: none;
+}
+.popover.open { display: block; }
+.popover-title {
+  font-size: var(--fs-h2); font-weight: 600;
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+.popover-row {
+  display: flex; justify-content: space-between;
+  padding: var(--sp-2) 0;
+  font-size: var(--fs-body); color: var(--text-2);
+}
+.popover-row strong { color: var(--text-1); font-weight: 600; }
+.popover-status {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-body); font-weight: 500;
+  margin-bottom: var(--sp-2);
+}
+.popover-dot { width: 10px; height: 10px; border-radius: 50%; }
+.popover-dot.healthy { background: var(--success); }
+.popover-dot.slow { background: var(--warning); }
+.popover-dot.unavailable { background: var(--danger); }
+.popover-trend {
+  margin: var(--sp-3) 0; padding: var(--sp-3);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  font-size: var(--fs-small); color: var(--text-2);
+}
+.popover-link {
+  display: block; text-align: center;
+  margin-top: var(--sp-3); padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+  color: var(--ai-accent);
+  font-size: var(--fs-small); cursor: pointer;
+}
+
+/* ============================================================
+   12. V4 历史全屏
+   ============================================================ */
+.v4-container { padding: var(--sp-4); }
+.v4-header {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+.v4-header-back {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px;
+}
+.v4-header-title { font-size: var(--fs-h1); font-weight: 600; }
+.v4-filter {
+  display: flex; gap: var(--sp-2);
+  margin-bottom: var(--sp-4); flex-wrap: wrap;
+}
+.v4-filter-item {
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-small); color: var(--text-2); cursor: pointer;
+}
+.v4-filter-item.active { background: var(--ai-accent); color: #fff; border-color: var(--ai-accent); }
+.v4-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.v4-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  cursor: pointer; transition: all 0.2s;
+}
+.v4-item:hover { border-color: var(--ai-accent); box-shadow: 0 4px 12px var(--ai-glow); }
+.v4-item-header {
+  display: flex; align-items: center; gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.v4-item-icon {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #fff;
+}
+.v4-item-icon.expense { background: var(--ai-expense); }
+.v4-item-icon.task { background: var(--ai-task); }
+.v4-item-icon.daily { background: var(--ai-daily); }
+.v4-item-icon.diet { background: var(--ai-diet); }
+.v4-item-icon.plan { background: var(--ai-plan); }
+.v4-item-title { flex: 1; font-size: var(--fs-h2); font-weight: 600; }
+.v4-item-star { color: var(--warning); }
+.v4-item-period { font-size: var(--fs-small); color: var(--text-2); margin-bottom: var(--sp-1); }
+.v4-item-meta { font-size: var(--fs-micro); color: var(--text-3); }
+
+/* ============================================================
+   13. Progress / Skeleton / Empty
+   ============================================================ */
+.progress-bar {
+  width: 100%; height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px; overflow: hidden;
+  margin: var(--sp-2) 0;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--ai-accent);
+  border-radius: 2px;
+  animation: progress 2s ease-in-out infinite;
+}
+@keyframes progress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--r-sm); height: 16px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.empty-state {
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center; color: var(--text-3);
+}
+.empty-state-icon { font-size: 48px; margin-bottom: var(--sp-3); }
+.empty-state-title { font-size: var(--fs-h2); color: var(--text-2); margin-bottom: var(--sp-2); }
+.empty-state-desc { font-size: var(--fs-body); line-height: 1.5; }
+
+/* ============================================================
+   14. Toast
+   ============================================================ */
+.toast {
+  position: fixed; top: 80px; left: 50%;
+  transform: translateX(-50%) translateY(-200%);
+  background: var(--text-1); color: #fff;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body);
+  z-index: 999;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease-out;
+  max-width: 90%;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.warning { background: var(--warning); }
+.toast.danger { background: var(--danger); }
+
+/* ============================================================
+   15. Responsive
+   ============================================================ */
+@media (min-width: 768px) {
+  .ai-tab { padding: 0 var(--sp-5); }
+  .metric-cards { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 1024px) {
+  .ai-tab { padding: 0; }
+  .ai-hero { padding: var(--sp-6); }
+}
+
+/* ============================================================
+   16. Helpers
+   ============================================================ */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar">
+    <button class="tab-item" data-tab="home"><span class="tab-icon">🏠</span><span>Home</span></button>
+    <button class="tab-item" data-tab="task"><span class="tab-icon">📋</span><span>Task</span></button>
+    <button class="tab-item" data-tab="plan"><span class="tab-icon">🎯</span><span>Plan</span></button>
+    <button class="tab-item" data-tab="daily"><span class="tab-icon">📝</span><span>Daily</span></button>
+    <button class="tab-item" data-tab="me"><span class="tab-icon">👤</span><span>Me</span></button>
+    <button class="tab-item active ai-active" data-tab="ai"><span class="tab-icon">🤖</span><span>AI</span></button>
+  </nav>
+
+  <main class="ai-tab" id="ai-tab">
+
+    <!-- ===========================
+         V1 — 报告生成（首屏）
+         =========================== -->
+    <section id="v1-container" class="v1-container">
+
+      <div class="ai-hero">
+        <div class="ai-hero-greeting">
+          <div class="ai-hero-avatar">🤖</div>
+          <span>AI 助手</span>
+        </div>
+        <div class="ai-hero-title">早上好，于博士</div>
+        <div class="ai-hero-subtitle">今天有 3 个任务待办，要不要看一份 6 月消费报告？</div>
+        <div class="health-badge healthy" id="health-badge" title="AI 服务正常"></div>
+      </div>
+
+      <div class="snapshot-row">
+        <div class="snapshot-chip" data-snapshot="task">
+          <span class="snapshot-chip-icon">📋</span>
+          <span class="snapshot-chip-label">任务</span>
+          <span class="snapshot-chip-value">12</span>
+        </div>
+        <div class="snapshot-chip" data-snapshot="daily">
+          <span class="snapshot-chip-icon">📝</span>
+          <span class="snapshot-chip-label">日报</span>
+          <span class="snapshot-chip-value">5</span>
+        </div>
+        <div class="snapshot-chip" data-snapshot="expense">
+          <span class="snapshot-chip-icon">💰</span>
+          <span class="snapshot-chip-label">本月支出</span>
+          <span class="snapshot-chip-value">¥2,345</span>
+        </div>
+        <div class="snapshot-chip" data-snapshot="diet">
+          <span class="snapshot-chip-icon">🍱</span>
+          <span class="snapshot-chip-label">饮食</span>
+          <span class="snapshot-chip-value">1,850 kcal</span>
+        </div>
+      </div>
+
+      <div class="insights-section" id="insights-section">
+        <div class="insights-section-title">💡 AI 关键洞察</div>
+        <div class="insights-chips" id="insights-chips"></div>
+      </div>
+
+      <div class="history-fold">
+        <div class="history-fold-title">
+          <span>🕘 最近报告</span>
+          <span class="history-fold-all" id="view-all-history">查看全部 →</span>
+        </div>
+        <div class="history-fold-item" data-jump-source="history">
+          <span class="history-fold-icon">💰</span>
+          <div class="history-fold-text">
+            <div class="history-fold-text-main">6 月消费报告</div>
+            <div class="history-fold-text-sub">2026/07/01 02:30 · ⭐</div>
+          </div>
+        </div>
+        <div class="history-fold-item" data-jump-source="history">
+          <span class="history-fold-icon">📋</span>
+          <div class="history-fold-text">
+            <div class="history-fold-text-main">5 月任务报告</div>
+            <div class="history-fold-text-sub">2026/06/01 04:15</div>
+          </div>
+        </div>
+        <div class="history-fold-item" data-jump-source="history">
+          <span class="history-fold-icon">📝</span>
+          <div class="history-fold-text">
+            <div class="history-fold-text-main">5 月日报复盘</div>
+            <div class="history-fold-text-sub">2026/06/01 03:00</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 200px;"></div>
+    </section>
+
+    <!-- ===========================
+         V2 — 报告详情
+         =========================== -->
+    <section id="v2-container" class="v2-container hidden">
+
+      <div class="v2-banner hidden" id="v2-banner">
+        <span>⚠️</span>
+        <span>报告生成失败，请稍后重试</span>
+        <button id="v2-retry">重试</button>
+      </div>
+
+      <div class="v2-header">
+        <div class="v2-header-back" id="v2-back">←</div>
+        <div class="v2-header-title" id="v2-title">💰 6 月消费报告</div>
+        <div class="health-badge healthy" id="v2-health-badge"></div>
+      </div>
+
+      <div class="insights-section show" id="v2-insights">
+        <div class="insights-chips" id="v2-insights-chips"></div>
+      </div>
+
+      <div class="metric-cards" id="v2-metrics">
+        <div class="metric-card"><div class="metric-card-label">总支出</div><div class="metric-card-value">¥2,345</div><div class="metric-card-trend">↓ 12%（vs 5月）</div></div>
+        <div class="metric-card"><div class="metric-card-label">日均</div><div class="metric-card-value">¥78</div><div class="metric-card-trend">↑ 5%</div></div>
+        <div class="metric-card"><div class="metric-card-label">笔数</div><div class="metric-card-value">8</div><div class="metric-card-trend down">↑ 2（笔均变小）</div></div>
+        <div class="metric-card"><div class="metric-card-label">笔均</div><div class="metric-card-value">¥293</div><div class="metric-card-trend">↓ 18%</div></div>
+      </div>
+
+      <div id="v2-charts">
+        <div class="chart-card">
+          <div class="chart-card-title"><span>📈 月度趋势</span><span class="chart-card-subtitle">近 6 月</span></div>
+          <svg viewBox="0 0 400 200" preserveAspectRatio="none">
+            <line x1="0" y1="50" x2="400" y2="50" stroke="#E2E8F0" stroke-dasharray="2,4"/>
+            <line x1="0" y1="100" x2="400" y2="100" stroke="#E2E8F0" stroke-dasharray="2,4"/>
+            <line x1="0" y1="150" x2="400" y2="150" stroke="#E2E8F0" stroke-dasharray="2,4"/>
+            <path d="M 50,150 L 110,120 L 170,140 L 230,80 L 290,100 L 350,60 L 350,200 L 50,200 Z" fill="rgba(45, 95, 63, 0.08)"/>
+            <polyline points="50,150 110,120 170,140 230,80 290,100 350,60" stroke="#2D5F3F" stroke-width="2" fill="none" stroke-linejoin="round"/>
+            <circle cx="50" cy="150" r="4" fill="#2D5F3F"/>
+            <circle cx="110" cy="120" r="4" fill="#2D5F3F"/>
+            <circle cx="170" cy="140" r="4" fill="#2D5F3F"/>
+            <circle cx="230" cy="80" r="4" fill="#2D5F3F"/>
+            <circle cx="290" cy="100" r="4" fill="#2D5F3F"/>
+            <circle cx="350" cy="60" r="4" fill="#2D5F3F"/>
+            <text x="50" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">1月</text>
+            <text x="110" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">2月</text>
+            <text x="170" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">3月</text>
+            <text x="230" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">4月</text>
+            <text x="290" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">5月</text>
+            <text x="350" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">6月</text>
+            <text x="50" y="142" font-size="9" fill="#475569" text-anchor="middle">¥1.8k</text>
+            <text x="110" y="112" font-size="9" fill="#475569" text-anchor="middle">¥2.1k</text>
+            <text x="170" y="132" font-size="9" fill="#475569" text-anchor="middle">¥1.9k</text>
+            <text x="230" y="72" font-size="9" fill="#475569" text-anchor="middle">¥2.6k</text>
+            <text x="290" y="92" font-size="9" fill="#475569" text-anchor="middle">¥2.4k</text>
+            <text x="350" y="52" font-size="9" fill="#475569" text-anchor="middle">¥2.9k</text>
+          </svg>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title"><span>📊 月度对比</span><span class="chart-card-subtitle">5月 vs 6月</span></div>
+          <svg viewBox="0 0 400 200" preserveAspectRatio="none">
+            <line x1="0" y1="160" x2="400" y2="160" stroke="#CBD5E1" stroke-width="1"/>
+            <text x="0" y="180" font-size="11" fill="#475569">¥0</text>
+            <text x="0" y="80" font-size="11" fill="#475569">¥3k</text>
+            <rect x="60" y="60" width="50" height="100" fill="#94A3B8" rx="4"/>
+            <text x="85" y="50" font-size="11" fill="#475569" text-anchor="middle">¥2.6k</text>
+            <text x="85" y="180" font-size="11" fill="#94A3B8" text-anchor="middle">5月</text>
+            <rect x="200" y="80" width="50" height="80" fill="#2D5F3F" rx="4"/>
+            <text x="225" y="70" font-size="11" fill="#475569" text-anchor="middle">¥2.3k</text>
+            <text x="225" y="180" font-size="11" fill="#94A3B8" text-anchor="middle">6月</text>
+            <line x1="0" y1="50" x2="400" y2="50" stroke="#F59E0B" stroke-dasharray="4,4" stroke-width="1"/>
+            <text x="320" y="44" font-size="10" fill="#F59E0B">预算 ¥2.7k</text>
+          </svg>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title"><span>🥧 类别占比</span><span class="chart-card-subtitle">6月</span></div>
+          <svg viewBox="0 0 400 200" preserveAspectRatio="none">
+            <circle cx="100" cy="100" r="60" fill="transparent" stroke="#F59E0B" stroke-width="20" stroke-dasharray="143 377" transform="rotate(-90 100 100)"/>
+            <circle cx="100" cy="100" r="60" fill="transparent" stroke="#3B82F6" stroke-width="20" stroke-dasharray="94 377" stroke-dashoffset="-143" transform="rotate(-90 100 100)"/>
+            <circle cx="100" cy="100" r="60" fill="transparent" stroke="#EC4899" stroke-width="20" stroke-dasharray="75 377" stroke-dashoffset="-237" transform="rotate(-90 100 100)"/>
+            <circle cx="100" cy="100" r="60" fill="transparent" stroke="#8B5CF6" stroke-width="20" stroke-dasharray="65 377" stroke-dashoffset="-312" transform="rotate(-90 100 100)"/>
+            <text x="100" y="100" font-size="20" font-weight="700" fill="#0F172A" text-anchor="middle">¥2,345</text>
+            <text x="100" y="118" font-size="10" fill="#94A3B8" text-anchor="middle">总支出</text>
+            <g transform="translate(200, 30)">
+              <rect x="0" y="0" width="10" height="10" fill="#F59E0B" rx="2"/>
+              <text x="18" y="9" font-size="11" fill="#475569">餐饮 38%</text>
+              <rect x="0" y="20" width="10" height="10" fill="#3B82F6" rx="2"/>
+              <text x="18" y="29" font-size="11" fill="#475569">交通 25%</text>
+              <rect x="0" y="40" width="10" height="10" fill="#EC4899" rx="2"/>
+              <text x="18" y="49" font-size="11" fill="#475569">购物 20%</text>
+              <rect x="0" y="60" width="10" height="10" fill="#8B5CF6" rx="2"/>
+              <text x="18" y="69" font-size="11" fill="#475569">娱乐 17%</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title"><span>🏆 Top 5 消费</span><span class="chart-card-subtitle">6月</span></div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: #F59E0B; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">1</div>
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 500;">海底捞（朋友聚餐）</div>
+                <div style="height: 4px; background: #E2E8F0; border-radius: 2px; margin-top: 4px; width: 100%;"><div style="height: 100%; background: #2D5F3F; border-radius: 2px; width: 100%;"></div></div>
+              </div>
+              <div style="font-size: 14px; font-weight: 700;">¥320</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: #94A3B8; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">2</div>
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 500;">盒马生鲜</div>
+                <div style="height: 4px; background: #E2E8F0; border-radius: 2px; margin-top: 4px; width: 80%;"><div style="height: 100%; background: #2D5F3F; border-radius: 2px; width: 80%;"></div></div>
+              </div>
+              <div style="font-size: 14px; font-weight: 700;">¥256</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: #CD7F32; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">3</div>
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 500;">地铁月卡</div>
+                <div style="height: 4px; background: #E2E8F0; border-radius: 2px; margin-top: 4px; width: 70%;"><div style="height: 100%; background: #2D5F3F; border-radius: 2px; width: 70%;"></div></div>
+              </div>
+              <div style="font-size: 14px; font-weight: 700;">¥220</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">4</div>
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 500;">网易云音乐会员</div>
+                <div style="height: 4px; background: #E2E8F0; border-radius: 2px; margin-top: 4px; width: 30%;"><div style="height: 100%; background: #2D5F3F; border-radius: 2px; width: 30%;"></div></div>
+              </div>
+              <div style="font-size: 14px; font-weight: 700;">¥98</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 24px; height: 24px; border-radius: 50%; background: #E2E8F0; color: #475569; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">5</div>
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 500;">便利店购物</div>
+                <div style="height: 4px; background: #E2E8F0; border-radius: 2px; margin-top: 4px; width: 20%;"><div style="height: 100%; background: #2D5F3F; border-radius: 2px; width: 20%;"></div></div>
+              </div>
+              <div style="font-size: 14px; font-weight: 700;">¥65</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="v2-llm-container">
+        <div class="v2-llm-loading hidden" id="v2-llm-loading">AI 解读生成中…</div>
+        <div class="llm-card" id="v2-llm-card">
+          <div class="llm-card-header"><span>🤖</span><span>AI 解读</span></div>
+          <div class="llm-card-content" id="v2-llm-content">
+            <p>你 6 月支出 ¥2,345，低于预算 12%，整体消费健康。<strong>主要变化</strong>：外卖消费上升 35%，日用品下降 18%。</p>
+            <div class="llm-section-title">📌 异常点</div>
+            <ul class="llm-section-list">
+              <li>周末消费是工作日 2.3 倍</li>
+              <li>外卖集中于周二、周四</li>
+              <li>餐饮种类单调（火锅占比 38%）</li>
+            </ul>
+            <div class="llm-section-title">💡 建议</div>
+            <ul class="llm-section-list">
+              <li>试着把外卖控制在每周 2 次</li>
+              <li>周末预算可考虑改为 ¥200</li>
+            </ul>
+          </div>
+          <div class="llm-card-footer">
+            <button>👍 12</button>
+            <button>👎 1</button>
+            <button class="regen">🔄 重新生成</button>
+            <span style="margin-left: auto; font-size: 11px;">⚠️ AI 生成仅供参考</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 80px;"></div>
+    </section>
+
+    <!-- ===========================
+         V4 — 历史全屏
+         =========================== -->
+    <section id="v4-container" class="v4-container hidden">
+      <div class="v4-header">
+        <div class="v4-header-back" id="v4-back">←</div>
+        <div class="v4-header-title">报告历史</div>
+      </div>
+      <div class="v4-filter">
+        <button class="v4-filter-item active">全部</button>
+        <button class="v4-filter-item">💰 消费</button>
+        <button class="v4-filter-item">📋 任务</button>
+        <button class="v4-filter-item">📝 日报</button>
+        <button class="v4-filter-item">🍱 饮食</button>
+        <button class="v4-filter-item">🎯 计划</button>
+        <button class="v4-filter-item">⭐ 收藏</button>
+      </div>
+      <div class="v4-list">
+        <div class="v4-item" data-jump-source="history">
+          <div class="v4-item-header"><div class="v4-item-icon expense">¥</div><div class="v4-item-title">消费报告</div><span class="v4-item-star">⭐</span></div>
+          <div class="v4-item-period">2026 年 6 月</div>
+          <div class="v4-item-meta">生成于 2026/07/01 02:30 · 快照</div>
+        </div>
+        <div class="v4-item" data-jump-source="history">
+          <div class="v4-item-header"><div class="v4-item-icon task">📋</div><div class="v4-item-title">任务报告</div></div>
+          <div class="v4-item-period">2026 年 5 月</div>
+          <div class="v4-item-meta">生成于 2026/06/01 04:15 · 快照</div>
+        </div>
+        <div class="v4-item" data-jump-source="history">
+          <div class="v4-item-header"><div class="v4-item-icon daily">📝</div><div class="v4-item-title">日报复盘</div><span class="v4-item-star">⭐</span></div>
+          <div class="v4-item-period">2026 年 5 月</div>
+          <div class="v4-item-meta">生成于 2026/06/01 03:00 · 快照</div>
+        </div>
+        <div class="v4-item" data-jump-source="history">
+          <div class="v4-item-header"><div class="v4-item-icon diet">🍱</div><div class="v4-item-title">饮食报告</div></div>
+          <div class="v4-item-period">2026 年 5 月</div>
+          <div class="v4-item-meta">生成于 2026/06/01 02:45 · 快照</div>
+        </div>
+        <div class="v4-item" data-jump-source="history">
+          <div class="v4-item-header"><div class="v4-item-icon plan">🎯</div><div class="v4-item-title">计划进度</div></div>
+          <div class="v4-item-period">2026 Q2</div>
+          <div class="v4-item-meta">生成于 2026/06/30 23:00 · 快照</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- V1 输入框 -->
+    <div class="input-section" id="v1-input">
+      <div class="input-row">
+        <select class="input-select" id="input-module">
+          <option>💰 消费</option>
+          <option>📋 任务</option>
+          <option>📝 日报</option>
+          <option>🍱 饮食</option>
+          <option>🎯 计划</option>
+        </select>
+        <select class="input-select" id="input-range">
+          <option>📅 本月</option>
+          <option>📅 上月</option>
+          <option>📅 最近 30 天</option>
+          <option>📅 自定义</option>
+        </select>
+      </div>
+      <textarea class="input-textarea" id="input-text" placeholder="多行输入框（可选）。例：对比 3 月和 6 月…"></textarea>
+      <label class="input-toggle">
+        <input type="checkbox" id="llm-toggle" checked>
+        <span>🤖 AI 解读（自动生成）</span>
+      </label>
+      <button class="input-submit" id="generate-btn">✨ 生成报告</button>
+      <div class="input-counter">已用 3/10 次/分钟</div>
+    </div>
+
+  </main>
+
+  <!-- V2 MetaBar -->
+  <div class="meta-bar hidden" id="v2-meta-bar">
+    <div class="meta-bar-item" id="meta-back"><span class="icon">←</span><span>返回</span></div>
+    <div class="meta-bar-item" id="meta-download"><span class="icon">📥</span><span>下载</span></div>
+    <div class="meta-bar-item" id="meta-favorite"><span class="icon">⭐</span><span>收藏</span></div>
+    <div class="meta-bar-item primary" id="meta-regen"><span class="icon">🔄</span><span>重新生成</span></div>
+  </div>
+
+  <!-- V6 Drawer -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <span class="drawer-close" id="drawer-close">×</span>
+      <span class="drawer-title" id="drawer-title">对话</span>
+      <div class="drawer-actions"><span id="drawer-info">ⓘ</span><span id="drawer-new">⊕</span></div>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+    <div class="drawer-footer">
+      <span class="health-mini"></span>
+      <input type="text" id="drawer-input" placeholder="想问点什么？">
+      <button id="drawer-send">发送</button>
+    </div>
+  </div>
+
+  <!-- V5 Popover -->
+  <div class="popover-backdrop" id="popover-backdrop"></div>
+  <div class="popover" id="popover">
+    <div class="popover-title">AI 服务健康度</div>
+    <div class="popover-status"><span class="popover-dot healthy" id="popover-dot"></span><span id="popover-status-text">正常</span></div>
+    <div class="popover-row"><span>队列堆积</span><strong>0</strong></div>
+    <div class="popover-row"><span>P95 延迟</span><strong>2.3s</strong></div>
+    <div class="popover-row"><span>失败率（5min）</span><strong>0.5%</strong></div>
+    <div class="popover-trend">
+      <div>5min 趋势</div>
+      <svg viewBox="0 0 280 40" style="width: 100%; height: 40px; margin-top: 4px;">
+        <polyline points="0,30 30,28 60,25 90,22 120,20 150,18 180,20 210,15 240,12 270,10" fill="none" stroke="#10B981" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="popover-row"><span>Ollama 进程</span><strong>运行中</strong></div>
+    <div class="popover-row"><span>最近 10 次任务</span><strong>10 ✅ 0 ❌</strong></div>
+    <div class="popover-link">[查看详细监控]（开发占位）</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+'use strict';
+
+const state = {
+  view: 'v1',
+  llmEnabled: true,
+  reportState: 'idle',
+  healthStatus: 'healthy',
+  drawerOpen: false,
+  drawerVariant: 'qa',
+  popoverOpen: false,
+  source: 'generated',
+};
+
+function switchView(target) {
+  state.view = target;
+  document.getElementById('v1-container').classList.toggle('hidden', target !== 'v1');
+  document.getElementById('v2-container').classList.toggle('hidden', target !== 'v2');
+  document.getElementById('v4-container').classList.toggle('hidden', target !== 'v4');
+  document.getElementById('v1-input').classList.toggle('hidden', target !== 'v1');
+  document.getElementById('v2-meta-bar').classList.toggle('hidden', target !== 'v2');
+  closePopover();
+}
+
+function showV2(source) {
+  state.source = source || 'generated';
+  switchView('v2');
+  renderV2MetaBar();
+  renderV2Insights();
+  setV2State('complete');
+}
+
+function showV1() { switchView('v1'); setV2State('idle'); }
+function showV4() { switchView('v4'); setV2State('idle'); }
+
+function setV2State(newState) {
+  state.reportState = newState;
+  const banner = document.getElementById('v2-banner');
+  const llmLoading = document.getElementById('v2-llm-loading');
+  const llmCard = document.getElementById('v2-llm-card');
+  const charts = document.getElementById('v2-charts');
+  const metrics = document.getElementById('v2-metrics');
+
+  banner.classList.add('hidden');
+  llmLoading.classList.add('hidden');
+  llmCard.classList.remove('degraded');
+  charts.classList.remove('hidden');
+  metrics.classList.remove('hidden');
+
+  switch (newState) {
+    case 'idle':
+      charts.classList.add('hidden');
+      metrics.classList.add('hidden');
+      llmCard.classList.add('hidden');
+      break;
+    case 'queued':
+      llmCard.classList.add('hidden');
+      if (charts.dataset.original === undefined) {
+        charts.dataset.original = charts.innerHTML;
+      }
+      charts.innerHTML = '<div class="v2-llm-loading">正在生成 JSON 视图…</div>';
+      break;
+    case 'json_ready':
+      llmCard.classList.add('hidden');
+      llmLoading.classList.remove('hidden');
+      renderV2Charts();
+      if (state.llmEnabled) setTimeout(() => setV2State('llm_streaming'), 800);
+      break;
+    case 'llm_streaming':
+      llmLoading.classList.add('hidden');
+      llmCard.classList.remove('hidden');
+      llmCard.classList.remove('degraded');
+      streamLLMContent();
+      break;
+    case 'complete':
+      llmCard.classList.remove('hidden');
+      llmCard.classList.remove('degraded');
+      renderV2Charts();
+      break;
+    case 'failed':
+      banner.classList.remove('hidden');
+      charts.classList.add('hidden');
+      metrics.classList.add('hidden');
+      llmCard.classList.add('hidden');
+      break;
+    case 'partial_failed':
+      llmCard.classList.remove('hidden');
+      llmCard.classList.add('degraded');
+      document.getElementById('v2-llm-content').innerHTML =
+        '<p>你 6 月支出 ¥2,345，低于预算 12%。</p><div class="v2-llm-loading">💡 AI 解读暂不可用</div>';
+      break;
+  }
+}
+
+function streamLLMContent() {
+  const content = document.getElementById('v2-llm-content');
+  const fullText =
+    '<p>你 6 月支出 ¥2,345，低于预算 12%，整体消费健康。<strong>主要变化</strong>：外卖消费上升 35%，日用品下降 18%。</p>' +
+    '<div class="llm-section-title">📌 异常点</div>' +
+    '<ul class="llm-section-list"><li>周末消费是工作日 2.3 倍</li><li>外卖集中于周二、周四</li><li>餐饮种类单调（火锅占比 38%）</li></ul>' +
+    '<div class="llm-section-title">💡 建议</div>' +
+    '<ul class="llm-section-list"><li>试着把外卖控制在每周 2 次</li><li>周末预算可考虑改为 ¥200</li></ul>';
+  let i = 0;
+  content.innerHTML = '';
+  const interval = setInterval(() => {
+    if (i >= fullText.length) { clearInterval(interval); content.innerHTML = fullText; return; }
+    content.innerHTML = fullText.substring(0, i) + '<span class="llm-streaming-cursor"></span>';
+    i += 8;
+  }, 30);
+}
+
+function renderV2MetaBar() {
+  const back = document.getElementById('meta-back');
+  const regen = document.getElementById('meta-regen');
+  if (state.source === 'generated') { back.style.display = 'none'; regen.style.display = 'flex'; }
+  else { back.style.display = 'flex'; regen.style.display = 'none'; }
+}
+
+function renderV2Insights() {
+  const insights = [
+    { text: '外卖占比 38%', category: 'anomaly', highlight: '外卖' },
+    { text: '周末超标 2.3x', category: 'anomaly', highlight: '2.3x' },
+    { text: '预算余 12%', category: 'summary', highlight: '12%' },
+    { text: '建议：外卖每周 ≤ 2 次', category: 'tip', highlight: '2 次' },
+  ];
+  document.getElementById('v2-insights-chips').innerHTML = insights.map(i =>
+    `<div class="insight-chip" data-category="${i.category}"><strong>${i.highlight}</strong>${i.text.replace(i.highlight, '')}</div>`
+  ).join('');
+}
+
+function renderV2Charts() {
+  // 实际实现中应根据 currentModule 渲染不同图表
+  // 此处复用默认 expense 图表作为占位
+  const chartsEl = document.getElementById('v2-charts');
+  if (chartsEl && chartsEl.dataset.original !== undefined) {
+    chartsEl.innerHTML = chartsEl.dataset.original;
+    delete chartsEl.dataset.original;
+  }
+}
+
+// 统一管理异步 timer，避免快速点击产生累积
+let reportTimer = null;
+function restartReportGeneration() {
+  if (reportTimer) { clearTimeout(reportTimer); reportTimer = null; }
+  setV2State('queued');
+  reportTimer = setTimeout(() => {
+    reportTimer = null;
+    if (state.reportState === 'queued') setV2State('json_ready');
+  }, 1500);
+}
+
+function generateReport() {
+  showV2('generated');
+  restartReportGeneration();
+}
+
+function openPopover() {
+  state.popoverOpen = true;
+  document.getElementById('popover').classList.add('open');
+  document.getElementById('popover-backdrop').classList.add('open');
+  document.getElementById('popover-backdrop').onclick = closePopover;
+}
+function closePopover() {
+  state.popoverOpen = false;
+  document.getElementById('popover').classList.remove('open');
+  document.getElementById('popover-backdrop').classList.remove('open');
+}
+
+function openDrawer(variant, snapshotType) {
+  state.drawerOpen = true;
+  state.drawerVariant = variant;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-backdrop').classList.add('open');
+  document.getElementById('drawer-backdrop').onclick = closeDrawer;
+
+  if (variant === 'snapshot') {
+    document.getElementById('drawer-title').textContent = '📊 数据快照';
+    renderSnapshotDetail(snapshotType);
+  } else {
+    document.getElementById('drawer-title').textContent = '💬 智能问答';
+    renderInitialChat();
+  }
+}
+function closeDrawer() {
+  state.drawerOpen = false;
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer').classList.remove('keyboard-open');
+  document.getElementById('drawer-backdrop').classList.remove('open');
+}
+
+function renderSnapshotDetail(type) {
+  const data = {
+    task: { title: '📋 任务数据', value: '12', sub: '已完成 8 / 进行中 3 / 待办 1' },
+    daily: { title: '📝 日报数据', value: '5 篇', sub: '本月最新 5 篇已生成' },
+    expense: { title: '💰 本月支出', value: '¥2,345', sub: '日均 ¥78 / 预算余 12%' },
+    diet: { title: '🍱 饮食数据', value: '1,850 kcal', sub: '日均 / 蛋白质 80g / 脂肪 65g' },
+  };
+  const d = data[type];
+  document.getElementById('drawer-body').innerHTML =
+    '<div class="snapshot-detail-list">' +
+    '<div class="snapshot-detail-item">' +
+    '<div class="snapshot-detail-item-title">' + d.title + '</div>' +
+    '<div class="snapshot-detail-item-value">' + d.value + '</div>' +
+    '<div style="font-size: 12px; color: #94A3B8; margin-top: 8px;">' + d.sub + '</div>' +
+    '</div>' +
+    '<div class="snapshot-detail-item">' +
+    '<div class="snapshot-detail-item-title">📈 近 7 天</div>' +
+    '<svg viewBox="0 0 320 100" style="width: 100%; height: 100px;">' +
+    '<polyline points="0,80 50,60 100,70 150,40 200,50 250,30 300,20" fill="none" stroke="#2D5F3F" stroke-width="2"/>' +
+    '</svg></div></div>';
+}
+
+function renderInitialChat() {
+  document.getElementById('drawer-body').innerHTML =
+    '<div class="chat-bubble user">3 月任务完成率是多少？</div>' +
+    '<div class="chat-bubble ai">3 月你的任务完成率是 <strong>78%</strong>（共 23 个任务，完成 18 个）。' +
+    '<div class="chat-bubble-meta">' +
+    '<span>👍 8</span><span>👎 0</span>' +
+    '<span onclick="this.parentElement.parentElement.nextElementSibling.classList.toggle(\'show\')">📊 数据来源</span>' +
+    '</div>' +
+    '<div class="data-source">SELECT COUNT(*) as done FROM tasks<br>' +
+    'WHERE status = \'done\'<br>' +
+    'AND date BETWEEN \'2026-03-01\' AND \'2026-03-31\';</div>' +
+    '</div>';
+}
+
+function sendChat() {
+  const input = document.getElementById('drawer-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const body = document.getElementById('drawer-body');
+
+  const userBubble = document.createElement('div');
+  userBubble.className = 'chat-bubble user';
+  userBubble.textContent = text;
+  body.appendChild(userBubble);
+  input.value = '';
+
+  setTimeout(() => {
+    const thinking = document.createElement('div');
+    thinking.className = 'chat-bubble ai';
+    thinking.textContent = 'AI 思考中…';
+    body.appendChild(thinking);
+    body.scrollTop = body.scrollHeight;
+
+    setTimeout(() => {
+      thinking.remove();
+      const aiBubble = document.createElement('div');
+      aiBubble.className = 'chat-bubble ai';
+      const safeText = text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      aiBubble.innerHTML = '根据规则引擎匹配：<strong>' + safeText + '</strong> 相关信息已找到。<br>具体数据需要切换到相应模块查看。';
+      body.appendChild(aiBubble);
+      body.scrollTop = body.scrollHeight;
+    }, 1200);
+  }, 200);
+  body.scrollTop = body.scrollHeight;
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + (type || '');
+  t.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// Event bindings
+document.querySelectorAll('.tab-item').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    if (tab.dataset.tab !== 'ai') showToast('该 Tab 暂未实现（仅展示 AI 模块）');
+  });
+});
+document.getElementById('generate-btn').addEventListener('click', generateReport);
+document.getElementById('health-badge').addEventListener('click', e => {
+  e.stopPropagation(); if (state.popoverOpen) closePopover(); else openPopover();
+});
+document.getElementById('v2-health-badge').addEventListener('click', e => {
+  e.stopPropagation(); if (state.popoverOpen) closePopover(); else openPopover();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (state.popoverOpen) closePopover(); if (state.drawerOpen) closeDrawer(); }
+});
+document.getElementById('v2-back').addEventListener('click', showV1);
+document.querySelectorAll('.snapshot-chip').forEach(chip => {
+  chip.addEventListener('click', () => openDrawer('snapshot', chip.dataset.snapshot));
+});
+document.querySelectorAll('[data-jump-source="history"]').forEach(item => {
+  item.addEventListener('click', () => showV2('history'));
+});
+document.getElementById('view-all-history').addEventListener('click', showV4);
+document.getElementById('v4-back').addEventListener('click', showV1);
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.getElementById('drawer-send').addEventListener('click', sendChat);
+document.getElementById('drawer-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChat();
+  if (window.visualViewport) document.getElementById('drawer').classList.add('keyboard-open');
+});
+document.getElementById('meta-back').addEventListener('click', showV1);
+document.getElementById('meta-regen').addEventListener('click', restartReportGeneration);
+document.getElementById('meta-favorite').addEventListener('click', () => showToast('⭐ 已收藏'));
+document.getElementById('meta-download').addEventListener('click', () => showToast('📥 报告已下载为 Markdown'));
+document.getElementById('llm-toggle').addEventListener('change', e => {
+  state.llmEnabled = e.target.checked;
+  showToast(state.llmEnabled ? 'AI 解读已开启' : 'AI 解读已关闭');
+});
+document.getElementById('v2-retry').addEventListener('click', restartReportGeneration);
+
+window.__demo = { setV2State, state, showV2, showV1, showV4, openDrawer, openPopover };
+setV2State('idle');
+</script>
+
+</body>
+</html>
