@@ -1,0 +1,3552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AI 助手 — Lifewise (完整原型 v1.0)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   0. Reset & Base
+   ========================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  background: linear-gradient(135deg, #F0FDF4 0%, #ECFCCB 50%, #FEFCE8 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+a { color: #65A30D; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:root {
+  --green-700: #4D7C0F; --green-600: #65A30D; --green-500: #84CC16;
+  --green-100: #ECFCCB; --green-50: #D9F99D;
+  --text-1: #0F172A; --text-2: #334155; --text-3: #64748B; --text-4: #94A3B8;
+  --border: #E2E8F0; --border-strong: #CBD5E1;
+  --bg-1: #F8FAFC; --bg-2: #F1F5F9;
+  --error: #EF4444; --success: #10B981; --warning: #F59E0B;
+  --cat-expense: #2D5F3F; --cat-task: #0EA5E9; --cat-daily: #F59E0B;
+  --cat-diet: #06B6D4; --cat-plan: #6366F1;
+  --ai-accent: #3B5BFE; --ai-accent-soft: #E8EEFF; --ai-accent-deep: #1E3A8A;
+  --ai-bubble-ai: #E8EEFF; --ai-bubble-user: #2D5F3F;
+  --ai-glow: rgba(59, 91, 254, 0.16); --ai-divider: #E8EEFF;
+  --ai-hero-bg-from: #1F3F31; --ai-hero-bg-to: #2D5F3F;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.hidden { display: none !important; }
+
+/* =========================================================
+   1. 通用原子
+   ========================================================= */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 18px; background: #65A30D; color: white;
+  border-radius: 10px; font-size: 14px; font-weight: 600;
+  transition: all 0.15s;
+}
+.btn-primary:hover { background: #4D7C0F; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(101, 163, 13, 0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { background: #94A3B8; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-primary.ai { background: var(--ai-accent); }
+.btn-primary.ai:hover { background: var(--ai-accent-deep); box-shadow: 0 4px 12px var(--ai-glow); }
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px; background: white; color: #334155;
+  border: 1px solid #E2E8F0; border-radius: 10px;
+  font-size: 14px; font-weight: 500;
+  transition: all 0.15s;
+}
+.btn-secondary:hover { background: #F8FAFC; border-color: #CBD5E1; }
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 12px; border-radius: 8px;
+  font-size: 13px; color: #475569; transition: all 0.15s;
+}
+.btn-ghost:hover { background: #F1F5F9; color: #0F172A; }
+
+.input-wrap {
+  position: relative; display: flex; align-items: center;
+  border: 1px solid #E2E8F0; border-radius: 10px;
+  background: white; transition: all 0.15s;
+}
+.input-wrap:hover { border-color: #CBD5E1; }
+.input-wrap:focus-within { border-color: #65A30D; box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.12); }
+.input-wrap.ai:focus-within { border-color: var(--ai-accent); box-shadow: 0 0 0 3px var(--ai-glow); }
+.input-wrap .leading { padding: 0 12px; color: #94A3B8; display: flex; align-items: center; }
+.input-wrap .leading svg { width: 18px; height: 18px; }
+.input-wrap .trailing { position: absolute; right: 8px; color: #94A3B8; display: flex; align-items: center; padding: 6px; border-radius: 6px; cursor: pointer; }
+.input-wrap .trailing:hover { color: #475569; background: #F1F5F9; }
+.input {
+  flex: 1; border: none; outline: none;
+  padding: 12px 14px 12px 0; font-size: 14px;
+  background: transparent; color: #0F172A; resize: none;
+}
+.input::placeholder { color: #94A3B8; }
+.input.has-trailing { padding-right: 44px; }
+
+.field { margin-bottom: 16px; }
+.field-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #334155; }
+.field-label .helper { font-size: 12px; color: #94A3B8; font-weight: 400; }
+
+.checkbox { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #475569; user-select: none; }
+.checkbox input { display: none; }
+.checkbox .check { width: 18px; height: 18px; border: 1.5px solid #CBD5E1; border-radius: 5px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: white; }
+.checkbox input:checked + .check { background: #65A30D; border-color: #65A30D; }
+.checkbox input:checked + .check::after { content: ''; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); margin-bottom: 2px; }
+
+.switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+.switch input { display: none; }
+.switch .slider { position: absolute; inset: 0; background: #CBD5E1; border-radius: 999px; transition: 0.2s; cursor: pointer; }
+.switch .slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px; background: white; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.switch input:checked + .slider { background: var(--ai-accent); }
+.switch input:checked + .slider::before { transform: translateX(16px); }
+
+.link-inline { font-size: 13px; color: #65A30D; font-weight: 500; }
+.link-inline:hover { text-decoration: underline; }
+.link-inline.ai { color: var(--ai-accent); }
+
+.divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #94A3B8; font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
+
+.card {
+  background: white; border: 1px solid #E2E8F0; border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; line-height: 1.5;
+}
+.pill.green { background: #ECFCCB; color: #4D7C0F; }
+.pill.blue { background: #DBEAFE; color: #1D4ED8; }
+.pill.amber { background: #FEF3C7; color: #92400E; }
+.pill.gray { background: #F1F5F9; color: #475569; }
+.pill.rose { background: #FFE4E6; color: #BE123C; }
+.pill.violet { background: #EDE9FE; color: #6D28D9; }
+.pill.ai { background: var(--ai-accent-soft); color: var(--ai-accent-deep); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 6px;
+  background: #F1F5F9; color: #475569;
+  font-size: 11px; font-weight: 500;
+}
+.badge.success { background: #D1FAE5; color: #047857; }
+.badge.warning { background: #FEF3C7; color: #92400E; }
+.badge.danger { background: #FEE2E2; color: #B91C1C; }
+.badge.info { background: #DBEAFE; color: #1D4ED8; }
+
+/* =========================================================
+   2. 顶栏
+   ========================================================= */
+.app { max-width: 1440px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+.top-nav {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #E2E8F0;
+}
+.top-nav-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: #0F172A; }
+.top-nav-logo .mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #84CC16 0%, #65A30D 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 15px;
+  box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
+}
+.top-nav-modules { display: flex; align-items: center; gap: 4px; flex: 1; margin-left: 8px; }
+.nav-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; color: #475569;
+  transition: all 0.15s;
+}
+.nav-item:hover { background: #F1F5F9; color: #0F172A; }
+.nav-item.active { background: #ECFCCB; color: #4D7C0F; font-weight: 600; }
+.nav-item .ico { font-size: 15px; line-height: 1; }
+.top-nav-right { display: flex; align-items: center; gap: 12px; }
+.health-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px;
+  background: #F1F5F9; font-size: 12px; color: #475569;
+  border: 1px solid #E2E8F0;
+  cursor: pointer; transition: all 0.15s;
+}
+.health-pill:hover { background: #E2E8F0; }
+.health-dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18); }
+.health-pill.warn .health-dot { background: #F59E0B; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
+.health-pill.danger .health-dot { background: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18); }
+
+.user-chip { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 999px; background: #F1F5F9; cursor: pointer; }
+.user-chip:hover { background: #E2E8F0; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #84CC16, #65A30D); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.user-name { font-size: 13px; font-weight: 500; color: #0F172A; }
+
+/* =========================================================
+   3. 主体两列
+   ========================================================= */
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 0; flex: 1; min-height: 0;
+}
+.side-nav {
+  border-right: 1px solid #E2E8F0;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(6px);
+  padding: 20px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  position: sticky; top: 57px;
+  align-self: flex-start;
+  height: calc(100vh - 57px);
+  overflow-y: auto;
+}
+.side-section { font-size: 11px; font-weight: 600; color: #94A3B8; letter-spacing: 0.06em; text-transform: uppercase; padding: 12px 12px 4px; }
+.side-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; color: #475569;
+  transition: all 0.15s; cursor: pointer;
+  text-align: left; width: 100%;
+}
+.side-item:hover { background: #F1F5F9; color: #0F172A; }
+.side-item.active { background: #ECFCCB; color: #4D7C0F; font-weight: 600; }
+.side-item .ico { font-size: 15px; line-height: 1; }
+.side-item .count { margin-left: auto; font-size: 11px; color: #94A3B8; background: #F1F5F9; padding: 1px 7px; border-radius: 999px; }
+.side-item.active .count { background: white; color: #4D7C0F; }
+.side-tip {
+  margin-top: auto; padding: 14px;
+  background: linear-gradient(135deg, #ECFCCB, #D9F99D);
+  border-radius: 12px;
+  font-size: 12px; color: #3F6212; line-height: 1.5;
+}
+.side-tip .tip-title { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.main { padding: 24px 32px 80px; min-width: 0; }
+
+/* =========================================================
+   4. V1 Hero 区
+   ========================================================= */
+.ai-hero {
+  background: linear-gradient(135deg, var(--ai-hero-bg-from) 0%, var(--ai-hero-bg-to) 100%);
+  color: white; border-radius: 20px;
+  padding: 28px 32px; position: relative; overflow: hidden;
+  margin-bottom: 24px;
+}
+.ai-hero::after {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, var(--ai-accent) 0%, transparent 70%);
+  opacity: 0.4; filter: blur(50px);
+}
+.ai-hero::before {
+  content: ''; position: absolute; bottom: -40px; left: 30%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(132, 204, 22, 0.4) 0%, transparent 70%);
+  filter: blur(50px);
+}
+.ai-hero-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 20px; }
+.ai-hero-avatar {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: linear-gradient(135deg, var(--ai-accent) 0%, var(--ai-accent-deep) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 8px 24px var(--ai-glow);
+  flex-shrink: 0; position: relative;
+}
+.ai-hero-avatar::after {
+  content: ''; position: absolute; inset: -4px; border-radius: 22px;
+  border: 2px solid rgba(59, 91, 254, 0.4);
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+@keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 0.8; } 100% { transform: scale(1.15); opacity: 0; } }
+.ai-hero-text { flex: 1; }
+.ai-hero-greeting { font-size: 13px; opacity: 0.85; margin-bottom: 4px; }
+.ai-hero-title { font-size: 24px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; letter-spacing: -0.01em; }
+.ai-hero-subtitle { font-size: 14px; opacity: 0.85; line-height: 1.6; max-width: 560px; }
+.ai-hero-actions { display: flex; gap: 10px; margin-top: 18px; position: relative; z-index: 1; flex-wrap: wrap; }
+.hero-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 10px;
+  background: rgba(255,255,255,0.15); color: white;
+  font-size: 13px; font-weight: 500;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.15s;
+}
+.hero-btn:hover { background: rgba(255,255,255,0.25); }
+.hero-btn.primary { background: white; color: #2D5F3F; border-color: white; }
+.hero-btn.primary:hover { background: #ECFCCB; }
+.hero-btn.ai { background: var(--ai-accent); border-color: var(--ai-accent); color: white; }
+.hero-btn.ai:hover { background: var(--ai-accent-deep); border-color: var(--ai-accent-deep); }
+
+/* AIHealthBadge（持久角标） */
+.health-badge {
+  position: absolute; top: 20px; right: 20px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px 5px 8px; border-radius: 999px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  font-size: 12px; color: #A7F3D0;
+  z-index: 2; cursor: pointer;
+  transition: all 0.15s;
+}
+.health-badge:hover { background: rgba(16, 185, 129, 0.3); }
+.health-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3); }
+.health-badge.warn { background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #FDE68A; }
+.health-badge.warn .dot { background: #F59E0B; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3); }
+.health-badge.danger { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: #FECACA; }
+.health-badge.danger .dot { background: #EF4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3); }
+
+/* =========================================================
+   5. Section 与快照 chips
+   ========================================================= */
+.section-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-title h3 { font-size: 15px; font-weight: 600; color: #0F172A; margin: 0; }
+.section-title .sub { font-size: 12px; color: #94A3B8; }
+.section-title .actions { display: flex; gap: 6px; align-items: center; }
+
+.snapshot-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 24px;
+}
+.snapshot-chip {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative; overflow: hidden;
+}
+.snapshot-chip::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--ai-accent); opacity: 0; transition: opacity 0.15s;
+}
+.snapshot-chip:hover { border-color: #CBD5E1; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(15,23,42,0.08); }
+.snapshot-chip:hover::before { opacity: 1; }
+.snapshot-chip-head { display: flex; align-items: center; justify-content: space-between; }
+.snapshot-chip-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #ECFCCB; color: #4D7C0F;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.snapshot-chip-icon.expense { background: #D1FAE5; color: #047857; }
+.snapshot-chip-icon.task { background: #DBEAFE; color: #1D4ED8; }
+.snapshot-chip-icon.daily { background: #FEF3C7; color: #92400E; }
+.snapshot-chip-icon.diet { background: #CFFAFE; color: #0E7490; }
+.snapshot-chip-label { font-size: 12px; color: #64748B; }
+.snapshot-chip-value { font-size: 20px; font-weight: 700; color: #0F172A; line-height: 1.2; }
+.snapshot-chip-trend { font-size: 11px; color: #10B981; }
+.snapshot-chip-trend.down { color: #EF4444; }
+
+/* =========================================================
+   6. AI 关键洞察 chips
+   ========================================================= */
+.insight-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.insight-chip {
+  display: inline-flex; align-items: center;
+  padding: 6px 12px 6px 10px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  font-size: 12px; cursor: pointer;
+  transition: all 0.15s; position: relative; overflow: hidden;
+  color: #334155;
+}
+.insight-chip::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #94A3B8;
+}
+.insight-chip[data-category="summary"]::before { background: #94A3B8; }
+.insight-chip[data-category="anomaly"]::before { background: #F59E0B; }
+.insight-chip[data-category="tip"]::before { background: var(--ai-accent); }
+.insight-chip:hover { background: var(--ai-accent-soft); border-color: var(--ai-accent); }
+.insight-chip strong { color: #2D5F3F; margin-right: 4px; font-weight: 600; }
+.insight-chip[data-category="anomaly"] strong { color: #92400E; }
+.insight-chip[data-category="tip"] strong { color: var(--ai-accent-deep); }
+
+/* =========================================================
+   7. 报告洞察卡（AI 完整解读）
+   ========================================================= */
+.report-card {
+  background: linear-gradient(135deg, var(--ai-accent-soft) 0%, #F0F4FF 100%);
+  border: 1px solid var(--ai-accent);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  position: relative; overflow: hidden;
+}
+.report-card::before {
+  content: ''; position: absolute; right: -40px; top: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(59,91,254,0.2) 0%, transparent 70%);
+}
+.report-card-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 600; color: var(--ai-accent-deep);
+  margin-bottom: 14px; position: relative;
+}
+.report-card-head .ico {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--ai-accent); color: white;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.report-card-content { font-size: 14px; line-height: 1.8; color: #0F172A; position: relative; }
+.report-card-content p { margin: 0 0 12px; }
+.report-card-content strong { color: #2D5F3F; font-weight: 600; }
+.report-section-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--ai-accent-deep);
+  margin: 14px 0 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.report-section-list { margin: 0; padding-left: 20px; font-size: 13px; color: #334155; }
+.report-section-list li { margin-bottom: 4px; }
+.report-card-footer {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 18px; padding-top: 14px;
+  border-top: 1px solid #C7D2FE;
+  font-size: 12px; color: #64748B;
+  position: relative;
+}
+.report-card-footer button { font-size: 12px; color: #475569; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; transition: all 0.15s; }
+.report-card-footer button:hover { background: rgba(255,255,255,0.6); }
+.report-card-footer .regen { color: var(--ai-accent); }
+.report-card-footer .meta { margin-left: auto; }
+.streaming-cursor {
+  display: inline-block; width: 2px; height: 14px;
+  background: var(--ai-accent); margin-left: 2px; vertical-align: middle;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+/* =========================================================
+   8. 报告生成输入框
+   ========================================================= */
+.report-input-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-md);
+}
+.report-input-card.disabled { opacity: 0.65; pointer-events: none; }
+.report-input-card .top-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.module-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #E2E8F0;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #475569;
+}
+.module-chip:hover { border-color: #CBD5E1; }
+.module-chip.selected { background: var(--ai-accent); color: white; border-color: var(--ai-accent); }
+.range-chip.selected { background: #65A30D; color: white; border-color: #65A30D; }
+.report-input-card textarea {
+  width: 100%;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  color: #0F172A;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.report-input-card textarea:focus { border-color: var(--ai-accent); box-shadow: 0 0 0 3px var(--ai-glow); }
+.report-input-card textarea::placeholder { color: #94A3B8; }
+.llm-toggle-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ai-accent-soft);
+}
+.llm-toggle-row .label { font-size: 13px; color: var(--ai-accent-deep); font-weight: 500; display: flex; align-items: center; gap: 6px; flex: 1; }
+.llm-toggle-row .desc { font-size: 11px; color: var(--ai-accent-deep); opacity: 0.7; }
+.llm-toggle-row .badge { margin-left: auto; }
+.generate-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 12px;
+}
+.generate-row .meta-left { font-size: 11px; color: #94A3B8; }
+.generate-row .meta-left strong { color: #475569; }
+
+/* =========================================================
+   9. V1-A 空态
+   ========================================================= */
+.empty-hero {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: white;
+  border: 1px dashed #E2E8F0;
+  border-radius: 16px;
+}
+.empty-hero .ico {
+  width: 80px; height: 80px; border-radius: 22px;
+  background: #F1F5F9; color: #94A3B8;
+  display: flex; align-items: center; justify-content: center; font-size: 36px;
+  margin-bottom: 16px;
+}
+.empty-hero h3 { font-size: 18px; font-weight: 600; color: #0F172A; margin: 0 0 8px; }
+.empty-hero p { font-size: 13px; color: #64748B; max-width: 480px; margin: 0 0 16px; }
+.empty-hero .path-steps { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+.empty-hero .path-step {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  background: #F1F5F9;
+  border-radius: 999px;
+  font-size: 12px; color: #475569;
+}
+
+/* =========================================================
+   10. V1-C 生成中（进度条 + skeleton）
+   ========================================================= */
+.progress-bar {
+  height: 6px; background: #E2E8F0; border-radius: 999px; overflow: hidden;
+  position: relative;
+}
+.progress-bar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-accent), var(--ai-accent-deep));
+  width: 0%; border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.progress-bar.indeterminate .fill {
+  width: 30%;
+  position: absolute;
+  animation: indet 1.4s linear infinite;
+}
+@keyframes indet {
+  0% { left: -30%; }
+  100% { left: 100%; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px; color: transparent;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton.line { height: 12px; margin-bottom: 8px; }
+.skeleton.line.sm { width: 60%; height: 10px; }
+.skeleton.line.md { width: 80%; }
+.skeleton.line.lg { width: 95%; }
+.skeleton.chip { height: 22px; border-radius: 999px; width: 80px; display: inline-block; margin-right: 6px; margin-bottom: 6px; }
+.skeleton.card { height: 140px; border-radius: 12px; }
+
+/* =========================================================
+   11. V2 报告 Header + 状态徽章
+   ========================================================= */
+.report-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #F8FAFC, white);
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+.report-header .back {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: #475569; transition: all 0.15s;
+}
+.report-header .back:hover { background: #F1F5F9; color: #0F172A; }
+.report-header .info { flex: 1; min-width: 0; }
+.report-header .title { font-size: 16px; font-weight: 700; color: #0F172A; display: flex; align-items: center; gap: 8px; }
+.report-header .meta { font-size: 12px; color: #94A3B8; display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+.report-header .meta .dot { width: 4px; height: 4px; border-radius: 50%; background: #CBD5E1; }
+.report-header .actions { display: flex; gap: 4px; }
+
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+}
+.status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+.status-pill.idle { background: #F1F5F9; color: #475569; }
+.status-pill.idle .dot { background: #94A3B8; }
+.status-pill.queued { background: #FEF3C7; color: #92400E; }
+.status-pill.queued .dot { background: #F59E0B; }
+.status-pill.json_ready { background: #DBEAFE; color: #1D4ED8; }
+.status-pill.json_ready .dot { background: #3B82F6; }
+.status-pill.streaming { background: var(--ai-accent-soft); color: var(--ai-accent-deep); }
+.status-pill.streaming .dot { background: var(--ai-accent); animation: blink 1s infinite; }
+.status-pill.complete { background: #D1FAE5; color: #047857; }
+.status-pill.complete .dot { background: #10B981; }
+.status-pill.failed { background: #FEE2E2; color: #B91C1C; }
+.status-pill.failed .dot { background: #EF4444; }
+.status-pill.partial { background: #FEF3C7; color: #92400E; border: 1px dashed #F59E0B; }
+.status-pill.partial .dot { background: #F59E0B; }
+
+.error-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  color: #991B1B;
+}
+.error-banner .ico { font-size: 20px; }
+.error-banner .text { flex: 1; font-size: 13px; }
+.error-banner .text strong { color: #B91C1C; }
+.error-banner button {
+  padding: 6px 12px; background: white; color: #B91C1C;
+  border: 1px solid #FCA5A5; border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+}
+.partial-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  color: #92400E;
+}
+.partial-banner .ico { font-size: 20px; }
+.partial-banner .text { flex: 1; font-size: 13px; }
+.partial-banner .text strong { color: #B45309; }
+.partial-banner button {
+  padding: 6px 12px; background: white; color: #92400E;
+  border: 1px solid #FCD34D; border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+}
+
+/* =========================================================
+   12. V2 指标卡 + 图表
+   ========================================================= */
+.metric-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 16px;
+}
+.metric-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.metric-card-label { font-size: 12px; color: #64748B; margin-bottom: 4px; }
+.metric-card-value { font-size: 22px; font-weight: 700; color: #0F172A; line-height: 1.2; }
+.metric-card-unit { font-size: 12px; color: #94A3B8; margin-left: 4px; font-weight: 500; }
+.metric-card-trend { font-size: 11px; color: #10B981; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+.metric-card-trend.down { color: #EF4444; }
+
+.chart-grid {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 16px; margin-bottom: 16px;
+}
+.chart-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 20px;
+}
+.chart-card.full { grid-column: 1 / -1; }
+.chart-card-title {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 14px; font-weight: 600; color: #0F172A;
+  margin-bottom: 14px;
+}
+.chart-card-title .sub { font-size: 11px; color: #94A3B8; font-weight: 400; }
+.chart-card svg { width: 100%; height: auto; display: block; }
+.chart-card-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: #475569; }
+.chart-card-legend .lg-item { display: flex; align-items: center; gap: 5px; }
+.chart-card-legend .swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+/* =========================================================
+   13. MetaBar（V2 底部 5%）
+   ========================================================= */
+.meta-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  margin-top: 16px;
+  position: sticky; bottom: 12px;
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+}
+.meta-bar .label { font-size: 12px; color: #94A3B8; margin-right: 4px; }
+.meta-bar .btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 8px;
+  font-size: 13px; color: #475569;
+  transition: all 0.15s;
+}
+.meta-bar .btn:hover { background: #F1F5F9; }
+.meta-bar .btn.primary { background: var(--ai-accent); color: white; }
+.meta-bar .btn.primary:hover { background: var(--ai-accent-deep); }
+.meta-bar .btn .star.active { color: #F59E0B; }
+.meta-bar .spacer { flex: 1; }
+
+/* =========================================================
+   14. 历史列表 (V4 Lv2)
+   ========================================================= */
+.history-page {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+.history-page-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #E2E8F0;
+  background: linear-gradient(180deg, #F8FAFC, white);
+}
+.history-page-head .back {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: #475569;
+}
+.history-page-head .back:hover { background: #F1F5F9; }
+.history-page-head .title { flex: 1; font-size: 16px; font-weight: 700; color: #0F172A; }
+.history-page-head .meta { font-size: 12px; color: #94A3B8; }
+
+.history-filter {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 14px 18px;
+  border-bottom: 1px solid #F1F5F9;
+  background: #F8FAFC;
+}
+.history-filter .input-wrap { flex: 1; min-width: 200px; }
+.history-filter .input-wrap .input { padding: 8px 14px 8px 0; font-size: 13px; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #E2E8F0;
+  background: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #475569;
+}
+.filter-chip:hover { border-color: #CBD5E1; }
+.filter-chip.selected { background: #0F172A; color: white; border-color: #0F172A; }
+.filter-chip.ai.selected { background: var(--ai-accent); border-color: var(--ai-accent); }
+
+.history-list { display: flex; flex-direction: column; }
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #F1F5F9;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.history-item:last-child { border-bottom: none; }
+.history-item:hover { background: var(--ai-accent-soft); }
+.history-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: white; flex-shrink: 0;
+}
+.history-icon.expense { background: var(--cat-expense); }
+.history-icon.task { background: var(--cat-task); }
+.history-icon.daily { background: var(--cat-daily); }
+.history-icon.diet { background: var(--cat-diet); }
+.history-icon.plan { background: var(--cat-plan); }
+.history-text { flex: 1; min-width: 0; }
+.history-title { font-size: 14px; font-weight: 600; color: #0F172A; }
+.history-meta { font-size: 12px; color: #64748B; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.history-star { color: #F59E0B; font-size: 14px; }
+.history-action { color: #94A3B8; font-size: 18px; }
+
+.history-empty {
+  padding: 60px 24px;
+  text-align: center;
+  color: #94A3B8;
+}
+.history-empty .ico { font-size: 48px; margin-bottom: 12px; }
+
+/* V4 排序 / 批量栏 */
+.history-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 12px; color: #64748B;
+}
+.history-toolbar .sort-select {
+  padding: 4px 8px; border: 1px solid #E2E8F0;
+  border-radius: 6px; background: white; color: #334155;
+  font-size: 12px; cursor: pointer;
+}
+.history-toolbar .right { margin-left: auto; display: flex; gap: 6px; }
+
+/* =========================================================
+   15. V5 健康度 Popover
+   ========================================================= */
+.popover {
+  position: fixed; top: 70px; right: 24px;
+  width: 340px; z-index: 200;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  padding: 18px;
+  display: none;
+}
+.popover.open { display: block; }
+.popover-title {
+  font-size: 14px; font-weight: 600; color: #0F172A;
+  margin-bottom: 12px; padding-bottom: 10px;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex; align-items: center; gap: 8px;
+}
+.popover-title .close {
+  margin-left: auto; cursor: pointer;
+  color: #94A3B8; padding: 2px;
+}
+.popover-title .close:hover { color: #475569; }
+.popover-status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500; color: #0F172A;
+  margin-bottom: 12px;
+}
+.popover-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #10B981; box-shadow: 0 0 0 3px rgba(16,185,129,0.18);
+}
+.popover-status.warn .popover-dot { background: #F59E0B; box-shadow: 0 0 0 3px rgba(245,158,11,0.18); }
+.popover-status.danger .popover-dot { background: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
+
+.popover-section-title {
+  font-size: 11px; font-weight: 600; color: #94A3B8;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin: 12px 0 6px;
+}
+.popover-row {
+  display: flex; justify-content: space-between;
+  padding: 4px 0; font-size: 12px; color: #475569;
+}
+.popover-row strong { color: #0F172A; font-weight: 600; }
+.popover-trend {
+  margin: 10px 0; padding: 10px;
+  background: #F1F5F9; border-radius: 8px;
+}
+.popover-trend-label { font-size: 11px; color: #64748B; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.popover-probe-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 120px; overflow-y: auto;
+}
+.popover-probe-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: #F8FAFC; border-radius: 6px;
+  font-size: 11px;
+}
+.popover-probe-item .probe-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.popover-probe-item .probe-dot.ok { background: #10B981; }
+.popover-probe-item .probe-dot.fail { background: #EF4444; }
+.popover-probe-item .probe-time { color: #94A3B8; margin-left: auto; }
+.popover-probe-item .probe-lat { font-weight: 600; color: #475569; }
+
+.popover-actions {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid #E2E8F0;
+  display: flex; gap: 6px;
+}
+.popover-link {
+  flex: 1; text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 12px; font-weight: 500;
+  transition: all 0.15s; cursor: pointer;
+}
+.popover-link:hover { background: #E2E8F0; }
+.popover-link.primary {
+  background: var(--ai-accent); color: white;
+}
+.popover-link.primary:hover { background: var(--ai-accent-deep); }
+
+/* =========================================================
+   16. V6 抽屉（chat-card / snapshot-card）
+   ========================================================= */
+.chat-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 0;
+  margin-bottom: 24px;
+  display: flex; flex-direction: column;
+  height: 560px; overflow: hidden;
+}
+.chat-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #E2E8F0;
+  background: linear-gradient(180deg, #F8FAFC 0%, white 100%);
+}
+.chat-head-avatar {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--ai-accent), var(--ai-accent-deep));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: white; position: relative;
+}
+.chat-head-avatar::after {
+  content: ''; position: absolute; right: -2px; bottom: -2px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #10B981; border: 2px solid white;
+}
+.chat-head-info { flex: 1; min-width: 0; }
+.chat-head-title { font-size: 14px; font-weight: 600; color: #0F172A; }
+.chat-head-sub { font-size: 12px; color: #64748B; display: flex; align-items: center; gap: 6px; }
+.chat-head-actions { display: flex; gap: 4px; }
+.chat-icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  color: #64748B;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; cursor: pointer;
+}
+.chat-icon-btn:hover { background: #F1F5F9; color: #0F172A; }
+
+.chat-body {
+  flex: 1; overflow-y: auto;
+  padding: 20px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+  background: #F8FAFC;
+}
+.chat-day-divider { text-align: center; font-size: 11px; color: #94A3B8; padding: 4px 0; }
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px; line-height: 1.6;
+  word-wrap: break-word;
+  position: relative;
+}
+.chat-bubble.user {
+  align-self: flex-end;
+  background: var(--ai-bubble-user);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.ai {
+  align-self: flex-start;
+  background: var(--ai-bubble-ai);
+  color: var(--ai-accent-deep);
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble.ai strong { color: #2D5F3F; }
+.chat-bubble-meta {
+  display: flex; gap: 12px;
+  margin-top: 6px; font-size: 11px; color: #475569;
+}
+.chat-bubble-meta button { color: #475569; display: inline-flex; align-items: center; gap: 3px; padding: 0; }
+.chat-bubble-meta button:hover { color: #0F172A; }
+.chat-bubble.ai .chat-bubble-meta { color: #475569; }
+
+.chat-suggestion {
+  align-self: flex-start;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 80%;
+  margin-top: 4px;
+}
+.chat-suggestion-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chat-suggestion-card:hover { border-color: var(--ai-accent); box-shadow: 0 4px 12px var(--ai-glow); transform: translateY(-1px); }
+.chat-suggestion-card .ico { font-size: 18px; }
+.chat-suggestion-card .body { flex: 1; }
+.chat-suggestion-card .label { font-size: 13px; font-weight: 500; color: #0F172A; }
+.chat-suggestion-card .sub { font-size: 11px; color: #94A3B8; }
+
+.chat-quick-row {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 12px 20px;
+  background: white;
+  border-top: 1px solid #E2E8F0;
+}
+.quick-chip {
+  padding: 6px 12px;
+  background: #F1F5F9; color: #475569;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer; transition: all 0.15s;
+}
+.quick-chip:hover { background: #ECFCCB; color: #4D7C0F; border-color: #84CC16; }
+
+.chat-foot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #E2E8F0;
+}
+.chat-foot .input-wrap { flex: 1; }
+.chat-foot .send-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: #65A30D; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.chat-foot .send-btn:hover { background: #4D7C0F; }
+.chat-foot .send-btn:disabled { background: #CBD5E1; cursor: not-allowed; }
+.chat-foot .send-btn.ai { background: var(--ai-accent); }
+.chat-foot .send-btn.ai:hover { background: var(--ai-accent-deep); }
+
+.chat-helper-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 20px 12px;
+  background: white;
+  font-size: 11px; color: #94A3B8;
+}
+.chat-helper-row .left { display: flex; align-items: center; gap: 4px; }
+.chat-helper-row .right { margin-left: auto; }
+.chat-helper-row .counter { color: #94A3B8; }
+.chat-helper-row .counter.warn { color: #F59E0B; }
+.chat-helper-row .counter.danger { color: #EF4444; }
+
+/* V6 数据来源展开 */
+.data-source-block {
+  margin-top: 8px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #C7D2FE;
+  font-size: 12px;
+}
+.data-source-block summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 6px;
+  color: var(--ai-accent);
+}
+.data-source-block summary::-webkit-details-marker { display: none; }
+.data-source-block pre {
+  margin: 0;
+  padding: 0 12px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #475569;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+.sql-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-top: 8px;
+}
+.sql-table th, .sql-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid #F1F5F9;
+}
+.sql-table th { background: #F8FAFC; color: #475569; font-weight: 600; }
+.sql-table td { color: #334155; }
+
+/* V6 浮层抽屉（modal） */
+.drawer-mask {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 199;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.drawer-mask.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 80vh;
+  max-height: 720px;
+  background: #F8FAFC;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(.2, .9, .3, 1);
+  display: flex; flex-direction: column;
+  box-shadow: 0 -8px 32px rgba(15,23,42,0.18);
+}
+.drawer.tall { height: 92vh; }
+.drawer.open { transform: translateY(0); }
+.drawer-handle {
+  width: 40px; height: 4px;
+  background: #CBD5E1;
+  border-radius: 999px;
+  margin: 8px auto;
+}
+.drawer-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 4px 20px 16px;
+  border-bottom: 1px solid #E2E8F0;
+}
+.drawer-head .drag { flex: 1; cursor: grab; }
+.drawer-head .close-drawer {
+  width: 32px; height: 32px; border-radius: 8px;
+  color: #475569;
+  display: flex; align-items: center; justify-content: center;
+}
+.drawer-head .close-drawer:hover { background: #F1F5F9; color: #0F172A; }
+.drawer-head .title { flex: 1; font-size: 16px; font-weight: 700; color: #0F172A; }
+.drawer-head .title small { display: block; font-size: 11px; color: #94A3B8; font-weight: 400; margin-top: 2px; }
+.drawer-head .icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  color: #475569;
+  display: flex; align-items: center; justify-content: center;
+}
+.drawer-head .icon-btn:hover { background: #F1F5F9; color: #0F172A; }
+
+.drawer-body {
+  flex: 1; overflow-y: auto;
+  background: white;
+}
+
+/* V6 snapshot 模式 */
+.snapshot-card {
+  padding: 20px;
+}
+.snapshot-card .snap-head {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 16px;
+}
+.snapshot-card .snap-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: var(--ai-accent-soft); color: var(--ai-accent);
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+.snapshot-card .snap-icon.expense { background: #D1FAE5; color: #047857; }
+.snapshot-card .snap-icon.task { background: #DBEAFE; color: #1D4ED8; }
+.snapshot-card .snap-icon.daily { background: #FEF3C7; color: #92400E; }
+.snapshot-card .snap-icon.diet { background: #CFFAFE; color: #0E7490; }
+.snapshot-card .snap-title { font-size: 16px; font-weight: 700; color: #0F172A; }
+.snapshot-card .snap-sub { font-size: 12px; color: #94A3B8; }
+
+.snap-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #F1F5F9;
+}
+.snap-section-title {
+  font-size: 12px; font-weight: 600; color: #94A3B8;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.snap-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #475569;
+}
+.snap-row .label { display: flex; align-items: center; gap: 8px; }
+.snap-row .ico {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: #F1F5F9;
+  color: #475569;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.snap-row .val { font-weight: 600; color: #0F172A; }
+.snap-row .val .unit { font-size: 11px; color: #94A3B8; font-weight: 400; margin-left: 2px; }
+.snap-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.snap-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.snap-bar-row .name { width: 80px; color: #475569; }
+.snap-bar-row .track {
+  flex: 1; height: 6px;
+  background: #F1F5F9; border-radius: 999px; overflow: hidden;
+}
+.snap-bar-row .fill { height: 100%; background: var(--ai-accent); border-radius: 999px; }
+.snap-bar-row .val { width: 50px; text-align: right; color: #0F172A; font-weight: 600; }
+
+/* V6 Q&A 模式（chat 内嵌于 drawer） */
+.drawer .chat-card { border: none; border-radius: 0; margin-bottom: 0; height: 100%; }
+
+/* =========================================================
+   17. Toast / Modal
+   ========================================================= */
+.toast {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  background: #0F172A; color: white;
+  padding: 10px 18px; border-radius: 10px;
+  font-size: 13px; z-index: 999;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2);
+  transition: transform 0.3s ease-out;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: #10B981; }
+.toast.warn { background: #F59E0B; }
+.toast.danger { background: #EF4444; }
+
+/* =========================================================
+   18. 五模块配色（保留 cat-*）
+   ========================================================= */
+.cat-expense { color: var(--cat-expense); }
+.cat-task { color: var(--cat-task); }
+.cat-daily { color: var(--cat-daily); }
+.cat-diet { color: var(--cat-diet); }
+.cat-plan { color: var(--cat-plan); }
+.bg-cat-expense { background: var(--cat-expense); color: white; }
+.bg-cat-task { background: var(--cat-task); color: white; }
+.bg-cat-daily { background: var(--cat-daily); color: white; }
+.bg-cat-diet { background: var(--cat-diet); color: white; }
+.bg-cat-plan { background: var(--cat-plan); color: white; }
+
+/* =========================================================
+   19. 响应式
+   ========================================================= */
+@media (max-width: 1024px) {
+  .top-nav-modules { display: none; }
+  .snapshot-grid { grid-template-columns: repeat(2, 1fr); }
+  .metric-cards { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: 200px 1fr; }
+  .main { padding: 20px 20px 60px; }
+}
+@media (max-width: 768px) {
+  .top-nav { padding: 10px 16px; }
+  .top-nav-right .user-name, .top-nav-right .health-pill { display: none; }
+  .layout { grid-template-columns: 1fr; }
+  .side-nav {
+    position: fixed; top: 53px; left: 0; right: 0; bottom: 0;
+    height: auto; width: 100%; z-index: 40;
+    flex-direction: row; flex-wrap: nowrap; gap: 4px;
+    padding: 8px 12px;
+    overflow-x: auto; overflow-y: hidden;
+    border-right: none; border-bottom: 1px solid #E2E8F0;
+    background: white;
+  }
+  .side-section, .side-tip { display: none; }
+  .side-item { flex-shrink: 0; padding: 6px 12px; font-size: 12px; }
+  .side-item .ico { font-size: 14px; }
+  .side-item .count { display: none; }
+  .main { padding: 16px; }
+  .ai-hero { padding: 20px; }
+  .ai-hero-title { font-size: 20px; }
+  .ai-hero-content { flex-direction: column; align-items: flex-start; }
+  .ai-hero-avatar { width: 56px; height: 56px; font-size: 28px; border-radius: 14px; }
+  .snapshot-grid { grid-template-columns: repeat(2, 1fr); }
+  .metric-cards { grid-template-columns: repeat(2, 1fr); }
+  .chat-card { height: 460px; }
+  .popover { right: 12px; width: calc(100vw - 24px); max-width: 360px; }
+  .drawer { height: 90vh; }
+}
+@media (max-width: 480px) {
+  .snapshot-grid { grid-template-columns: 1fr 1fr; }
+  .snapshot-chip-value { font-size: 17px; }
+  .ai-hero-actions { flex-wrap: wrap; }
+  .health-badge { display: none; }
+}
+
+/* =========================================================
+   20. 实用类
+   ========================================================= */
+.text-2 { color: #334155; }
+.text-3 { color: #64748B; }
+.text-4 { color: #94A3B8; }
+.fw-600 { font-weight: 600; }
+.mb-0 { margin-bottom: 0; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.gap-8 { gap: 8px; }
+.row { display: flex; align-items: center; }
+.row.between { justify-content: space-between; }
+.row.gap-12 { gap: 12px; }
+
+/* =========================================================
+   21. 演示导航（开发期可见，方便切换视图）
+   ========================================================= */
+.demo-bar {
+  position: fixed; top: 10px; right: 10px;
+  z-index: 999;
+  background: #0F172A; color: white;
+  padding: 6px 12px; border-radius: 999px;
+  font-size: 12px;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.demo-bar button {
+  color: #94A3B8; padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.demo-bar button:hover { background: rgba(255,255,255,0.1); color: white; }
+.demo-bar button.active { background: var(--ai-accent); color: white; }
+</style>
+</head>
+<body>
+
+<!-- 演示导航条（开发期可见，可切换 V1/V2/V4/V1-A/V1-C 等） -->
+<div class="demo-bar" id="demoBar">
+  <span>🎬 视图切换</span>
+  <button data-view="v1" class="active" onclick="showView('v1')">V1</button>
+  <button data-view="v1a" onclick="showView('v1a')">V1-A</button>
+  <button data-view="v1c" onclick="showView('v1c')">V1-C</button>
+  <button data-view="v1d" onclick="showView('v1d')">V1-D</button>
+  <button data-view="v2" onclick="showView('v2')">V2-queue</button>
+  <button data-view="v2-stream" onclick="showView('v2-stream')">V2-stream</button>
+  <button data-view="v2-fail" onclick="showView('v2-fail')">V2-fail</button>
+  <button data-view="v2-partial" onclick="showView('v2-partial')">V2-partial</button>
+  <button data-view="v4" onclick="showView('v4')">V4</button>
+</div>
+
+<div class="app">
+
+  <!-- ============== 顶栏 ============== -->
+  <header class="top-nav">
+    <div class="top-nav-logo">
+      <div class="mark">L</div>
+      <span>Lifewise</span>
+    </div>
+    <nav class="top-nav-modules" aria-label="主导航">
+      <button class="nav-item"><span class="ico">🏠</span><span>主页</span></button>
+      <button class="nav-item"><span class="ico">📋</span><span>任务</span></button>
+      <button class="nav-item"><span class="ico">📝</span><span>日记</span></button>
+      <button class="nav-item"><span class="ico">💰</span><span>账单</span></button>
+      <button class="nav-item"><span class="ico">🍱</span><span>饮食</span></button>
+      <button class="nav-item"><span class="ico">🎯</span><span>计划</span></button>
+      <button class="nav-item active"><span class="ico">🤖</span><span>AI</span></button>
+    </nav>
+    <div class="top-nav-right">
+      <span class="health-pill" id="openHealth">
+        <span class="health-dot"></span>
+        <span>AI 在线 · 2.3s</span>
+      </span>
+      <div class="user-chip">
+        <div class="user-avatar">于</div>
+        <span class="user-name">于博士</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============== 主体 ============== -->
+  <div class="layout">
+
+    <!-- 侧栏 -->
+    <aside class="side-nav">
+      <div class="side-section">AI 助手</div>
+      <button class="side-item active" data-side="chat"><span class="ico">💬</span><span>智能对话</span><span class="count">12</span></button>
+      <button class="side-item" data-side="report"><span class="ico">📊</span><span>报告中心</span><span class="count">5</span></button>
+      <button class="side-item" data-side="insight"><span class="ico">🔍</span><span>数据洞察</span></button>
+      <button class="side-item" data-side="fav"><span class="ico">⭐</span><span>收藏夹</span><span class="count">3</span></button>
+      <button class="side-item" data-side="history" onclick="showView('v4')"><span class="ico">🕘</span><span>历史会话</span></button>
+
+      <div class="side-section">快捷操作</div>
+      <button class="side-item"><span class="ico">📅</span><span>生成月报</span></button>
+      <button class="side-item"><span class="ico">🍱</span><span>饮食建议</span></button>
+      <button class="side-item"><span class="ico">💸</span><span>预算复盘</span></button>
+      <button class="side-item"><span class="ico">📋</span><span>任务诊断</span></button>
+
+      <div class="side-tip">
+        <div class="tip-title">💡 小贴士</div>
+        AI 解读开关默认开启，可在底部关闭。生成报告时数据会发送到本地 Ollama（deepseek:8b），不会上传云端。
+      </div>
+    </aside>
+
+    <!-- 右侧主内容 -->
+    <main class="main">
+
+      <!-- ================================================================
+           V1 报告生成（默认首屏 V1-B 待生成）
+           ================================================================ -->
+      <div data-view="v1" class="view-root">
+
+        <!-- AI Hero -->
+        <section class="ai-hero">
+          <div class="health-badge" id="healthBadgeHero" title="点击查看健康度详情">
+            <span class="dot"></span>
+            <span>服务正常</span>
+          </div>
+          <div class="ai-hero-content">
+            <div class="ai-hero-avatar">🤖</div>
+            <div class="ai-hero-text">
+              <div class="ai-hero-greeting">晚上好，于博士 · 2026/07/29 周三</div>
+              <h1 class="ai-hero-title">今天有 3 个任务待办，要不要看一份 6 月消费报告？</h1>
+              <p class="ai-hero-subtitle">已根据你过去 7 天的饮食、任务和账单数据生成 4 条洞察，并准备好回答你关于「这个月我超预算了吗」「这周饮食是否均衡」之类的问题。</p>
+              <div class="ai-hero-actions">
+                <button class="hero-btn primary" onclick="startGenerateReport()">
+                  <span>✨</span> 生成 6 月消费报告
+                </button>
+                <button class="hero-btn ai" onclick="openDrawerQA()">
+                  <span>💬</span> 新对话
+                </button>
+                <button class="hero-btn" onclick="showView('v4')">
+                  <span>🕘</span> 历史报告
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 数据快照 -->
+        <section>
+          <div class="section-title">
+            <h3>📦 数据快照</h3>
+            <span class="sub">点击展开详情 · 数据更新于 2 分钟前</span>
+          </div>
+          <div class="snapshot-grid">
+            <div class="snapshot-chip" data-snap="task">
+              <div class="snapshot-chip-head">
+                <div class="snapshot-chip-icon task">📋</div>
+                <span class="badge success">↑ 3</span>
+              </div>
+              <div class="snapshot-chip-label">本月任务</div>
+              <div class="snapshot-chip-value">12 个</div>
+              <div class="snapshot-chip-trend">已完成 8 / 进行中 3</div>
+            </div>
+            <div class="snapshot-chip" data-snap="daily">
+              <div class="snapshot-chip-head">
+                <div class="snapshot-chip-icon daily">📝</div>
+                <span class="badge">+1</span>
+              </div>
+              <div class="snapshot-chip-label">本月日记</div>
+              <div class="snapshot-chip-value">5 篇</div>
+              <div class="snapshot-chip-trend">最近 7 天写了 3 篇</div>
+            </div>
+            <div class="snapshot-chip" data-snap="expense">
+              <div class="snapshot-chip-head">
+                <div class="snapshot-chip-icon expense">💰</div>
+                <span class="badge success">↓ 12%</span>
+              </div>
+              <div class="snapshot-chip-label">本月支出</div>
+              <div class="snapshot-chip-value">¥2,345</div>
+              <div class="snapshot-chip-trend">低于预算 ¥355</div>
+            </div>
+            <div class="snapshot-chip" data-snap="diet">
+              <div class="snapshot-chip-head">
+                <div class="snapshot-chip-icon diet">🍱</div>
+                <span class="badge warning">偏高</span>
+              </div>
+              <div class="snapshot-chip-label">日均热量</div>
+              <div class="snapshot-chip-value">1,850 kcal</div>
+              <div class="snapshot-chip-trend down">↑ 8%（建议 1,700）</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI 关键洞察 -->
+        <section class="card" style="padding: 18px 20px; margin-bottom: 24px;">
+          <div class="section-title" style="margin-bottom: 10px;">
+            <h3>💡 AI 关键洞察</h3>
+            <a href="#" class="link-inline ai" onclick="event.preventDefault();showView('v1d')">查看完整报告 →</a>
+          </div>
+          <div class="insight-chips" id="insightChips">
+            <div class="insight-chip" data-category="anomaly"><strong>38%</strong>本月外卖占比</div>
+            <div class="insight-chip" data-category="anomaly"><strong>2.3x</strong>周末消费是工作日</div>
+            <div class="insight-chip" data-category="summary"><strong>12%</strong>预算结余</div>
+            <div class="insight-chip" data-category="tip"><strong>2 次/周</strong>建议控制外卖</div>
+            <div class="insight-chip" data-category="summary"><strong>78%</strong>3 月任务完成率</div>
+            <div class="insight-chip" data-category="tip"><strong>+200ml</strong>日均饮水量建议提升</div>
+          </div>
+        </section>
+
+        <!-- 上次报告卡片（历史折叠） -->
+        <section class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+          <div class="row between">
+            <div>
+              <div style="font-size: 13px; color: #94A3B8; margin-bottom: 4px;">📁 上次报告</div>
+              <div style="font-size: 14px; font-weight: 600; color: #0F172A;">5 月饮食报告</div>
+              <div style="font-size: 12px; color: #64748B; margin-top: 2px;">生成于 2026/06/01 02:45 · 含 6 条洞察</div>
+            </div>
+            <div class="row gap-8">
+              <button class="btn-ghost" onclick="showView('v1d')">查看</button>
+              <button class="btn-ghost" onclick="startGenerateReport()">重新生成</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 报告生成输入框（固定底部感） -->
+        <section class="report-input-card" id="reportInputCard">
+          <div class="top-row">
+            <span class="module-chip selected" data-mod="expense">💰 消费</span>
+            <span class="module-chip" data-mod="task">📋 任务</span>
+            <span class="module-chip" data-mod="daily">📝 日报</span>
+            <span class="module-chip" data-mod="diet">🍱 饮食</span>
+            <span class="module-chip" data-mod="plan">📅 计划</span>
+            <span style="margin-left: auto; display: flex; gap: 6px; align-items: center;">
+              <span class="module-chip range-chip selected" data-range="month">本月</span>
+              <span class="module-chip range-chip" data-range="last">上月</span>
+              <span class="module-chip range-chip" data-range="week">本周</span>
+              <span class="module-chip range-chip" data-range="30d">近 30 天</span>
+              <span class="module-chip range-chip" data-range="custom">自定义</span>
+            </span>
+          </div>
+          <textarea id="reportPrompt" placeholder="可选：补充你的关注点，例如：「对比 3 月和 6 月」「重点关注外卖占比」…" rows="2"></textarea>
+
+          <div class="llm-toggle-row">
+            <span class="label">
+              <span>🤖</span>
+              <span>AI 解读（基于 Ollama 本地模型）</span>
+            </span>
+            <span class="desc" id="llmStatusDesc">默认开启 · 流式生成</span>
+            <label class="switch">
+              <input type="checkbox" id="llmSwitch" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="generate-row">
+            <span class="meta-left">
+              模块 <strong id="selModule">消费</strong> ·
+              时段 <strong id="selRange">本月（07/01-07/29）</strong>
+            </span>
+            <button class="btn-primary ai" id="generateBtn" onclick="startGenerateReport()">
+              <span>✨</span> 生成报告
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ================================================================
+           V1-A 空态
+           ================================================================ -->
+      <div data-view="v1a" class="view-root hidden">
+        <section class="empty-hero">
+          <div class="ico">🌱</div>
+          <h3>AI 助手还未启动</h3>
+          <p>请先在 Task / Expense / Diet / Daily / Plan 任意模块录入数据。AI 会根据真实数据自动生成洞察和报告，否则解读可能不准确。</p>
+          <div class="path-steps">
+            <span class="path-step">📋 录入任务</span>
+            <span class="path-step">💰 记一笔账</span>
+            <span class="path-step">🍱 拍一张饮食</span>
+            <span class="path-step">📝 写篇日记</span>
+          </div>
+          <div style="margin-top: 24px;">
+            <button class="btn-secondary" onclick="showView('v1')">回到数据快照</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ================================================================
+           V1-C 生成中（输入框替换为进度条）
+           ================================================================ -->
+      <div data-view="v1c" class="view-root hidden">
+        <section class="ai-hero">
+          <div class="health-badge">
+            <span class="dot"></span>
+            <span>服务正常</span>
+          </div>
+          <div class="ai-hero-content">
+            <div class="ai-hero-avatar">🤖</div>
+            <div class="ai-hero-text">
+              <div class="ai-hero-greeting">正在为你生成报告 · 预计 8s</div>
+              <h1 class="ai-hero-title">已收到任务：6 月消费报告</h1>
+              <p class="ai-hero-subtitle">数据快照已抓取，准备进入 JSON 视图聚合阶段。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="padding: 20px; margin-bottom: 24px;">
+          <div class="row between" style="margin-bottom: 12px;">
+            <div style="font-size: 14px; font-weight: 600;">📊 数据快照</div>
+            <span class="status-pill streaming"><span class="dot"></span> queued → json_ready</span>
+          </div>
+          <div class="progress-bar" style="margin-bottom: 18px;">
+            <div class="fill" style="width: 35%;"></div>
+          </div>
+          <div class="snapshot-grid">
+            <div class="snapshot-chip" style="cursor: default;">
+              <div class="snapshot-chip-head"><div class="snapshot-chip-icon expense">💰</div></div>
+              <div class="snapshot-chip-label">本月支出</div>
+              <div class="skeleton line md" style="margin-top: 6px; height: 16px;"></div>
+            </div>
+            <div class="snapshot-chip" style="cursor: default;">
+              <div class="snapshot-chip-head"><div class="snapshot-chip-icon task">📋</div></div>
+              <div class="snapshot-chip-label">本月任务</div>
+              <div class="skeleton line md" style="margin-top: 6px; height: 16px;"></div>
+            </div>
+            <div class="snapshot-chip" style="cursor: default;">
+              <div class="snapshot-chip-head"><div class="snapshot-chip-icon daily">📝</div></div>
+              <div class="snapshot-chip-label">本月日记</div>
+              <div class="skeleton line md" style="margin-top: 6px; height: 16px;"></div>
+            </div>
+            <div class="snapshot-chip" style="cursor: default;">
+              <div class="snapshot-chip-head"><div class="snapshot-chip-icon diet">🍱</div></div>
+              <div class="snapshot-chip-label">日均热量</div>
+              <div class="skeleton line md" style="margin-top: 6px; height: 16px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="padding: 20px; margin-bottom: 24px;">
+          <div class="row between" style="margin-bottom: 12px;">
+            <div style="font-size: 14px; font-weight: 600;">💡 AI 关键洞察</div>
+            <div>
+              <span class="skeleton chip"></span>
+              <span class="skeleton chip"></span>
+            </div>
+          </div>
+          <div>
+            <div class="skeleton line lg"></div>
+            <div class="skeleton line md"></div>
+            <div class="skeleton line sm"></div>
+          </div>
+        </section>
+
+        <section class="card" style="padding: 16px 20px; margin-bottom: 24px;">
+          <div class="row between">
+            <div>
+              <div style="font-size: 13px; color: #94A3B8;">任务 Job ID</div>
+              <div style="font-family: monospace; font-size: 13px; color: #475569; margin-top: 4px;">job_2026_07_28_a1f9e2c</div>
+            </div>
+            <button class="btn-ghost" onclick="cancelJob()">取消任务</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ================================================================
+           V1-D 已生成（同页替换为 V2 complete 内容）
+           ================================================================ -->
+      <div data-view="v1d" class="view-root hidden">
+
+        <div class="report-header">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title">
+              <span>💰 6 月消费报告</span>
+              <span class="status-pill complete"><span class="dot"></span> complete</span>
+            </div>
+            <div class="meta">
+              <span>jobId: job_2026_07_28_a1f9e2c</span>
+              <span class="dot"></span>
+              <span>source: history（点击历史进入）</span>
+              <span class="dot"></span>
+              <span>生成于 2026/07/01 02:30</span>
+            </div>
+          </div>
+        </div>
+
+        <section class="card" style="padding: 14px 18px; margin-bottom: 16px;">
+          <div class="insight-chips" style="gap: 6px;">
+            <div class="insight-chip" data-category="summary"><strong>¥2,345</strong>总支出</div>
+            <div class="insight-chip" data-category="summary"><strong>↓ 12%</strong>预算结余</div>
+            <div class="insight-chip" data-category="anomaly"><strong>38%</strong>外卖占比</div>
+            <div class="insight-chip" data-category="anomaly"><strong>2.3x</strong>周末超标</div>
+            <div class="insight-chip" data-category="tip"><strong>-¥260</strong>控外卖可省</div>
+          </div>
+        </section>
+
+        <section class="metric-cards" style="margin-bottom: 16px;">
+          <div class="metric-card">
+            <div class="metric-card-label">总支出</div>
+            <div class="metric-card-value">¥2,345</div>
+            <div class="metric-card-trend">↓ 12%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card-label">日均</div>
+            <div class="metric-card-value">¥78</div>
+            <div class="metric-card-trend down">↑ 5%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card-label">笔数</div>
+            <div class="metric-card-value">8</div>
+            <div class="metric-card-trend">+2</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card-label">笔均</div>
+            <div class="metric-card-value">¥293</div>
+            <div class="metric-card-trend">↓ 18%</div>
+          </div>
+        </section>
+
+        <section class="report-card">
+          <div class="report-card-head">
+            <div class="ico">🤖</div>
+            <div>
+              <div>6 月消费报告 · AI 解读</div>
+              <div style="font-size: 12px; color: #475569; font-weight: 400; margin-top: 2px;">基于 SQL 聚合 + Ollama 深度解读 · 生成于 2026/07/01 02:30</div>
+            </div>
+            <span class="pill ai" style="margin-left: auto;">已流式完成</span>
+          </div>
+          <div class="report-card-content">
+            <p>你 6 月支出 <strong>¥2,345</strong>，低于预算 <strong>12%</strong>，整体消费健康。</p>
+            <div class="report-section-title">📌 异常点</div>
+            <ul class="report-section-list">
+              <li>周末消费是工作日 <strong>2.3 倍</strong></li>
+              <li>外卖订单集中在周二、周四</li>
+            </ul>
+            <div class="report-section-title">💡 行动建议</div>
+            <ul class="report-section-list">
+              <li>把外卖控制在每周 <strong>2 次</strong>以内，估算可省下 ¥260</li>
+              <li>设立周末预算 <strong>¥200</strong></li>
+            </ul>
+          </div>
+        </section>
+
+        <div class="meta-bar">
+          <span class="label">source=<strong>history</strong></span>
+          <button class="btn" onclick="showToast('📥 报告已下载（演示）', 'success')">📥 下载</button>
+          <button class="btn" onclick="toggleFav()">⭐ 收藏</button>
+          <button class="btn" disabled style="opacity:0.4">🔄 重新生成</button>
+          <span class="spacer"></span>
+          <span class="btn" style="cursor: default; color: #94A3B8;">来自历史记录 · 不支持再生</span>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           V2 queued / json_ready 状态（消费报告）
+           ================================================================ -->
+      <div data-view="v2" class="view-root hidden">
+
+        <div class="report-header">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title">
+              <span>💰 6 月消费报告</span>
+              <span class="status-pill queued"><span class="dot"></span> queued</span>
+            </div>
+            <div class="meta">
+              <span>jobId: job_2026_07_28_a1f9e2c</span>
+              <span class="dot"></span>
+              <span>source: generated</span>
+              <span class="dot"></span>
+              <span>触发：2026/07/29 02:30</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="chat-icon-btn" title="刷新" onclick="showToast('🔄 已重新提交任务')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- queued：等待 JSON 视图聚合 -->
+        <div class="card" style="padding: 24px; margin-bottom: 16px; text-align: center;">
+          <div style="font-size: 36px; margin-bottom: 12px;">⏳</div>
+          <div style="font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 6px;">正在生成 JSON 视图…</div>
+          <div style="font-size: 12px; color: #64748B; margin-bottom: 18px;">已加入 Job Queue，等待 worker 消费。预计 4s 完成。</div>
+          <div class="progress-bar indeterminate" style="max-width: 360px; margin: 0 auto 18px;">
+            <div class="fill"></div>
+          </div>
+          <button class="btn-ghost" onclick="simulateStatus('json_ready')">手动推进 → json_ready</button>
+        </div>
+
+        <div class="meta-bar">
+          <span class="label">source=generated</span>
+          <button class="btn" disabled style="opacity:0.4">📥 下载</button>
+          <button class="btn" disabled style="opacity:0.4">⭐ 收藏</button>
+          <button class="btn" disabled style="opacity:0.4">🔄 重新生成</button>
+          <span class="spacer"></span>
+          <span class="btn" style="cursor: default; color: #94A3B8;">⚠️ AI 解读仅供参考</span>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           V2 streaming 状态
+           ================================================================ -->
+      <div data-view="v2-stream" class="view-root hidden">
+
+        <div class="report-header">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title">
+              <span>💰 6 月消费报告</span>
+              <span class="status-pill streaming"><span class="dot"></span> llm_streaming</span>
+            </div>
+            <div class="meta">
+              <span>jobId: job_2026_07_28_a1f9e2c</span>
+              <span class="dot"></span>
+              <span>source: generated</span>
+              <span class="dot"></span>
+              <span>首 token 280ms · 流式输出中</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 个指标卡已显示 -->
+        <section>
+          <div class="section-title">
+            <h3>📈 6 月关键指标</h3>
+            <span class="sub">vs 5 月</span>
+          </div>
+          <div class="metric-cards">
+            <div class="metric-card">
+              <div class="metric-card-label">总支出</div>
+              <div class="metric-card-value">¥2,345</div>
+              <div class="metric-card-trend">↓ 12%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">日均</div>
+              <div class="metric-card-value">¥78</div>
+              <div class="metric-card-trend down">↑ 5%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">笔数</div>
+              <div class="metric-card-value">8</div>
+              <div class="metric-card-trend">↑ 2</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">笔均</div>
+              <div class="metric-card-value">¥293</div>
+              <div class="metric-card-trend">↓ 18%</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI 解读正在流式输出 -->
+        <section class="report-card">
+          <div class="report-card-head">
+            <div class="ico">🤖</div>
+            <div>
+              <div>6 月消费报告 · AI 解读</div>
+              <div style="font-size: 12px; color: #475569; font-weight: 400; margin-top: 2px;">基于 SQL 聚合 + Ollama 流式输出中</div>
+            </div>
+            <span class="pill ai" style="margin-left: auto;">⚙️ 流式中</span>
+          </div>
+          <div class="report-card-content">
+            <p>你 6 月支出 <strong>¥2,345</strong>，低于预算 <strong>12%</strong>，整体消费健康<span class="streaming-cursor"></span></p>
+          </div>
+        </section>
+
+        <div class="meta-bar">
+          <span class="label">source=generated</span>
+          <button class="btn" disabled style="opacity:0.4">📥 下载</button>
+          <button class="btn" disabled style="opacity:0.4">⭐ 收藏</button>
+          <button class="btn" disabled style="opacity:0.4">🔄 重新生成</button>
+          <span class="spacer"></span>
+          <button class="btn" onclick="simulateStatus('complete')">模拟完成 →</button>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           V2 fail 状态
+           ================================================================ -->
+      <div data-view="v2-fail" class="view-root hidden">
+
+        <div class="report-header">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title">
+              <span>💰 6 月消费报告</span>
+              <span class="status-pill failed"><span class="dot"></span> failed</span>
+            </div>
+            <div class="meta">
+              <span>jobId: job_2026_07_28_a1f9e2c</span>
+              <span class="dot"></span>
+              <span>source: generated</span>
+              <span class="dot"></span>
+              <span style="color: #B91C1C;">错误码 E_500_JOB_TIMEOUT</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="error-banner">
+          <span class="ico">⚠️</span>
+          <div class="text">
+            <strong>报告生成失败：</strong>本地 Ollama 服务连接超时（> 30s），已重试 3 次后中止。你可以选择重试，或切换到「仅生成 JSON 视图」。
+          </div>
+          <button onclick="simulateStatus('partial')">仅生成 JSON</button>
+          <button onclick="simulateStatus('v2')">重新尝试</button>
+        </div>
+
+        <div class="card" style="padding: 60px 24px; text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 64px; margin-bottom: 16px;">📭</div>
+          <div style="font-size: 16px; font-weight: 600; color: #0F172A; margin-bottom: 6px;">报告区为空</div>
+          <div style="font-size: 13px; color: #64748B;">任务未成功生成数据，请重试或联系开发同学查看日志。</div>
+        </div>
+
+        <div class="meta-bar">
+          <span class="label">source=generated</span>
+          <button class="btn" disabled style="opacity:0.4">📥 下载</button>
+          <button class="btn" disabled style="opacity:0.4">⭐ 收藏</button>
+          <button class="btn primary" onclick="simulateStatus('v2')">🔄 重新生成</button>
+          <span class="spacer"></span>
+          <span class="btn" style="cursor: default; color: #94A3B8;">⚠️ AI 解读仅供参考</span>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           V2 partial_failed 状态（JSON 完成 + LLM 失败）
+           ================================================================ -->
+      <div data-view="v2-partial" class="view-root hidden">
+
+        <div class="report-header">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title">
+              <span>💰 6 月消费报告</span>
+              <span class="status-pill partial"><span class="dot"></span> partial_failed</span>
+            </div>
+            <div class="meta">
+              <span>jobId: job_2026_07_28_a1f9e2c</span>
+              <span class="dot"></span>
+              <span>source: generated</span>
+              <span class="dot"></span>
+              <span>JSON 已就绪 · LLM 失败</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="partial-banner">
+          <span class="ico">⚙️</span>
+          <div class="text">
+            <strong>AI 解读暂不可用：</strong>JSON 视图已成功生成，但 Ollama 流式输出超时（> 60s）。数据图表正常，可重试解读。
+          </div>
+          <button onclick="simulateStatus('v2-stream')">重试解读</button>
+        </div>
+
+        <!-- 4 个指标卡 -->
+        <section>
+          <div class="metric-cards">
+            <div class="metric-card">
+              <div class="metric-card-label">总支出</div>
+              <div class="metric-card-value">¥2,345</div>
+              <div class="metric-card-trend">↓ 12%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">日均</div>
+              <div class="metric-card-value">¥78</div>
+              <div class="metric-card-trend down">↑ 5%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">笔数</div>
+              <div class="metric-card-value">8</div>
+              <div class="metric-card-trend">↑ 2</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">笔均</div>
+              <div class="metric-card-value">¥293</div>
+              <div class="metric-card-trend">↓ 18%</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 解读区仅显示降级提示 -->
+        <section class="report-card" style="background: #F1F5F9; border-color: #CBD5E1;">
+          <div class="report-card-head" style="color: #475569;">
+            <div class="ico" style="background: #94A3B8;">💡</div>
+            <div>
+              <div>AI 解读暂不可用</div>
+              <div style="font-size: 12px; color: #64748B; font-weight: 400; margin-top: 2px;">基于 SQL 聚合的 JSON 数据已生成，可继续浏览图表</div>
+            </div>
+            <span class="pill gray" style="margin-left: auto;">降级模式</span>
+          </div>
+          <div style="font-size: 13px; color: #475569; text-align: center; padding: 24px 0;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🤖</div>
+            AI 解读暂时遇到一些问题，请稍后重试或开启 JSON-only 模式浏览纯数据视图。
+          </div>
+        </section>
+
+        <div class="meta-bar">
+          <span class="label">source=generated</span>
+          <button class="btn">📥 下载</button>
+          <button class="btn">⭐ 收藏</button>
+          <button class="btn primary" onclick="simulateStatus('v2-stream')">🔄 重试解读</button>
+          <span class="spacer"></span>
+          <span class="btn" style="cursor: default; color: #94A3B8;">⚠️ AI 解读仅供参考</span>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           V2 complete 状态（最完整：含 8 个图表组件 + AI 完整解读 + MetaBar）
+           ================================================================ -->
+      <div data-view="v2-complete" class="view-root hidden">
+
+        <div class="report-header">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title">
+              <span>💰 6 月消费报告</span>
+              <span class="status-pill complete"><span class="dot"></span> complete</span>
+            </div>
+            <div class="meta">
+              <span>jobId: job_2026_07_28_a1f9e2c</span>
+              <span class="dot"></span>
+              <span>source: generated</span>
+              <span class="dot"></span>
+              <span>生成于 2026/07/01 02:30 · 历时 8.4s</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="chat-icon-btn" title="下载" onclick="showToast('📥 报告已下载（演示）', 'success')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="chat-icon-btn" title="收藏" id="favBtn" onclick="toggleFav()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </button>
+            <button class="chat-icon-btn" title="分享">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </button>
+            <button class="chat-icon-btn" title="重新生成" onclick="startGenerateReport()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- AI 关键洞察 chips 顶部 10% -->
+        <section class="card" style="padding: 14px 18px; margin-bottom: 16px;">
+          <div class="insight-chips" style="gap: 6px;">
+            <div class="insight-chip" data-category="summary"><strong>¥2,345</strong>总支出</div>
+            <div class="insight-chip" data-category="summary"><strong>↓ 12%</strong>预算结余</div>
+            <div class="insight-chip" data-category="anomaly"><strong>38%</strong>外卖占比</div>
+            <div class="insight-chip" data-category="anomaly"><strong>2.3x</strong>周末超标</div>
+            <div class="insight-chip" data-category="tip"><strong>-¥260</strong>控外卖可省</div>
+            <div class="insight-chip" data-category="tip"><strong>+¥200</strong>周末预算</div>
+          </div>
+        </section>
+
+        <!-- 4 个指标卡 10% -->
+        <section style="margin-bottom: 16px;">
+          <div class="metric-cards">
+            <div class="metric-card">
+              <div class="metric-card-label">总支出</div>
+              <div class="metric-card-value">¥2,345<span class="metric-card-unit">/ 月</span></div>
+              <div class="metric-card-trend">↓ 12% vs 5 月</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">日均</div>
+              <div class="metric-card-value">¥78</div>
+              <div class="metric-card-trend down">↑ 5%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">笔数</div>
+              <div class="metric-card-value">8</div>
+              <div class="metric-card-trend">+2 vs 5 月</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-label">笔均</div>
+              <div class="metric-card-value">¥293</div>
+              <div class="metric-card-trend">↓ 18%</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 图表区 50%（8 图表组件全部手写 SVG） -->
+        <section>
+          <!-- 图1：LineChart 趋势图 + 图2：BarChart 月度对比 -->
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>📈 6 个月趋势</span>
+                <span class="sub">LineChart · 含面积</span>
+              </div>
+              <svg viewBox="0 0 480 200" preserveAspectRatio="none" style="height: 180px;">
+                <defs>
+                  <linearGradient id="gradExpense1" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#2D5F3F" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="#2D5F3F" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="50" x2="480" y2="50" stroke="#E2E8F0" stroke-dasharray="2,4"/>
+                <line x1="0" y1="100" x2="480" y2="100" stroke="#E2E8F0" stroke-dasharray="2,4"/>
+                <line x1="0" y1="150" x2="480" y2="150" stroke="#E2E8F0" stroke-dasharray="2,4"/>
+                <path d="M 60,150 L 130,120 L 200,140 L 270,80 L 340,100 L 410,60 L 410,200 L 60,200 Z" fill="url(#gradExpense1)"/>
+                <polyline points="60,150 130,120 200,140 270,80 340,100 410,60" stroke="#2D5F3F" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+                <circle cx="60" cy="150" r="4" fill="#2D5F3F"/>
+                <circle cx="130" cy="120" r="4" fill="#2D5F3F"/>
+                <circle cx="200" cy="140" r="4" fill="#2D5F3F"/>
+                <circle cx="270" cy="80" r="4" fill="#3B5BFE" r="6"/>
+                <circle cx="340" cy="100" r="4" fill="#2D5F3F"/>
+                <circle cx="410" cy="60" r="4" fill="#2D5F3F"/>
+                <text x="60" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">1月</text>
+                <text x="130" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">2月</text>
+                <text x="200" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">3月</text>
+                <text x="270" y="190" font-size="10" fill="#3B5BFE" text-anchor="middle" font-weight="600">4月</text>
+                <text x="340" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">5月</text>
+                <text x="410" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">6月</text>
+                <text x="60" y="142" font-size="9" fill="#475569" text-anchor="middle">¥1.8k</text>
+                <text x="130" y="112" font-size="9" fill="#475569" text-anchor="middle">¥2.1k</text>
+                <text x="200" y="132" font-size="9" fill="#475569" text-anchor="middle">¥1.9k</text>
+                <text x="270" y="72" font-size="9" fill="#3B5BFE" text-anchor="middle" font-weight="600">¥2.6k</text>
+                <text x="340" y="92" font-size="9" fill="#475569" text-anchor="middle">¥2.4k</text>
+                <text x="410" y="52" font-size="9" fill="#475569" text-anchor="middle">¥2.9k</text>
+              </svg>
+              <div class="chart-card-legend">
+                <div class="lg-item"><span class="swatch" style="background:#2D5F3F;"></span>月度支出</div>
+                <div class="lg-item"><span class="swatch" style="background:#3B5BFE;"></span>峰值</div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>📊 月度对比</span>
+                <span class="sub">BarChart · 主+对比</span>
+              </div>
+              <svg viewBox="0 0 320 180" style="height: 170px;">
+                <g font-size="10" fill="#94A3B8" text-anchor="middle">
+                  <rect x="30" y="100" width="22" height="60" fill="#94A3B8" rx="3"/>
+                  <text x="41" y="175">1月</text>
+                  <rect x="80" y="80" width="22" height="80" fill="#94A3B8" rx="3"/>
+                  <text x="91" y="175">2月</text>
+                  <rect x="130" y="90" width="22" height="70" fill="#94A3B8" rx="3"/>
+                  <text x="141" y="175">3月</text>
+                  <rect x="180" y="60" width="22" height="100" fill="#94A3B8" rx="3"/>
+                  <text x="191" y="175">4月</text>
+                  <rect x="230" y="50" width="22" height="110" fill="#F59E0B" rx="3"/>
+                  <text x="241" y="175">5月</text>
+                  <rect x="280" y="40" width="22" height="120" fill="#2D5F3F" rx="3"/>
+                  <text x="291" y="175">6月</text>
+                </g>
+                <text x="41" y="94" font-size="9" fill="#64748B" text-anchor="middle">1.8</text>
+                <text x="91" y="74" font-size="9" fill="#64748B" text-anchor="middle">2.1</text>
+                <text x="141" y="84" font-size="9" fill="#64748B" text-anchor="middle">1.9</text>
+                <text x="191" y="54" font-size="9" fill="#64748B" text-anchor="middle">2.6</text>
+                <text x="241" y="44" font-size="9" fill="#92400E" text-anchor="middle" font-weight="600">2.8</text>
+                <text x="291" y="34" font-size="9" fill="#2D5F3F" text-anchor="middle" font-weight="600">3.0</text>
+              </svg>
+              <div class="chart-card-legend">
+                <div class="lg-item"><span class="swatch" style="background:#94A3B8;"></span>5 月前</div>
+                <div class="lg-item"><span class="swatch" style="background:#F59E0B;"></span>5 月峰值</div>
+                <div class="lg-item"><span class="swatch" style="background:#2D5F3F;"></span>6 月最高</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图3：DonutChart 类别占比 + 图4：TopList Top5 -->
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>🥧 类别占比</span>
+                <span class="sub">DonutChart</span>
+              </div>
+              <svg viewBox="0 0 320 180" style="height: 170px;">
+                <circle cx="90" cy="90" r="56" fill="transparent" stroke="#F59E0B" stroke-width="22" stroke-dasharray="134 352" transform="rotate(-90 90 90)"/>
+                <circle cx="90" cy="90" r="56" fill="transparent" stroke="#3B82F6" stroke-width="22" stroke-dasharray="88 352" stroke-dashoffset="-134" transform="rotate(-90 90 90)"/>
+                <circle cx="90" cy="90" r="56" fill="transparent" stroke="#EC4899" stroke-width="22" stroke-dasharray="70 352" stroke-dashoffset="-222" transform="rotate(-90 90 90)"/>
+                <circle cx="90" cy="90" r="56" fill="transparent" stroke="#8B5CF6" stroke-width="22" stroke-dasharray="60 352" stroke-dashoffset="-292" transform="rotate(-90 90 90)"/>
+                <text x="90" y="86" font-size="16" font-weight="700" fill="#0F172A" text-anchor="middle">¥2,345</text>
+                <text x="90" y="102" font-size="9" fill="#94A3B8" text-anchor="middle">总支出</text>
+                <g transform="translate(180, 30)" font-size="11" fill="#475569">
+                  <rect x="0" y="0" width="10" height="10" fill="#F59E0B" rx="2"/>
+                  <text x="16" y="9">餐饮 38%</text>
+                  <rect x="0" y="22" width="10" height="10" fill="#3B82F6" rx="2"/>
+                  <text x="16" y="31">交通 25%</text>
+                  <rect x="0" y="44" width="10" height="10" fill="#EC4899" rx="2"/>
+                  <text x="16" y="53">购物 20%</text>
+                  <rect x="0" y="66" width="10" height="10" fill="#8B5CF6" rx="2"/>
+                  <text x="16" y="75">娱乐 17%</text>
+                </g>
+              </svg>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>🏆 Top 5 单笔</span>
+                <span class="sub">TopList · 含数字条</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; padding: 4px 0;">
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:#F59E0B;color:white;font-weight:700;font-size:11px;">1</span>
+                  <span style="flex:1;">海底捞（周六晚）</span>
+                  <span style="font-weight:700;">¥328</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:#94A3B8;color:white;font-weight:700;font-size:11px;">2</span>
+                  <span style="flex:1;">超市采购</span>
+                  <span style="font-weight:700;">¥286</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:#CD7F32;color:white;font-weight:700;font-size:11px;">3</span>
+                  <span style="flex:1;">高铁票</span>
+                  <span style="font-weight:700;">¥245</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:#F1F5F9;color:#475569;font-weight:700;font-size:11px;">4</span>
+                  <span style="flex:1;color:#475569;">外卖（周二）</span>
+                  <span style="font-weight:700;color:#475569;">¥86</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;background:#F1F5F9;color:#475569;font-weight:700;font-size:11px;">5</span>
+                  <span style="flex:1;color:#475569;">打车</span>
+                  <span style="font-weight:700;color:#475569;">¥58</span>
+                </div>
+                <!-- 数字条 -->
+                <div style="margin-top: 6px;">
+                  <div style="display:flex;gap:2px;align-items:flex-end;height:32px;">
+                    <div style="flex:1;background:#2D5F3F;height:100%;border-radius:3px 3px 0 0;"></div>
+                    <div style="flex:1;background:#2D5F3F;height:87%;border-radius:3px 3px 0 0;"></div>
+                    <div style="flex:1;background:#2D5F3F;height:75%;border-radius:3px 3px 0 0;"></div>
+                    <div style="flex:1;background:#2D5F3F;height:26%;border-radius:3px 3px 0 0;"></div>
+                    <div style="flex:1;background:#2D5F3F;height:18%;border-radius:3px 3px 0 0;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图5：HeatCalendar 周视图 + 图6：StackChart 工作日 vs 周末 -->
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>📅 6 月日历热力</span>
+                <span class="sub">HeatCalendar · 7×5</span>
+              </div>
+              <svg viewBox="0 0 320 130" style="height: 120px;">
+                <g font-size="9" fill="#94A3B8" text-anchor="middle">
+                  <!-- 7 列 x 5 周 -->
+                  <g transform="translate(20, 0)">
+                    <rect x="0" y="6" width="14" height="14" fill="#ECFCCB" rx="2"/>
+                    <rect x="20" y="6" width="14" height="14" fill="#D9F99D" rx="2"/>
+                    <rect x="40" y="6" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="60" y="6" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="80" y="6" width="14" height="14" fill="#D9F99D" rx="2"/>
+                    <rect x="100" y="6" width="14" height="14" fill="#ECFCCB" rx="2"/>
+                    <rect x="120" y="6" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <text x="7" y="-1">周一</text><text x="27" y="-1">周二</text><text x="47" y="-1">周三</text><text x="67" y="-1">周四</text><text x="87" y="-1">周五</text><text x="107" y="-1">周六</text><text x="127" y="-1">周日</text>
+
+                    <rect x="0" y="26" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="20" y="26" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="40" y="26" width="14" height="14" fill="#D9F99D" rx="2"/>
+                    <rect x="60" y="26" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="80" y="26" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="100" y="26" width="14" height="14" fill="#4D7C0F" rx="2"/>
+                    <rect x="120" y="26" width="14" height="14" fill="#A3E635" rx="2"/>
+
+                    <rect x="0" y="46" width="14" height="14" fill="#ECFCCB" rx="2"/>
+                    <rect x="20" y="46" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="40" y="46" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="60" y="46" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="80" y="46" width="14" height="14" fill="#D9F99D" rx="2"/>
+                    <rect x="100" y="46" width="14" height="14" fill="#4D7C0F" rx="2"/>
+                    <rect x="120" y="46" width="14" height="14" fill="#65A30D" rx="2"/>
+
+                    <rect x="0" y="66" width="14" height="14" fill="#D9F99D" rx="2"/>
+                    <rect x="20" y="66" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="40" y="66" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="60" y="66" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="80" y="66" width="14" height="14" fill="#ECFCCB" rx="2"/>
+                    <rect x="100" y="66" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="120" y="66" width="14" height="14" fill="#D9F99D" rx="2"/>
+
+                    <rect x="0" y="86" width="14" height="14" fill="#ECFCCB" rx="2"/>
+                    <rect x="20" y="86" width="14" height="14" fill="#D9F99D" rx="2"/>
+                    <rect x="40" y="86" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="60" y="86" width="14" height="14" fill="#65A30D" rx="2"/>
+                    <rect x="80" y="86" width="14" height="14" fill="#A3E635" rx="2"/>
+                    <rect x="100" y="86" width="14" height="14" fill="#4D7C0F" rx="2"/>
+                    <rect x="120" y="86" width="14" height="14" fill="#D9F99D" rx="2"/>
+                  </g>
+                </g>
+                <g transform="translate(220, 12)" font-size="10" fill="#475569">
+                  <text>少</text>
+                  <rect x="14" y="-9" width="10" height="10" fill="#ECFCCB" rx="1"/>
+                  <rect x="28" y="-9" width="10" height="10" fill="#D9F99D" rx="1"/>
+                  <rect x="42" y="-9" width="10" height="10" fill="#A3E635" rx="1"/>
+                  <rect x="56" y="-9" width="10" height="10" fill="#65A30D" rx="1"/>
+                  <rect x="70" y="-9" width="10" height="10" fill="#4D7C0F" rx="1"/>
+                  <text x="86" y="0">多</text>
+                </g>
+              </svg>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>📊 工作日 vs 周末</span>
+                <span class="sub">StackChart · 堆叠</span>
+              </div>
+              <svg viewBox="0 0 320 170" style="height: 160px;">
+                <line x1="40" y1="20" x2="40" y2="140" stroke="#E2E8F0"/>
+                <line x1="40" y1="140" x2="300" y2="140" stroke="#E2E8F0"/>
+                <!-- 工作日柱（餐饮 + 交通 + 购物） -->
+                <g>
+                  <rect x="80" y="110" width="50" height="30" fill="#F59E0B" rx="3"/>
+                  <rect x="80" y="80" width="50" height="30" fill="#3B82F6" rx="3"/>
+                  <rect x="80" y="60" width="50" height="20" fill="#EC4899" rx="3"/>
+                  <text x="105" y="156" font-size="11" fill="#64748B" text-anchor="middle">工作日</text>
+                  <text x="105" y="50" font-size="11" fill="#0F172A" text-anchor="middle" font-weight="600">¥68/天</text>
+                </g>
+                <!-- 周末柱 -->
+                <g>
+                  <rect x="180" y="60" width="50" height="80" fill="#F59E0B" rx="3"/>
+                  <rect x="180" y="40" width="50" height="20" fill="#3B82F6" rx="3"/>
+                  <rect x="180" y="20" width="50" height="20" fill="#EC4899" rx="3"/>
+                  <text x="205" y="156" font-size="11" fill="#64748B" text-anchor="middle">周末</text>
+                  <text x="205" y="14" font-size="11" fill="#2D5F3F" text-anchor="middle" font-weight="600">¥158/天</text>
+                </g>
+                <!-- 比率标签 -->
+                <text x="280" y="80" font-size="11" fill="#EF4444" font-weight="700">2.3x</text>
+              </svg>
+              <div class="chart-card-legend">
+                <div class="lg-item"><span class="swatch" style="background:#F59E0B;"></span>餐饮</div>
+                <div class="lg-item"><span class="swatch" style="background:#3B82F6;"></span>交通</div>
+                <div class="lg-item"><span class="swatch" style="background:#EC4899;"></span>购物</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图7：TagCloud 商家词云 + 图8：MarkdownRender 完整 Markdown -->
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>☁️ 商家 / 标签</span>
+                <span class="sub">TagCloud · 标签云</span>
+              </div>
+              <div style="padding: 8px 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; line-height: 1.4;">
+                <span class="pill" style="background:#FEF3C7;color:#92400E;font-size:16px;font-weight:700;">海底捞</span>
+                <span class="pill" style="background:#DBEAFE;color:#1D4ED8;font-size:14px;font-weight:600;">美团外卖</span>
+                <span class="pill" style="background:#FCE7F3;color:#9F1239;font-size:13px;">盒马</span>
+                <span class="pill" style="background:#D1FAE5;color:#047857;font-size:15px;font-weight:600;">便利店</span>
+                <span class="pill" style="background:#EDE9FE;color:#6D28D9;font-size:11px;">奶茶</span>
+                <span class="pill" style="background:#FEE2E2;color:#B91C1C;font-size:13px;">高铁</span>
+                <span class="pill" style="background:#CFFAFE;color:#0E7490;font-size:11px;">打车</span>
+                <span class="pill" style="background:#ECFCCB;color:#4D7C0F;font-size:12px;">超市</span>
+                <span class="pill" style="background:#FEF3C7;color:#92400E;font-size:14px;font-weight:600;">麦当劳</span>
+                <span class="pill" style="background:#DBEAFE;color:#1D4ED8;font-size:10px;">星巴克</span>
+                <span class="pill" style="background:#FCE7F3;color:#9F1239;font-size:9px;">零食</span>
+                <span class="pill" style="background:#D1FAE5;color:#047857;font-size:9px;">水果</span>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-card-title">
+                <span>📝 商家表格</span>
+                <span class="sub">Top10 明细 · SQL 原表</span>
+              </div>
+              <div style="overflow-x: auto;">
+                <table class="sql-table" style="width:100%;">
+                  <thead>
+                    <tr>
+                      <th>商家</th>
+                      <th>类别</th>
+                      <th style="text-align:right;">笔数</th>
+                      <th style="text-align:right;">总金额</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>海底捞</td><td>餐饮</td><td style="text-align:right;">2</td><td style="text-align:right;">¥568</td></tr>
+                    <tr><td>盒马鲜生</td><td>超市</td><td style="text-align:right;">4</td><td style="text-align:right;">¥412</td></tr>
+                    <tr><td>美团外卖</td><td>外卖</td><td style="text-align:right;">8</td><td style="text-align:right;">¥286</td></tr>
+                    <tr><td>便利店</td><td>日用</td><td style="text-align:right;">12</td><td style="text-align:right;">¥238</td></tr>
+                    <tr><td>麦当劳</td><td>外卖</td><td style="text-align:right;">3</td><td style="text-align:right;">¥186</td></tr>
+                    <tr><td>高铁购票</td><td>交通</td><td style="text-align:right;">2</td><td style="text-align:right;">¥245</td></tr>
+                    <tr><td>滴滴出行</td><td>交通</td><td style="text-align:right;">11</td><td style="text-align:right;">¥198</td></tr>
+                    <tr><td>星巴克</td><td>饮品</td><td style="text-align:right;">6</td><td style="text-align:right;">¥142</td></tr>
+                    <tr><td>奈雪</td><td>饮品</td><td style="text-align:right;">4</td><td style="text-align:right;">¥98</td></tr>
+                    <tr><td>书店</td><td>购物</td><td style="text-align:right;">1</td><td style="text-align:right;">¥86</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图8：MarkdownRender 长文（独立跨列） -->
+          <div class="chart-card full">
+            <div class="chart-card-title">
+              <span>📜 报告原文档</span>
+              <span class="sub">MarkdownRender · 含锚点/列表/代码块</span>
+            </div>
+            <div style="font-size: 13px; line-height: 1.7; color: #334155;">
+              <h3 style="font-size: 15px; font-weight: 600; color: #0F172A; margin: 0 0 8px;">六月消费复盘</h3>
+              <p style="margin: 0 0 12px;">本月支出 <strong style="color:#2D5F3F;">¥2,345</strong>，环比下降 <strong>12%</strong>。消费结构趋于健康。</p>
+              <h4 style="font-size: 13px; font-weight: 600; color: var(--ai-accent-deep); margin: 12px 0 6px;">📌 异常点</h4>
+              <ul style="margin: 0 0 12px; padding-left: 20px;">
+                <li>周末消费 <strong>2.3 倍</strong>于工作日</li>
+                <li>外卖占比 <strong>38%</strong>，高于健康阈值 25%</li>
+                <li>周三餐饮类订单密度异常</li>
+              </ul>
+              <h4 style="font-size: 13px; font-weight: 600; color: var(--ai-accent-deep); margin: 12px 0 6px;">💡 建议</h4>
+              <ol style="margin: 0 0 12px; padding-left: 20px;">
+                <li>控制外卖到 <strong>2 次/周</strong>，预计节省 <strong>¥260</strong></li>
+                <li>设立周末预算 <strong>¥200</strong></li>
+              </ol>
+              <pre style="background:#0F172A;color:#94A3B8;padding:12px 14px;border-radius:8px;font-family:monospace;font-size:11px;overflow-x:auto;margin: 12px 0;">SELECT category, SUM(amount) AS total
+FROM expenses
+WHERE date BETWEEN '2026-06-01' AND '2026-06-30'
+GROUP BY category
+ORDER BY total DESC;</pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI 完整解读 30% -->
+        <section class="report-card">
+          <div class="report-card-head">
+            <div class="ico">🤖</div>
+            <div>
+              <div>6 月消费报告 · AI 解读</div>
+              <div style="font-size: 12px; color: #475569; font-weight: 400; margin-top: 2px;">基于 SQL 聚合 + Ollama 深度解读 · 生成于 2026/07/01 02:30</div>
+            </div>
+            <span class="pill ai" style="margin-left: auto;">已流式完成</span>
+          </div>
+          <div class="report-card-content">
+            <p>你 6 月支出 <strong>¥2,345</strong>，低于预算 <strong>12%</strong>，整体消费健康。<strong>主要变化</strong>：外卖消费上升 35%，日用品下降 18%。</p>
+            <div class="report-section-title">📌 异常点</div>
+            <ul class="report-section-list">
+              <li>周末消费是工作日 <strong>2.3 倍</strong>，主要集中在周六晚餐饮和周日下午购物</li>
+              <li>外卖订单集中在周二、周四，疑似工作日午餐外食</li>
+              <li>餐饮种类单调：火锅类占比 38%，建议补充蔬菜与谷物</li>
+            </ul>
+            <div class="report-section-title">💡 行动建议</div>
+            <ul class="report-section-list">
+              <li>把外卖控制在每周 <strong>2 次</strong>以内，估算可省下 ¥260</li>
+              <li>设立周末预算 <strong>¥200</strong>，日均 ¥29，与工作日持平</li>
+              <li>试着用日记模块记录周末活动，2 周后复盘是否改善</li>
+            </ul>
+          </div>
+          <div class="report-card-footer">
+            <button onclick="voteReport('up', this)">👍 12</button>
+            <button onclick="voteReport('down', this)">👎 1</button>
+            <button onclick="showToast('📊 已展开数据来源（演示）')">📊 数据来源</button>
+            <button class="regen" onclick="startGenerateReport()">🔄 重新生成</button>
+            <span class="meta">⚠️ AI 解读仅供参考</span>
+          </div>
+        </section>
+
+        <!-- MetaBar 5%（按 source 切换） -->
+        <div class="meta-bar" id="metaBarComplete">
+          <span class="label">source=<strong>generated</strong></span>
+          <button class="btn" onclick="showToast('📥 报告已导出 PDF', 'success')">📥 下载</button>
+          <button class="btn" onclick="toggleFav()" id="metaBarFav">⭐ 收藏</button>
+          <button class="btn" onclick="showToast('已复制报告链接')">🔗 分享</button>
+          <button class="btn primary" onclick="startGenerateReport()">🔄 重新生成</button>
+          <span class="spacer"></span>
+          <span class="btn" style="cursor: default; color: #94A3B8;">⚠️ AI 解读仅供参考</span>
+        </div>
+      </div>
+
+
+      <!-- ================================================================
+           V4 历史全屏页（/ai/history）
+           ================================================================ -->
+      <div data-view="v4" class="view-root hidden">
+        <div class="history-page">
+          <div class="history-page-head">
+            <button class="back" onclick="showView('v1')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="title">🕘 报告历史</div>
+            <span class="meta">共 12 条</span>
+            <button class="chat-icon-btn" onclick="showToast('批量操作（演示）')" title="批量">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </button>
+          </div>
+
+          <div class="history-filter">
+            <div class="input-wrap" style="flex:1;">
+              <span class="leading">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <input class="input" id="historySearch" placeholder="搜索报告标题 / 时间段…" oninput="filterHistory()" />
+            </div>
+            <span class="filter-chip selected" data-filter="all" onclick="selectFilter(this, 'all')">📦 全部</span>
+            <span class="filter-chip" data-filter="expense" onclick="selectFilter(this, 'expense')">💰 消费</span>
+            <span class="filter-chip" data-filter="task" onclick="selectFilter(this, 'task')">📋 任务</span>
+            <span class="filter-chip" data-filter="daily" onclick="selectFilter(this, 'daily')">📝 日报</span>
+            <span class="filter-chip" data-filter="diet" onclick="selectFilter(this, 'diet')">🍱 饮食</span>
+            <span class="filter-chip" data-filter="plan" onclick="selectFilter(this, 'plan')">🎯 计划</span>
+            <span class="filter-chip" data-filter="fav" onclick="selectFilter(this, 'fav')">⭐ 仅收藏</span>
+          </div>
+
+          <div class="history-toolbar">
+            <span>共 <strong id="historyCount">12</strong> 份报告 · 最近 <strong>2026/07/29</strong></span>
+            <select class="sort-select">
+              <option>按时间倒序</option>
+              <option>按时间正序</option>
+              <option>按模块</option>
+            </select>
+            <select class="sort-select">
+              <option>近 90 天</option>
+              <option>近 30 天</option>
+              <option>近 7 天</option>
+              <option>全部时间</option>
+            </select>
+            <span class="right">
+              <button class="btn-ghost" onclick="showToast('已导出 CSV（演示）')">📤 导出</button>
+            </span>
+          </div>
+
+          <div class="history-list" id="historyList">
+            <!-- JS 注入 -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ================================================================
+     V5 健康度 Popover（角标下方浮层）
+     ================================================================ -->
+<div class="popover" id="healthPopover" role="dialog" aria-label="AI 服务健康度详情">
+  <div class="popover-title">
+    <span>📡</span> AI 服务健康度
+    <span class="close" onclick="document.getElementById('healthPopover').classList.remove('open')">✕</span>
+  </div>
+  <div class="popover-status" id="popoverStatusRow">
+    <span class="popover-dot"></span> <span id="popoverStatusText">状态：正常</span>
+  </div>
+  <div class="popover-row"><span>队列堆积</span><strong id="popoverQueue">0</strong></div>
+  <div class="popover-row"><span>P95 延迟</span><strong id="popoverP95">2.3s</strong></div>
+  <div class="popover-row"><span>失败率（5min）</span><strong id="popoverFail">0.5%</strong></div>
+  <div class="popover-row"><span>Ollama 进程</span><strong id="popoverProc">运行中</strong></div>
+
+  <div class="popover-section-title">📈 5 分钟趋势</div>
+  <div class="popover-trend">
+    <div class="popover-trend-label">
+      <span>延迟 (P50)</span>
+      <span>↑ 0.4s</span>
+    </div>
+    <svg viewBox="0 0 280 40" style="width: 100%; height: 40px;">
+      <polyline id="popoverTrendLine" points="0,30 30,28 60,25 90,22 120,20 150,18 180,20 210,15 240,12 270,10" fill="none" stroke="#10B981" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <div class="popover-section-title">🔍 探活历史</div>
+  <div class="popover-probe-list" id="popoverProbeList">
+    <!-- JS 注入 10 条 -->
+  </div>
+
+  <div class="popover-actions">
+    <button class="popover-link" onclick="showToast('已复制 Prometheus 端点')">复制端点</button>
+    <button class="popover-link primary" onclick="showToast('🔧 详细监控面板（v1.1+）')">详细监控 →</button>
+  </div>
+</div>
+
+<!-- ================================================================
+     V6 抽屉（snapshot / qa 双模式）
+     ================================================================ -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+
+<div class="drawer" id="drawer" role="dialog" aria-label="AI 浮层抽屉">
+  <div class="drawer-handle" id="drawerHandle"></div>
+  <div class="drawer-head">
+    <div class="title">
+      <span id="drawerTitleText">💬 新对话</span>
+      <small id="drawerTitleSub">Lifewise AI · 基于 5 模块数据</small>
+    </div>
+    <button class="icon-btn" title="信息" onclick="showToast('V6 抽屉 · snapshot / qa 双模式（演示）')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><circle cx="12" cy="8" r="1" fill="currentColor"/></svg>
+    </button>
+    <button class="icon-btn" title="置顶" onclick="showToast('已置顶（演示）')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
+    </button>
+    <button class="close-drawer" onclick="closeDrawer()" title="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <!-- 动态注入 snapshot / qa 内容 -->
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   工具：Toast / View 切换 / 速率计数 / 模块-时段选择
+   ========================================================= */
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.className = 'toast show ' + (type || '');
+  t.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function showView(name) {
+  document.querySelectorAll('.view-root').forEach(v => v.classList.add('hidden'));
+  const el = document.querySelector('[data-view="' + name + '"]');
+  if (el) el.classList.remove('hidden');
+  // 演示导航条高亮
+  document.querySelectorAll('[data-view]').forEach(b => {
+    if (b.tagName === 'BUTTON') b.classList.remove('active');
+  });
+  document.querySelectorAll('.demo-bar button').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('.demo-bar button[data-view="' + name + '"]');
+  if (btn) btn.classList.add('active');
+  // 自动关闭 popover
+  document.getElementById('healthPopover').classList.remove('open');
+  // 回到 V1 主屏时同步 health pill
+  if (name === 'v1') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+/* =========================================================
+   顶栏导航：跨模块提示（演示）
+   ========================================================= */
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    if (!item.textContent.includes('AI')) {
+      showToast('该模块原型见独立 HTML（' + item.textContent.trim() + '）');
+    }
+  });
+});
+
+/* =========================================================
+   侧栏：切换 + 部分跳历史
+   ========================================================= */
+document.querySelectorAll('.side-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const tag = item.getAttribute('data-side');
+    document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    if (tag === 'history') return; // 已在 onclick 跳转
+    if (tag === 'fav') {
+      showToast('收藏夹：3 条收藏的 AI 报告');
+    } else if (tag === 'insight') {
+      showToast('🔍 数据洞察列表');
+    } else if (tag === 'report') {
+      showView('v1');
+    } else if (tag === 'chat') {
+      openDrawerQA();
+    } else {
+      showToast(item.textContent.trim());
+    }
+  });
+});
+
+/* =========================================================
+   模块 / 时段 chip 选择（V1 输入框）
+   ========================================================= */
+document.querySelectorAll('.module-chip[data-mod]').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.module-chip[data-mod]').forEach(n => n.classList.remove('selected'));
+    c.classList.add('selected');
+    document.getElementById('selModule').textContent = c.textContent.trim();
+  });
+});
+document.querySelectorAll('.module-chip[data-range]').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.module-chip[data-range]').forEach(n => n.classList.remove('selected'));
+    c.classList.add('selected');
+    const map = { month: '本月（07/01-07/29）', last: '上月（06/01-06/30）', week: '本周（07/22-07/28）', '30d': '近 30 天', custom: '自定义' };
+    document.getElementById('selRange').textContent = map[c.getAttribute('data-range')] || '';
+  });
+});
+
+/* =========================================================
+   AI 解读开关（llm_switch）
+   ========================================================= */
+const llmSwitch = document.getElementById('llmSwitch');
+const llmStatusDesc = document.getElementById('llmStatusDesc');
+if (llmSwitch) {
+  llmSwitch.addEventListener('change', () => {
+    if (llmSwitch.checked) {
+      llmStatusDesc.textContent = '默认开启 · 流式生成';
+      showToast('AI 解读已开启');
+    } else {
+      llmStatusDesc.textContent = '已关闭 · 仅生成 JSON 视图';
+      showToast('AI 解读已关闭（JSON-only 模式）', 'warn');
+    }
+  });
+}
+
+/* =========================================================
+   数据快照 chip → 打开 V6 snapshot 模式
+   ========================================================= */
+const SNAP_DATA = {
+  task: {
+    iconClass: 'task', icon: '📋', title: '本月任务快照',
+    sub: '数据更新于 2 分钟前 · 数据库聚合',
+    rows: [
+      { ico: '✅', label: '已完成', val: '8', unit: '个' },
+      { ico: '🔄', label: '进行中', val: '3', unit: '个' },
+      { ico: '⚠️', label: '逾期', val: '1', unit: '个' },
+      { ico: '📊', label: '完成率', val: '67%', unit: '' },
+    ],
+    bars: [
+      { name: '高优先级', val: '5', pct: 50, color: '#EF4444' },
+      { name: '中优先级', val: '4', pct: 40, color: '#F59E0B' },
+      { name: '低优先级', val: '3', pct: 30, color: '#3B5BFE' },
+    ],
+    sql: "SELECT priority, status, COUNT(*) AS n\nFROM tasks\nWHERE user_id = 'me' AND created_at >= '2026-07-01'\nGROUP BY priority, status;"
+  },
+  daily: {
+    iconClass: 'daily', icon: '📝', title: '本月日记快照',
+    sub: 'Word count / mood / topic tags',
+    rows: [
+      { ico: '📄', label: '本月日记', val: '5', unit: '篇' },
+      { ico: '📈', label: '本周新增', val: '3', unit: '篇' },
+      { ico: '✍️', label: '总字数', val: '6,820', unit: '字' },
+      { ico: '😊', label: '心情均值', val: '4.2', unit: '/5' },
+    ],
+    bars: [
+      { name: '积极', val: '2', pct: 40, color: '#10B981' },
+      { name: '中性', val: '2', pct: 40, color: '#94A3B8' },
+      { name: '低落', val: '1', pct: 20, color: '#F59E0B' },
+    ],
+    sql: "SELECT mood, COUNT(*) FROM daily_entries\nWHERE date BETWEEN '2026-07-01' AND '2026-07-29'\nGROUP BY mood;"
+  },
+  expense: {
+    iconClass: 'expense', icon: '💰', title: '本月支出快照',
+    sub: '¥2,345 · 低于预算 12%',
+    rows: [
+      { ico: '💵', label: '总支出', val: '¥2,345', unit: '' },
+      { ico: '📅', label: '日均', val: '¥78', unit: '' },
+      { ico: '🧾', label: '笔数', val: '8', unit: '笔' },
+      { ico: '🎯', label: '预算余', val: '12%', unit: '' },
+    ],
+    bars: [
+      { name: '餐饮', val: '891', pct: 38, color: '#F59E0B' },
+      { name: '交通', val: '586', pct: 25, color: '#3B82F6' },
+      { name: '购物', val: '469', pct: 20, color: '#EC4899' },
+      { name: '娱乐', val: '399', pct: 17, color: '#8B5CF6' },
+    ],
+    sql: "SELECT category, SUM(amount) AS total\nFROM expenses\nWHERE date BETWEEN '2026-07-01' AND '2026-07-29'\nGROUP BY category\nORDER BY total DESC;"
+  },
+  diet: {
+    iconClass: 'diet', icon: '🍱', title: '本月饮食快照',
+    sub: '日均 1,850 kcal · 偏高 8%',
+    rows: [
+      { ico: '🍚', label: '总餐次', val: '87', unit: '餐' },
+      { ico: '⚡', label: '日均热量', val: '1,850', unit: 'kcal' },
+      { ico: '🥬', label: '蔬果占比', val: '32%', unit: '' },
+      { ico: '🥡', label: '外卖占比', val: '38%', unit: '' },
+    ],
+    bars: [
+      { name: '早餐', val: '420', pct: 70, color: '#F59E0B' },
+      { name: '午餐', val: '780', pct: 100, color: '#F59E0B' },
+      { name: '晚餐', val: '650', pct: 85, color: '#F59E0B' },
+    ],
+    sql: "SELECT meal_type, AVG(kcal) FROM diet_logs\nWHERE date BETWEEN '2026-07-01' AND '2026-07-29'\nGROUP BY meal_type;"
+  }
+};
+
+function openDrawerSnapshot(key) {
+  const d = SNAP_DATA[key];
+  if (!d) return;
+  const drawer = document.getElementById('drawer');
+  const mask = document.getElementById('drawerMask');
+  document.getElementById('drawerTitleText').textContent = d.title;
+  document.getElementById('drawerTitleSub').textContent = d.sub;
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="snapshot-card">
+      <div class="snap-head">
+        <div class="snap-icon ${d.iconClass}">${d.icon}</div>
+        <div>
+          <div class="snap-title">${d.title}</div>
+          <div class="snap-sub">${d.sub}</div>
+        </div>
+        <button class="btn-primary ai" style="margin-left:auto;padding:6px 12px;font-size:12px;" onclick="askAbout('给我详细分析我的${d.title.replace('本月','').replace('快照','')}')">🤖 问 AI</button>
+      </div>
+
+      <div class="snap-section">
+        <div class="snap-section-title">📊 关键指标</div>
+        ${d.rows.map(r => `
+          <div class="snap-row">
+            <div class="label"><span class="ico">${r.ico}</span> ${r.label}</div>
+            <div class="val">${r.val}<span class="unit">${r.unit}</span></div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="snap-section">
+        <div class="snap-section-title">📈 分布</div>
+        <div class="snap-bars">
+          ${d.bars.map(b => `
+            <div class="snap-bar-row">
+              <span class="name">${b.name}</span>
+              <span class="track"><span class="fill" style="width:${b.pct}%;background:${b.color};"></span></span>
+              <span class="val">${b.val}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="snap-section">
+        <div class="snap-section-title">🗄 数据来源</div>
+        <details class="data-source-block">
+          <summary>📋 展开 SQL 查询</summary>
+          <pre>${d.sql}</pre>
+          <table class="sql-table">
+            <thead><tr><th>维度</th><th>数值</th></tr></thead>
+            <tbody>
+              ${d.bars.map(b => `<tr><td>${b.name}</td><td>${b.val}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </details>
+      </div>
+
+      <div class="snap-section">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-secondary" onclick="askAbout('${d.title}有什么建议？')">💬 问 AI 建议</button>
+          <button class="btn-secondary" onclick="askAbout('生成这份${d.title}的完整报告')">📊 生成报告</button>
+          <button class="btn-ghost" onclick="showToast('已复制 JSON')">📋 复制 JSON</button>
+        </div>
+      </div>
+    </div>
+  `;
+  drawer.classList.add('open');
+  mask.classList.add('open');
+}
+
+document.querySelectorAll('.snapshot-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    const key = c.getAttribute('data-snap');
+    openDrawerSnapshot(key);
+  });
+});
+
+/* =========================================================
+   V6 Q&A 模式（chat-card 浮于 drawer）
+   ========================================================= */
+let rateUsed = 3;
+const CHAT_STATE = { thinking: false, history: [], llmEnabled: true };
+const chatBody = document.getElementById('drawerBody');
+
+function openDrawerQA() {
+  const drawer = document.getElementById('drawer');
+  const mask = document.getElementById('drawerMask');
+  document.getElementById('drawerTitleText').textContent = '💬 新对话';
+  document.getElementById('drawerTitleSub').textContent = 'Lifewise AI · 基于 5 模块数据 · 首 token 280ms';
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="chat-card">
+      <div style="flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;background:#F8FAFC;" id="qaBody">
+        <div class="chat-day-divider">— 今天 · 2026/07/29 —</div>
+        <div class="chat-bubble user">我 6 月超预算了吗？周末是不是花太多了？</div>
+        <div class="chat-bubble ai">
+          没有超预算，你 6 月实际支出 <strong>¥2,345</strong>，低于预算 <strong>¥2,700</strong> 约 12%。<br><br>
+          不过确实存在 <strong>周末消费偏高</strong> 的现象：周末日均 ¥158，是工作日 ¥68 的 2.3 倍，主要集中在周六晚餐饮和周日下午购物。如果把周末日均控制在 ¥100 以内，预计下月可再省 ¥350。
+          <div class="chat-bubble-meta">
+            <button onclick="voteQa('up', this)">👍 6</button>
+            <button onclick="voteQa('down', this)">👎 0</button>
+            <button onclick="showDataSource(this)">📊 数据来源</button>
+          </div>
+        </div>
+        <div class="chat-bubble user">那这周饮食均衡吗？我最近好像吃太多外卖了。</div>
+        <div class="chat-bubble ai">
+          这周（07/22-07/28）你的饮食情况：<br><br>
+          🥗 <strong>蛋白质</strong>：日均 80g，基本达标<br>
+          🍚 <strong>碳水</strong>：日均 240g，略偏高<br>
+          🥬 <strong>膳食纤维</strong>：日均 18g，<strong>低于推荐 25g</strong><br>
+          🧂 <strong>外卖占比</strong>：本周 <strong>5/21 餐（24%）</strong>，比上周 8/21（38%）有所改善<br><br>
+          建议：明天中午试试自己做一份鸡胸肉沙拉，蔬果摄入会立刻回升。
+          <div class="chat-bubble-meta">
+            <button onclick="voteQa('up', this)">👍 9</button>
+            <button onclick="voteQa('down', this)">👎 0</button>
+            <button onclick="showDataSource(this)">📊 数据来源</button>
+          </div>
+        </div>
+        <div class="chat-bubble ai" id="aiThinking" style="display:none;">
+          <span id="thinkingText">正在分析你的提问…</span><span class="streaming-cursor"></span>
+        </div>
+        <div id="suggestionArea" style="display:none;align-self:flex-start;display:none;flex-direction:column;gap:8px;max-width:80%;margin-top:4px;">
+          <div style="font-size:11px;color:#64748B;margin-bottom:4px;padding-left:4px;">💡 你可能还想了解：</div>
+          <div class="chat-suggestion-card" onclick="askInDrawer('对比 3 月和 6 月的消费变化')">
+            <span class="ico">📊</span>
+            <div class="body">
+              <div class="label">对比 3 月和 6 月的消费变化</div>
+              <div class="sub">跨月趋势 · 2.4s 出结果</div>
+            </div>
+            <span style="color:#CBD5E1;">›</span>
+          </div>
+          <div class="chat-suggestion-card" onclick="askInDrawer('这周我的任务完成情况怎么样？')">
+            <span class="ico">📋</span>
+            <div class="body">
+              <div class="label">这周我的任务完成情况</div>
+              <div class="sub">7 天 · 含 3 个高优先级</div>
+            </div>
+            <span style="color:#CBD5E1;">›</span>
+          </div>
+          <div class="chat-suggestion-card" onclick="askInDrawer('给我推荐一份下周的减脂食谱')">
+            <span class="ico">🍱</span>
+            <div class="body">
+              <div class="label">推荐一份下周的减脂食谱</div>
+              <div class="sub">基于 1,700 kcal 目标</div>
+            </div>
+            <span style="color:#CBD5E1;">›</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-quick-row">
+        <button class="quick-chip" onclick="useQuick(this)">💰 6 月消费明细</button>
+        <button class="quick-chip" onclick="useQuick(this)">📋 本周任务完成</button>
+        <button class="quick-chip" onclick="useQuick(this)">🍱 饮食是否均衡</button>
+        <button class="quick-chip" onclick="useQuick(this)">🎯 Q2 计划进度</button>
+        <button class="quick-chip" onclick="useQuick(this)">📝 这周日记亮点</button>
+        <button class="quick-chip" onclick="useQuick(this)">😴 我的睡眠质量</button>
+      </div>
+
+      <div class="chat-foot">
+        <div class="input-wrap ai">
+          <span class="leading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <input class="input has-trailing" type="text" id="qaInput" placeholder="问点什么？例如：我这周吃太多外卖了吗？" />
+          <span class="trailing" title="附件（v1.1+）">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </span>
+        </div>
+        <button class="send-btn ai" id="sendBtn" title="发送">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+
+      <div class="chat-helper-row">
+        <span class="llm-toggle" id="llmToggleDrawer">
+          <span>🤖</span> AI 解读 <span style="margin-left:2px;">已开启</span>
+        </span>
+        <span>⏎ 发送，⇧⏎ 换行</span>
+        <span class="right">
+          <span class="counter" id="rateCounter">已用 3/10 次/分钟</span>
+        </span>
+      </div>
+    </div>
+  `;
+  drawer.classList.add('open');
+  mask.classList.add('open');
+  // 重绑事件
+  const sendBtn = document.getElementById('sendBtn');
+  if (sendBtn) sendBtn.addEventListener('click', sendMessageDrawer);
+  const qaInput = document.getElementById('qaInput');
+  if (qaInput) qaInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessageDrawer(); }
+  });
+  const llmToggle = document.getElementById('llmToggleDrawer');
+  if (llmToggle) {
+    llmToggle.addEventListener('click', () => {
+      CHAT_STATE.llmEnabled = !CHAT_STATE.llmEnabled;
+      llmToggle.innerHTML = CHAT_STATE.llmEnabled
+        ? '<span>🤖</span> AI 解读 <span style="margin-left:2px;">已开启</span>'
+        : '<span>🤖</span> AI 解读 <span style="margin-left:2px;">已关闭</span>';
+      showToast(CHAT_STATE.llmEnabled ? 'AI 解读已开启' : 'AI 解读已关闭');
+    });
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerMask').classList.remove('open');
+}
+
+function useQuick(btn) {
+  document.getElementById('qaInput').value = btn.textContent.trim();
+  document.getElementById('qaInput').focus();
+}
+
+function askInDrawer(text) {
+  openDrawerQA();
+  setTimeout(() => {
+    document.getElementById('qaInput').value = text;
+    sendMessageDrawer();
+  }, 100);
+}
+
+function askAbout(text) {
+  closeDrawer();
+  openDrawerQA();
+  setTimeout(() => {
+    document.getElementById('qaInput').value = text;
+    sendMessageDrawer();
+  }, 100);
+}
+
+const REPLY_MAP = [
+  {
+    match: /超预算|预算|周末/,
+    reply: '周末日均 ¥158，确实偏高。建议给周六设个 ¥120 的"软上限"，可以参考 6 月 5 月的对比数据。<br><br>📊 <strong>数据洞察</strong>：如果你保持工作日 ¥68 的水平，6 月可结余 ¥520。'
+  },
+  {
+    match: /外卖|饮食|热量|均衡/,
+    reply: '这周外卖占比 24%，比上周下降 14%。建议明天自己带一份鸡胸肉沙拉，蔬果摄入能直接补足。<br><br>🥬 你的<strong>膳食纤维</strong>偏低 28%，试试加一份凉拌西兰花或紫薯。'
+  },
+  {
+    match: /任务|完成|进度/,
+    reply: '本周（07/22-07/28）你已完成 <strong>6 个任务</strong>，3 个进行中，1 个逾期。<br><br>⚠️ 逾期任务「季度复盘文档」建议今天内完成；建议你把它拆成 3 个子任务，每完成一个就勾掉。'
+  },
+  {
+    match: /日记|亮点|本周/,
+    reply: '本周写了 3 篇日记，亮点：周二「重读《深度工作》」的复盘非常有结构，可以提炼成方法论。<br><br>📝 也可以试着每周日写一篇"周复盘"，把零散的日记串起来。'
+  },
+  {
+    match: /对比|3 月|6 月|变化/,
+    reply: '<strong>3 月 vs 6 月</strong>：<br>· 总支出从 ¥2,180 升到 ¥2,345（+7.6%）<br>· 笔均从 ¥363 降到 ¥293（-19.3%）<br>· 外卖订单上升 35%<br><br>说明单笔消费更克制，但频次变高。'
+  },
+  {
+    match: /食谱|减脂|推荐|餐/,
+    reply: '基于你 1,700 kcal 目标，给出下周一/三/五 三餐：<br>· 周一：燕麦+鸡蛋+西兰花（约 480 kcal）<br>· 周三：糙米饭+鸡胸+菠菜（约 520 kcal）<br>· 周五：三文鱼+藜麦+芦笋（约 510 kcal）'
+  },
+  {
+    match: /睡眠|睡觉/,
+    reply: '你这周平均睡眠 <strong>6.4 小时</strong>，低于推荐的 7-8 小时。其中周二和周四仅 5 小时。<br><br>😴 建议：把睡前刷手机的时间减少 20 分钟，试试 22:30 前熄灯。'
+  }
+];
+
+function pickReply(text) {
+  for (const r of REPLY_MAP) {
+    if (r.match.test(text)) return r.reply;
+  }
+  return '已记录你的问题：根据当前 5 个模块数据，<strong>' + text.slice(0, 18) + '</strong> 相关分析可在对应模块查看。<br><br>可以试试：<em>「对比 3 月和 6 月」</em>或<em>「推荐一份减脂食谱」</em>。';
+}
+
+function sendMessageDrawer() {
+  const input = document.getElementById('qaInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  if (rateUsed >= 10) {
+    showToast('⚠️ 速率限制：已达 10 次/分钟');
+    return;
+  }
+  rateUsed++;
+  const rc = document.getElementById('rateCounter');
+  if (rc) {
+    rc.textContent = '已用 ' + rateUsed + '/10 次/分钟';
+    if (rateUsed >= 8) rc.classList.add('warn');
+  }
+  const qaBody = document.getElementById('qaBody');
+  // 用户气泡
+  const u = document.createElement('div');
+  u.className = 'chat-bubble user';
+  u.textContent = text;
+  qaBody.appendChild(u);
+  input.value = '';
+  document.getElementById('suggestionArea').style.display = 'none';
+  qaBody.scrollTop = qaBody.scrollHeight;
+  // AI 思考
+  const aiThinking = document.getElementById('aiThinking');
+  const thinkingText = document.getElementById('thinkingText');
+  aiThinking.style.display = 'block';
+  thinkingText.textContent = '正在分析你的提问';
+  qaBody.scrollTop = qaBody.scrollHeight;
+
+  let dots = 0;
+  const dotTimer = setInterval(() => {
+    dots = (dots + 1) % 4;
+    thinkingText.textContent = '正在分析你的提问' + '·'.repeat(dots);
+  }, 400);
+
+  // 决定路径：快速匹配 (<500ms) or LLM 流式
+  const fastMatch = REPLY_MAP.some(r => r.match.test(text));
+  if (fastMatch && CHAT_STATE.llmEnabled) {
+    setTimeout(() => {
+      clearInterval(dotTimer);
+      aiThinking.style.display = 'none';
+      thinkingText.textContent = '⚡ 快速匹配命中（<500ms）';
+      const full = pickReply(text);
+      streamText(qaBody, full);
+    }, 200);
+  } else {
+    setTimeout(() => {
+      clearInterval(dotTimer);
+      aiThinking.style.display = 'none';
+      if (!CHAT_STATE.llmEnabled) {
+        const b = document.createElement('div');
+        b.className = 'chat-bubble ai';
+        b.innerHTML = 'AI 解读已关闭，请到对应模块查看原始数据。';
+        qaBody.appendChild(b);
+      } else {
+        const full = pickReply(text);
+        streamText(qaBody, full);
+      }
+    }, 1400);
+  }
+
+  // 显示推荐
+  setTimeout(() => {
+    document.getElementById('suggestionArea').style.display = 'flex';
+    qaBody.scrollTop = qaBody.scrollHeight;
+  }, 2400);
+}
+
+function streamText(container, full) {
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ai';
+  bubble.innerHTML = '';
+  container.appendChild(bubble);
+  let i = 0;
+  const step = 4;
+  const cursor = '<span class="streaming-cursor"></span>';
+  const t = setInterval(() => {
+    i = Math.min(full.length, i + step);
+    bubble.innerHTML = full.substring(0, i) + cursor;
+    container.scrollTop = container.scrollHeight;
+    if (i >= full.length) {
+      clearInterval(t);
+      bubble.innerHTML = full + '<div class="chat-bubble-meta"><button onclick="voteQa(\'up\', this)">👍 0</button><button onclick="voteQa(\'down\', this)">👎 0</button><button onclick="showDataSource(this)">📊 数据来源</button><button onclick="showToast(\'已重新生成（演示）\')">🔄 重新生成</button></div>';
+    }
+  }, 30);
+}
+
+function voteQa(type, btn) {
+  showToast(type === 'up' ? '👍 已点赞' : '👎 已点踩');
+  btn.style.color = type === 'up' ? '#10B981' : '#EF4444';
+}
+
+function showDataSource(btn) {
+  const meta = btn.parentElement;
+  if (meta.nextElementSibling && meta.nextElementSibling.classList.contains('data-source-block')) {
+    meta.nextElementSibling.remove();
+    return;
+  }
+  const ds = document.createElement('details');
+  ds.className = 'data-source-block';
+  ds.style.marginTop = '8px';
+  ds.innerHTML = `<summary>📋 展开数据来源</summary>
+    <pre>SELECT category, SUM(amount) FROM expenses
+WHERE date BETWEEN '2026-07-22' AND '2026-07-28'
+GROUP BY category;</pre>
+    <table class="sql-table">
+      <thead><tr><th>类别</th><th>金额</th></tr></thead>
+      <tbody>
+        <tr><td>餐饮</td><td>¥342</td></tr>
+        <tr><td>交通</td><td>¥118</td></tr>
+        <tr><td>购物</td><td>¥86</td></tr>
+      </tbody>
+    </table>`;
+  meta.after(ds);
+}
+
+function voteReport(type, btn) {
+  const text = btn.textContent;
+  const num = parseInt(text.match(/\d+/)?.[0] || 0, 10);
+  btn.textContent = (type === 'up' ? '👍 ' : '👎 ') + (num + 1);
+  btn.style.color = type === 'up' ? '#10B981' : '#EF4444';
+}
+
+/* =========================================================
+   报告生成主流程：V1-B → V1-C → V2 streaming → V2 complete
+   ========================================================= */
+function startGenerateReport() {
+  const isLLM = llmSwitch && llmSwitch.checked;
+  // 1. 进入 V1-C（生成中）
+  showView('v1c');
+  closeDrawer();
+  // 2. 推进：模拟 progress → json_ready → 切到 V2 streaming
+  setTimeout(() => {
+    simulateStatus('v2');
+  }, 1800);
+}
+
+function simulateStatus(name) {
+  if (name === 'json_ready' || name === 'v2') {
+    showView('v2');
+    // v2 内部只是 queued 状态演示，再次模拟 1.4s 后进 streaming
+    setTimeout(() => simulateStatus('v2-stream'), 1400);
+  } else if (name === 'v2-stream') {
+    showView('v2-stream');
+    // 流式 2.5s 后进 complete
+    setTimeout(() => simulateStatus('v1d'), 2500);
+  } else if (name === 'complete' || name === 'v1d') {
+    showView('v1d');
+    showToast('✅ 报告生成完成', 'success');
+  } else if (name === 'partial') {
+    showView('v2-partial');
+  } else if (name === 'cancel') {
+    showView('v1');
+    showToast('已取消任务', 'warn');
+  }
+}
+
+function cancelJob() {
+  simulateStatus('cancel');
+}
+
+/* =========================================================
+   健康度 Popover 逻辑
+   ========================================================= */
+const healthPill = document.getElementById('openHealth');
+const popover = document.getElementById('healthPopover');
+const healthBadgeHero = document.getElementById('healthBadgeHero');
+
+function togglePopover() {
+  popover.classList.toggle('open');
+}
+if (healthPill) healthPill.addEventListener('click', (e) => { e.stopPropagation(); togglePopover(); });
+if (healthBadgeHero) healthBadgeHero.addEventListener('click', (e) => { e.stopPropagation(); togglePopover(); });
+
+document.addEventListener('click', (e) => {
+  if (!popover.contains(e.target) && e.target !== healthPill && !(healthPill && healthPill.contains(e.target)) && e.target !== healthBadgeHero) {
+    popover.classList.remove('open');
+  }
+});
+
+/* =========================================================
+   Popover 内探活历史注入
+   ========================================================= */
+(function renderProbeHistory() {
+  const list = document.getElementById('popoverProbeList');
+  if (!list) return;
+  const samples = [
+    { t: '12:04:22', ok: true, lat: '1.8s' },
+    { t: '12:03:51', ok: true, lat: '2.1s' },
+    { t: '12:03:18', ok: true, lat: '1.7s' },
+    { t: '12:02:44', ok: true, lat: '2.3s' },
+    { t: '12:02:10', ok: true, lat: '2.0s' },
+    { t: '12:01:33', ok: true, lat: '1.9s' },
+    { t: '12:01:00', ok: true, lat: '2.4s' },
+    { t: '12:00:21', ok: true, lat: '1.6s' },
+    { t: '11:59:48', ok: true, lat: '2.2s' },
+    { t: '11:59:15', ok: true, lat: '2.0s' },
+  ];
+  list.innerHTML = samples.map(s => `
+    <div class="popover-probe-item">
+      <span class="probe-dot ${s.ok ? 'ok' : 'fail'}"></span>
+      <span>${s.ok ? '200 OK' : 'TIMEOUT'}</span>
+      <span class="probe-lat">${s.lat}</span>
+      <span class="probe-time">${s.t}</span>
+    </div>
+  `).join('');
+})();
+
+/* =========================================================
+   健康度切换（绿/黄/红）
+   ========================================================= */
+function setHealth(state) {
+  const cls = state === 'warn' ? 'warn' : state === 'danger' ? 'danger' : '';
+  healthPill.className = 'health-pill ' + cls;
+  const statusRow = document.getElementById('popoverStatusRow');
+  const statusText = document.getElementById('popoverStatusText');
+  if (statusRow) statusRow.className = 'popover-status ' + (state === 'warn' ? 'warn' : state === 'danger' ? 'danger' : '');
+  if (statusText) statusText.textContent = state === 'warn' ? '状态：慢（5min P95 ≥ 5s）' : state === 'danger' ? '状态：不可用（Ollama 失联）' : '状态：正常';
+  if (state === 'warn') {
+    document.getElementById('popoverP95').textContent = '6.8s';
+    document.getElementById('popoverFail').textContent = '12%';
+    document.getElementById('popoverProc').innerHTML = '<span style="color:#F59E0B">运行中（高负载）</span>';
+  } else if (state === 'danger') {
+    document.getElementById('popoverP95').textContent = '超时';
+    document.getElementById('popoverFail').textContent = '>30%';
+    document.getElementById('popoverQueue').textContent = '5';
+    document.getElementById('popoverProc').innerHTML = '<span style="color:#EF4444">失联</span>';
+  } else {
+    document.getElementById('popoverP95').textContent = '2.3s';
+    document.getElementById('popoverFail').textContent = '0.5%';
+    document.getElementById('popoverProc').textContent = '运行中';
+    document.getElementById('popoverQueue').textContent = '0';
+  }
+}
+// 演示：双击 #openHealth 切换健康度
+if (healthPill) {
+  healthPill.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    const next = healthPill.classList.contains('warn') ? 'danger' : healthPill.classList.contains('danger') ? '' : 'warn';
+    setHealth(next);
+    showToast('健康度已切换为：' + (next === '' ? '正常' : next === 'warn' ? '慢' : '不可用'));
+  });
+}
+
+/* =========================================================
+   V4 历史列表渲染（12 条）+ 筛选 / 搜索
+   ========================================================= */
+const HISTORY_DATA = [
+  { id: 'r12', icon: 'expense', iconChar: '💰', title: '消费报告 · 2026 年 6 月', sub: '2026 年 6 月 · 全量', meta: '生成于 2026/07/01 02:30', tag: { cls: 'badge success', txt: '12 条洞察' }, fav: true },
+  { id: 'r11', icon: 'task', iconChar: '📋', title: '任务报告 · 2026 年 6 月', sub: '2026 年 6 月 · 周复盘', meta: '生成于 2026/07/01 04:15', tag: { cls: 'badge', txt: '完成率 78%' }, fav: false },
+  { id: 'r10', icon: 'daily', iconChar: '📝', title: '日记复盘 · 2026 年 6 月', sub: '2026 年 6 月 · 月度', meta: '生成于 2026/07/01 03:00', tag: { cls: 'pill amber', txt: '含亮点' }, fav: true },
+  { id: 'r9', icon: 'diet', iconChar: '🍱', title: '饮食报告 · 2026 年 6 月', sub: '2026 年 6 月 · 月度', meta: '生成于 2026/07/01 02:45', tag: { cls: 'badge', txt: '蔬果不足' }, fav: false },
+  { id: 'r8', icon: 'plan', iconChar: '🎯', title: '计划进度 · 2026 Q2', sub: '2026 Q2 · 季度', meta: '生成于 2026/06/30 23:00', tag: { cls: 'badge success', txt: '达标 4/5' }, fav: false },
+  { id: 'r7', icon: 'expense', iconChar: '💰', title: '消费报告 · 2026 年 5 月', sub: '2026 年 5 月 · 全量', meta: '生成于 2026/06/01 02:30', tag: { cls: 'badge success', txt: '10 条洞察' }, fav: true },
+  { id: 'r6', icon: 'task', iconChar: '📋', title: '任务报告 · 2026 年 5 月', sub: '2026 年 5 月 · 月度', meta: '生成于 2026/06/01 04:15', tag: { cls: 'badge', txt: '完成率 81%' }, fav: false },
+  { id: 'r5', icon: 'daily', iconChar: '📝', title: '日记复盘 · 2026 年 5 月', sub: '2026 年 5 月 · 月度', meta: '生成于 2026/06/01 03:00', tag: { cls: 'pill amber', txt: '亮点 3' }, fav: false },
+  { id: 'r4', icon: 'diet', iconChar: '🍱', title: '饮食报告 · 2026 年 5 月', sub: '2026 年 5 月 · 月度', meta: '生成于 2026/06/01 02:45', tag: { cls: 'badge', txt: '热量超标' }, fav: false },
+  { id: 'r3', icon: 'plan', iconChar: '🎯', title: '计划进度 · 2026 Q1', sub: '2026 Q1 · 季度', meta: '生成于 2026/03/31 23:00', tag: { cls: 'badge success', txt: '达标 3/5' }, fav: false },
+  { id: 'r2', icon: 'expense', iconChar: '💰', title: '消费报告 · 2026 年 4 月', sub: '2026 年 4 月 · 全量', meta: '生成于 2026/05/01 02:30', tag: { cls: 'badge success', txt: '9 条洞察' }, fav: false },
+  { id: 'r1', icon: 'task', iconChar: '📋', title: '任务报告 · 2026 年 4 月', sub: '2026 年 4 月 · 月度', meta: '生成于 2026/05/01 04:15', tag: { cls: 'badge warning', txt: '逾期 2' }, fav: false },
+];
+
+let currentFilter = 'all';
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+  const search = (document.getElementById('historySearch')?.value || '').trim().toLowerCase();
+  const items = HISTORY_DATA.filter(h => {
+    if (currentFilter === 'fav') return h.fav;
+    if (currentFilter !== 'all' && h.icon !== currentFilter) return false;
+    if (search) {
+      const hay = (h.title + ' ' + h.sub + ' ' + h.meta).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+  document.getElementById('historyCount').textContent = items.length;
+  if (items.length === 0) {
+    list.innerHTML = '<div class="history-empty"><div class="ico">🗂</div><div>没有匹配的报告</div><div style="font-size:12px;margin-top:6px;">试试调整筛选条件</div></div>';
+    return;
+  }
+  list.innerHTML = items.map(h => `
+    <div class="history-item" data-id="${h.id}" onclick="openHistoryItem('${h.id}')">
+      <div class="history-icon ${h.icon}">${h.iconChar}</div>
+      <div class="history-text">
+        <div class="history-title">${h.title}</div>
+        <div class="history-meta">
+          <span>${h.sub}</span>
+          <span class="dot" style="width:3px;height:3px;border-radius:50%;background:#CBD5E1;"></span>
+          <span>${h.meta}</span>
+          <span class="${h.tag.cls}">${h.tag.txt}</span>
+          ${h.fav ? '<span class="history-star">⭐</span>' : ''}
+        </div>
+      </div>
+      <span class="history-action">›</span>
+    </div>
+  `).join('');
+}
+
+function selectFilter(chip, key) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  currentFilter = key;
+  renderHistory();
+}
+
+function filterHistory() { renderHistory(); }
+
+function openHistoryItem(id) {
+  // 直接跳 V1-D（即 V2 complete 来自历史）
+  showToast('📄 加载历史报告：' + id, 'success');
+  showView('v1d');
+}
+
+/* =========================================================
+   收藏 toggle
+   ========================================================= */
+let isFav = false;
+function toggleFav() {
+  isFav = !isFav;
+  showToast(isFav ? '⭐ 已收藏' : '已取消收藏', isFav ? 'success' : 'warn');
+  const mb = document.getElementById('metaBarFav');
+  if (mb) mb.innerHTML = isFav ? '★ 已收藏' : '⭐ 收藏';
+}
+
+/* =========================================================
+   Insight chip 点击 → 注入 Q&A
+   ========================================================= */
+document.querySelectorAll('.insight-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    openDrawerQA();
+    setTimeout(() => {
+      document.getElementById('qaInput').value = '详细说说：' + c.textContent.trim();
+      sendMessageDrawer();
+    }, 100);
+  });
+});
+
+/* =========================================================
+   健康度 pill 也可在 prompt 上方被 Ctrl+K 唤起（演示）
+   ========================================================= */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    popover.classList.remove('open');
+    closeDrawer();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    if (document.getElementById('drawer').classList.contains('open')) {
+      closeDrawer();
+    } else {
+      openDrawerQA();
+    }
+  }
+});
+
+/* =========================================================
+   初始化
+   ========================================================= */
+showView('v1');
+renderHistory();
+setHealth('');
+llmSwitch.checked = true;
+
+// 演示：当 V6 抽屉打开时锁滚动
+const origOverflow = document.body.style.overflow;
+const drawerObserver = new MutationObserver(() => {
+  document.body.style.overflow = document.getElementById('drawer').classList.contains('open') ? 'hidden' : origOverflow;
+});
+drawerObserver.observe(document.getElementById('drawer'), { attributes: true, attributeFilter: ['class'] });
+
+/* =========================================================
+   F1–F5 交互说明（演示文档，挂在底部折叠区）
+   ========================================================= */
+// 本文件演示的全部 5 个交互流：
+
+// F1（首页 → 生成报告）：
+//   V1-B → hero「生成 6 月消费报告」 → startGenerateReport()
+//   → V1-C（进度条 + skeleton）→ V2（queued）→ V2-stream（流式）→ V1-D（complete）
+
+// F2（数据快照 → 抽屉 snapshot 模式）：
+//   V1-B 4 个 snapshot chip → openDrawerSnapshot(key)
+//   → drawer 浮层展示：snap-head / snap-rows / snap-bars / SQL 折叠 / 「问 AI」按钮
+//   → 「问 AI」调用 askAbout() → 切换为 qa 模式 → sendMessageDrawer()
+
+// F3（新对话 → Q&A 抽屉）：
+//   V1-B hero「新对话」/ 侧栏「智能对话」/ 快捷提问 chip → openDrawerQA()
+//   → drawer 浮层展示：chat-head / chat-body（对话气泡+流式）/ quick-row / chat-foot / llm-toggle
+//   → 用户输入 → 快速匹配（<500ms）/ LLM 流式 / 速率计数 / 推荐 chips
+
+// F4（健康度 Popover）：
+//   AIHealthBadge (右上角) → togglePopover()
+//   → 浮层：状态 / 队列 / P95 / 失败率 / Ollama / 5min 趋势 / 10 次探活历史 / 监控链接
+//   → 双击 .health-pill 切换 warn/danger（演示健康度降级）
+//   → ESC / 点击外部 / 视图切换时自动关闭
+
+// F5（历史 → V2）：
+//   V4 history 列表 12 条 → openHistoryItem(id) → showView('v1d')
+//   → 来源不同：source=history（MetaBar 不显示「重新生成」）
+//   → V4 搜索框、模块筛选、收藏过滤、排序、时间范围筛选全部交互
+
+/* =========================================================
+   五模块专属图表组合参考（数据契约）
+   ========================================================= */
+// Expense 模块图表组合（4 个）：
+//   - LineChart（趋势：6 个月）
+//   - BarChart（月度对比：4 月峰值标记）
+//   - DonutChart（类别占比：餐饮 38% / 交通 25% / 购物 20% / 娱乐 17%）
+//   - TopList（Top 5 单笔）+ 数字条 + StackChart（工作日 vs 周末 2.3x）
+
+// Task 模块图表组合（4 个）：
+//   - DonutChart（状态占比：已完成 8 / 进行中 3 / 逾期 1）
+//   - BarChart（优先级分布：高 / 中 / 低）
+//   - LineChart（28 天完成率趋势）
+//   - TagCloud（标签：复盘 / 学习 / 健身 / 会议）
+
+// Diet 模块图表组合（4 个）：
+//   - LineChart（28 天热量趋势 + 目标线 1,700）
+//   - DonutChart（营养素占比：碳水 50% / 蛋白质 25% / 脂肪 25%）
+//   - HeatCalendar（用餐频率 × 时段热力）
+//   - TopList（Top 5 高频食物）
+
+// Plan 模块图表组合（4 个）：
+//   - DonutChart（计划完成度）
+//   - LineChart（Q1-Q4 趋势）
+//   - TopList（5 个目标进度）
+//   - StackChart（计划时间占用）
+
+// Daily 模块图表组合（4 个）：
+//   - HeatCalendar（28 天写作频次）
+//   - LineChart（心情曲线 4.2/5）
+//   - TagCloud（话题词云：工作 / 家人 / 思考）
+//   - BarChart（字数分布 by 星期）
+
+/* =========================================================
+   状态机说明
+   ========================================================= */
+// V1 报告生成（页面级 4 态）：
+//   V1-A 空态：empty-hero，无数据，AI 助手未启动
+//   V1-B 待生成：默认首屏，4 个 snapshot chip + 输入框 enabled
+//   V1-C 生成中：progress bar + skeleton，jobId 显示
+//   V1-D 已生成：同页布局替换为 V2 complete，MetaBar 按 source 切换
+
+// V2 报告详情（报告级 6+1 态）：
+//   idle       → 仅 V1 输入框
+//   queued     → 进入 Job Queue（黄）
+//   json_ready → JSON 视图就绪，AI 解读区显示「解读生成中…」（蓝）
+//   llm_streaming → AI 解读流式输出（深夜蓝脉冲）
+//   complete   → 完整 V2，MetaBar 按 source 切换（绿）
+//   failed     → 红色 banner + 重试按钮（V2-fail）
+//   partial_failed → JSON 完成 + LLM 失败，降级模式 + 重试解读按钮（V2-partial）
+
+// V6 抽屉（4 子态）：
+//   idle            → 输入框 placeholder
+//   fast_path       → <500ms 匹配（规则）
+//   llm_streaming   → 流式打字机
+//   data_source_expanded → 内嵌 SQL + 原始数据表
+
+// V5 健康度（3 态）：
+//   ok    → P95 < 5s + 失败率 < 30%
+//   warn  → P95 ≥ 5s 且 < 30s
+//   danger → Ollama 不可达 / 失败率 > 30%
+
+// 错误边界（4 类）：
+//   1. 触发 disabled（速率限制 10/min → 30s 冷却）
+//   2. 触发 failed（Ollama 不可用 → 3 次重试 → banner）
+//   3. 触发 partial_failed（JSON 完成 + LLM 失败 → 降级 + 重试解读）
+//   4. 触发 cancel（用户取消 → 返回 V1-B）
+
+/* =========================================================
+   8 个图表组件 → 模块对应
+   ========================================================= */
+// 1. LineChart       → Expense / Diet / Daily / Plan
+// 2. BarChart        → Task / Expense 月度对比
+// 3. DonutChart      → Expense 类目 / Task 状态 / Diet 营养 / Plan 完成度
+// 4. TopList         → Expense Top5 / Diet Top5 / Task 高频 / Plan 目标
+// 5. HeatCalendar    → Daily 写作 / Daily 心情 / Plan 日程密度
+// 6. StackChart      → Expense 工作日/周末 / Plan 计划时间占用
+// 7. TagCloud        → Daily 话题 / Expense 商家标签
+// 8. MarkdownRender  → V2 报告原文档（SQL + 解读 + 建议）
+
+/* =========================================================
+   11 个 AI 模块专属组件
+   ========================================================= */
+// 1. AIRobotHeader         → .ai-hero（墨绿+深夜蓝头像）
+// 2. AIHealthBadge         → .health-badge（右上角角标）
+// 3. DataSnapshotChip      → .snapshot-chip（4 个，横排）
+// 4. AIInsightChip         → .insight-chip（summary/anomaly/tip 三类）
+// 5. ReportFormInput       → .report-input-card（模块+时段+多行+LLM开关+生成）
+// 6. ReportCard            → .report-card（AI 完整解读，30%）
+// 7. MetaBar               → .meta-bar（V2 底部 5%，按 source 切换）
+// 8. ChatDrawer            → .drawer（V6，浮层 80vh）
+// 9. ChatMessageBubble     → .chat-bubble（user / ai 双色）
+// 10. HistoryListItem      → .history-item（V4 列表项）
+// 11. HealthPopover        → .popover（V5 浮层，含探活历史）
+
+/* =========================================================
+   演示扩展：键盘快捷键
+   ========================================================= */
+// Ctrl/Cmd + K   → 唤起 V6 Q&A 抽屉（已实现）
+// Esc           → 关闭 Popover / Drawer（已实现）
+// 双击 .health-pill → 循环切换 健康度状态（演示降级状态机）
+// 点击 history-item → 直接跳 V1-D（即 V2 complete 来自历史 source）
+
+/* =========================================================
+   演示扩展：操作反馈
+   ========================================================= */
+// 全部使用 showToast(msg, type)：
+//   type = '' (默认黑) / 'success' (绿) / 'warn' (黄) / 'danger' (红)
+// 2.4s 自动消失
+
+/* =========================================================
+   演示扩展：速率限制（10/分钟）
+   ========================================================= */
+// V6 Q&A 抽屉底部 input 右侧 counter：
+//   < 8 次/分钟 → 灰
+//   ≥ 8 次/分钟 → warn 黄
+//   ≥ 10 次/分钟 → 拒绝 + 30s 冷却
+
+/* =========================================================
+   演示扩展：路由表达
+   ========================================================= */
+// V1 ↔ V2 同页布局替换（query param: ?jobId=xxx&source=generated|history|push）
+// V4 二级页（路由：/ai/history）
+// V5 Popover / V6 Drawer → 组件状态（非路由）
+
+</script>
+
+</body>
+</html>

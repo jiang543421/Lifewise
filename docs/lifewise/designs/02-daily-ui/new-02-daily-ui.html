@@ -1,0 +1,3459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lifewise · 日记模块 UI 原型 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --primary:        #65A30D;
+  --primary-hover:  #4D7C0F;
+  --primary-soft:   #ECFCCB;
+  --primary-light:  #D9F99D;
+  --accent:         #84CC16;
+  --ink-1: #0F172A;
+  --ink-2: #334155;
+  --ink-3: #64748B;
+  --ink-4: #94A3B8;
+  --ink-inv: #FFFFFF;
+  --border:    #E2E8F0;
+  --border-h:  #CBD5E1;
+  --bg-app:    #F8FAFC;
+  --bg-soft:   #F1F5F9;
+  --danger:  #EF4444;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --info:    #3B82F6;
+  --mood-1: #EF4444;
+  --mood-2: #F97316;
+  --mood-3: #A8A29E;
+  --mood-4: #84CC16;
+  --mood-5: #10B981;
+  --mood-empty: #D1D5DB;
+  --ai:       #8B5CF6;
+  --ai-soft:  #F3E8FF;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-2: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-3: 0 10px 30px rgba(15, 23, 42, 0.10);
+  --ai-timeout-ms: 30000;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-1);
+  background: linear-gradient(135deg, #F0FDF4 0%, #ECFCCB 50%, #FEFCE8 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; color: inherit; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul, ol { list-style: none; margin: 0; padding: 0; }
+em { font-style: normal; }
+h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+
+.app {
+  display: grid;
+  grid-template-rows: 64px 1fr;
+  grid-template-columns: 232px 1fr;
+  grid-template-areas: "top top" "side main";
+  min-height: 100vh;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.top-nav {
+  grid-area: top;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.top-nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--ink-1); }
+.top-nav .brand .mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  color: white; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
+}
+.top-nav .modules { display: flex; gap: 4px; background: var(--bg-soft); padding: 4px; border-radius: 10px; }
+.top-nav .module {
+  padding: 8px 14px; font-size: 13px; font-weight: 500;
+  color: var(--ink-3); border-radius: 7px;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s; position: relative;
+}
+.top-nav .module:hover { color: var(--ink-1); }
+.top-nav .module.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-weight: 600; }
+.top-nav .module .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); display: none; }
+.top-nav .module.has-badge .dot { display: inline-block; }
+.top-nav .user { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.top-nav .user:hover { background: var(--bg-soft); }
+.top-nav .avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--primary-light) 100%);
+  color: var(--primary-hover);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px;
+}
+.top-nav .user-name { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.top-nav .bell {
+  position: relative; width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2); cursor: pointer; transition: all 0.15s;
+}
+.top-nav .bell:hover { background: var(--bg-soft); }
+.top-nav .bell .count {
+  position: absolute; top: 4px; right: 4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--danger); color: white;
+  font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid white;
+}
+.side-nav {
+  grid-area: side;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-right: 1px solid var(--border);
+  padding: 20px 12px; overflow-y: auto;
+}
+.side-nav .side-section { margin-bottom: 20px; }
+.side-nav .side-title {
+  font-size: 11px; font-weight: 600; color: var(--ink-4);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 0 12px 8px;
+}
+.side-nav .side-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px;
+  font-size: 13px; color: var(--ink-2);
+  cursor: pointer; transition: all 0.12s; margin-bottom: 2px;
+}
+.side-nav .side-item:hover { background: var(--bg-soft); color: var(--ink-1); }
+.side-nav .side-item.active { background: var(--primary-soft); color: var(--primary-hover); font-weight: 600; }
+.side-nav .side-item .ico { width: 16px; text-align: center; font-size: 14px; }
+.side-nav .side-item .count {
+  margin-left: auto; font-size: 11px;
+  background: var(--bg-soft); color: var(--ink-3);
+  padding: 1px 7px; border-radius: 999px; font-weight: 500;
+}
+.side-nav .side-item.active .count { background: white; color: var(--primary); }
+.side-nav .side-card {
+  margin: 12px; padding: 14px;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, #FEFCE8 100%);
+  border: 1px solid var(--primary-light);
+  border-radius: 10px;
+}
+.side-nav .side-card h4 { font-size: 13px; color: var(--primary-hover); margin-bottom: 6px; }
+.side-nav .side-card p { font-size: 12px; color: var(--ink-3); margin: 0 0 10px; line-height: 1.5; }
+.main { grid-area: main; padding: 24px 28px 40px; overflow-y: auto; max-width: 100%; }
+
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 18px; background: var(--primary); color: white;
+  border-radius: var(--r-md); font-size: 13px; font-weight: 600;
+  transition: all 0.15s;
+}
+.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(101, 163, 13, 0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { background: var(--ink-4); cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-primary.sm { padding: 6px 12px; font-size: 12px; }
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 18px; background: white;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  font-size: 13px; font-weight: 500; color: var(--ink-2);
+  transition: all 0.15s;
+}
+.btn-secondary:hover { background: var(--bg-app); border-color: var(--border-h); }
+.btn-secondary.sm { padding: 6px 12px; font-size: 12px; }
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 12px; color: var(--ink-3); border-radius: 8px; font-size: 13px;
+  transition: all 0.15s;
+}
+.btn-ghost:hover { background: var(--bg-soft); color: var(--ink-1); }
+.btn-ghost.danger:hover { color: var(--danger); background: #FEF2F2; }
+.card {
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 20px;
+}
+.card.tight { padding: 16px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-head h3 { font-size: 15px; font-weight: 600; color: var(--ink-1); }
+.card-head .actions { display: flex; gap: 8px; }
+.field { margin-bottom: 16px; }
+.field-label {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--ink-2);
+}
+.field-label .helper { font-size: 12px; color: var(--ink-4); font-weight: 400; }
+.input-wrap {
+  position: relative; display: flex; align-items: center;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: white; transition: all 0.15s;
+}
+.input-wrap:hover { border-color: var(--border-h); }
+.input-wrap:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(101, 163, 13, 0.12); }
+.input-wrap .leading { padding: 0 12px; color: var(--ink-4); display: flex; align-items: center; }
+.input-wrap .leading svg { width: 16px; height: 16px; }
+.input {
+  flex: 1; border: none; outline: none;
+  padding: 10px 14px 10px 0; font-size: 14px;
+  background: transparent; color: var(--ink-1);
+}
+.input::placeholder { color: var(--ink-4); }
+.input-wrap .trailing {
+  position: absolute; right: 8px; color: var(--ink-4);
+  display: flex; align-items: center; cursor: pointer;
+  padding: 6px; border-radius: 4px;
+}
+.input-wrap .trailing:hover { color: var(--ink-2); background: var(--bg-soft); }
+.field-error { display: none; margin-top: 6px; font-size: 12px; color: var(--danger); }
+.field-error.show { display: flex; align-items: center; gap: 4px; }
+.input-wrap.error { border-color: var(--danger); }
+.checkbox { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--ink-2); user-select: none; }
+.checkbox input { display: none; }
+.checkbox .check {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--border-h); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; background: white;
+}
+.checkbox input:checked + .check { background: var(--primary); border-color: var(--primary); }
+.checkbox input:checked + .check::after {
+  content: ''; width: 4px; height: 8px;
+  border: solid white; border-width: 0 2px 2px 0;
+  transform: rotate(45deg); margin-bottom: 2px;
+}
+.link-inline { font-size: 13px; color: var(--primary); font-weight: 500; }
+.link-inline:hover { text-decoration: underline; }
+.divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--ink-4); font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  background: var(--bg-soft); color: var(--ink-2);
+  border: 1px solid var(--border);
+}
+.pill.primary { background: var(--primary-soft); color: var(--primary-hover); border-color: var(--primary-light); }
+.pill.success { background: #DCFCE7; color: #166534; border-color: #BBF7D0; }
+.pill.warning { background: #FEF3C7; color: #92400E; border-color: #FDE68A; }
+.pill.danger  { background: #FEE2E2; color: #991B1B; border-color: #FECACA; }
+.pill.info    { background: #DBEAFE; color: #1E40AF; border-color: #BFDBFE; }
+.pill.ai      { background: var(--ai-soft); color: var(--ai); border-color: #DDD6FE; }
+.pill.mood    { background: white; }
+.pill .e { font-size: 13px; }
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px; background: var(--danger); color: white;
+  font-size: 11px; font-weight: 600;
+}
+.badge.dot { min-width: 6px; width: 6px; height: 6px; padding: 0; }
+
+.page-head {
+  display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px;
+}
+.page-head .eyebrow {
+  font-size: 11px; font-weight: 600; color: var(--primary);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+}
+.page-head h1 { font-size: 22px; font-weight: 700; color: var(--ink-1); letter-spacing: -0.3px; }
+.page-head .sub { font-size: 13px; color: var(--ink-3); margin-top: 4px; }
+.page-head .actions { display: flex; gap: 8px; }
+.view-switch { display: flex; gap: 4px; background: var(--bg-soft); padding: 4px; border-radius: 10px; }
+.view-switch button {
+  padding: 7px 12px; font-size: 12px; font-weight: 500;
+  color: var(--ink-3); border-radius: 7px; transition: all 0.15s;
+}
+.view-switch button.active {
+  background: white; color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,0.06); font-weight: 600;
+}
+
+.split {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 20px; align-items: start;
+}
+.split.single { grid-template-columns: 1fr; }
+.col-stack { display: flex; flex-direction: column; gap: 16px; }
+
+.stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+}
+.stat { background: white; border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; }
+.stat .label { font-size: 12px; color: var(--ink-3); margin-bottom: 6px; }
+.stat .value {
+  font-size: 22px; font-weight: 700; color: var(--ink-1);
+  display: flex; align-items: baseline; gap: 4px; font-feature-settings: "tnum" 1;
+}
+.stat .value .unit { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.stat .delta { font-size: 11px; margin-top: 4px; color: var(--success); }
+.stat .delta.down { color: var(--danger); }
+
+.today-card {
+  background: linear-gradient(135deg, white 0%, #FAFEF5 100%);
+  border: 1px solid var(--primary-light);
+  border-radius: var(--r-lg); padding: 20px;
+  box-shadow: var(--shadow-1); position: relative; overflow: hidden;
+}
+.today-card::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(132, 204, 22, 0.10) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.today-card .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; position: relative; }
+.today-card .today-head h3 { font-size: 16px; font-weight: 600; }
+.today-card .date-pill { font-size: 12px; color: var(--ink-3); padding: 4px 10px; border-radius: 999px; background: var(--bg-soft); }
+.today-card .mood-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.mood-bubble {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; background: var(--bg-soft); border: 1.5px solid var(--border);
+}
+.mood-bubble.m-1 { background: #FEE2E2; border-color: #FECACA; }
+.mood-bubble.m-2 { background: #FFEDD5; border-color: #FED7AA; }
+.mood-bubble.m-3 { background: #F5F5F4; border-color: #E7E5E4; }
+.mood-bubble.m-4 { background: var(--primary-soft); border-color: var(--primary-light); }
+.mood-bubble.m-5 { background: #DCFCE7; border-color: #BBF7D0; }
+.mood-bubble.empty { background: white; border-style: dashed; color: var(--ink-4); }
+.mood-info .label { font-size: 12px; color: var(--ink-3); }
+.mood-info .name { font-size: 15px; font-weight: 600; color: var(--ink-1); }
+.today-card .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.today-card .preview {
+  font-size: 13px; color: var(--ink-2); line-height: 1.7;
+  background: var(--bg-app); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 14px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.today-card .actions-row { display: flex; gap: 8px; position: relative; }
+.today-card .actions-row .btn-primary { flex: 1; }
+
+.entry-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.entry-tile {
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 16px;
+  text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.entry-tile:hover { transform: translateY(-2px); border-color: var(--primary-light); box-shadow: var(--shadow-2); }
+.entry-tile .ico { font-size: 24px; display: block; margin-bottom: 6px; }
+.entry-tile .lbl { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.entry-tile .num { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+
+.month-bar {
+  display: flex; align-items: center; gap: 8px;
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 12px;
+}
+.month-bar .nav {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3); transition: all 0.12s;
+}
+.month-bar .nav:hover { background: var(--bg-soft); color: var(--ink-1); }
+.month-bar .label { flex: 1; text-align: center; font-size: 14px; font-weight: 600; color: var(--ink-1); }
+.month-bar .label .avg { font-size: 11px; color: var(--ink-3); font-weight: 400; margin-left: 6px; }
+
+.mood-chart {
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 16px; position: relative;
+}
+.mood-chart .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.mood-chart .chart-head h4 { font-size: 12px; color: var(--ink-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.mood-chart .chart-legend { display: flex; gap: 8px; font-size: 11px; color: var(--ink-3); }
+.mood-chart .chart-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+.mood-chart svg { display: block; width: 100%; height: 100px; }
+.mood-chart .keyword-slot { margin-top: 12px; padding: 8px 10px; border: 1px dashed var(--border-h); border-radius: 8px; font-size: 11px; color: var(--ink-4); text-align: center; }
+
+.timeline { background: white; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.timeline .tl-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg-app);
+}
+.timeline .tl-head h4 { font-size: 12px; color: var(--ink-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.timeline .tl-list { max-height: 540px; overflow-y: auto; }
+.tl-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.12s; position: relative;
+}
+.tl-item:last-child { border-bottom: none; }
+.tl-item:hover { background: var(--bg-app); }
+.tl-item.active { background: var(--primary-soft); }
+.tl-item.future { opacity: 0.5; cursor: not-allowed; }
+.tl-item.future:hover { background: white; }
+.tl-date { flex-shrink: 0; width: 44px; text-align: center; font-size: 11px; color: var(--ink-3); }
+.tl-date .d { font-size: 16px; font-weight: 700; color: var(--ink-1); line-height: 1.2; }
+.tl-mood {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; background: var(--bg-soft);
+}
+.tl-mood.empty { border: 1.5px dashed var(--border-h); background: white; }
+.tl-body { flex: 1; min-width: 0; }
+.tl-body .title { font-size: 13px; font-weight: 500; color: var(--ink-1); margin-bottom: 2px; }
+.tl-body .snippet { font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-body .meta { display: flex; gap: 6px; margin-top: 4px; align-items: center; }
+.tl-status { flex-shrink: 0; font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+.tl-status.completed { background: #DCFCE7; color: #166534; }
+.tl-status.draft { background: var(--bg-soft); color: var(--ink-3); }
+.tl-status.saveFailed { background: #FEE2E2; color: #991B1B; }
+.tl-status.conflict { background: #FEF3C7; color: #92400E; }
+.tl-status.empty { background: var(--bg-soft); color: var(--ink-4); }
+.tl-status.future { background: var(--bg-soft); color: var(--ink-4); }
+
+.editor {
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-1);
+}
+.editor .ed-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.editor .ed-head h3 { font-size: 15px; font-weight: 600; }
+.editor .ed-head .date { font-size: 12px; color: var(--ink-3); }
+.editor .ed-body { padding: 20px; }
+
+.conflict-banner {
+  display: none; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: #FEF3C7; border: 1px solid #FDE68A;
+  border-radius: var(--r-md); margin-bottom: 16px;
+  font-size: 13px; color: #92400E;
+}
+.conflict-banner.show { display: flex; }
+.conflict-banner .actions { margin-left: auto; display: flex; gap: 6px; }
+.conflict-banner button {
+  padding: 4px 10px; border-radius: 6px; font-size: 12px;
+  background: white; border: 1px solid #FDE68A; color: #92400E;
+}
+.conflict-banner button.primary { background: var(--warning); color: white; border-color: var(--warning); }
+
+.draft-toast {
+  display: none; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--ai-soft); border: 1px solid #DDD6FE;
+  border-radius: var(--r-md); margin-bottom: 16px;
+  font-size: 13px; color: var(--ai);
+}
+.draft-toast.show { display: flex; }
+.draft-toast .actions { margin-left: auto; display: flex; gap: 6px; }
+.draft-toast button {
+  padding: 4px 10px; border-radius: 6px; font-size: 12px;
+  background: white; border: 1px solid #DDD6FE; color: var(--ai);
+}
+.draft-toast button.primary { background: var(--ai); color: white; border-color: var(--ai); }
+
+.mood-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+.mood-btn {
+  padding: 12px 4px; border-radius: var(--r-md);
+  background: var(--bg-app); border: 1.5px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ink-3); transition: all 0.15s;
+}
+.mood-btn:hover { transform: translateY(-1px); border-color: var(--primary-light); }
+.mood-btn.selected { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-hover); font-weight: 600; }
+.mood-btn .e { font-size: 24px; line-height: 1; }
+
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-group .chip {
+  padding: 6px 12px; border-radius: 999px;
+  background: white; border: 1px solid var(--border);
+  font-size: 12px; color: var(--ink-2); transition: all 0.12s;
+}
+.chip-group .chip:hover { border-color: var(--primary-light); }
+.chip-group .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
+.chip-group .chip.disabled { opacity: 0.4; cursor: not-allowed; }
+.chip-group .chip.custom { background: var(--ai-soft); color: var(--ai); border-color: #DDD6FE; }
+.chip-group .chip.add { background: var(--bg-app); color: var(--ink-3); }
+.chip-group .chip .x { margin-left: 4px; opacity: 0.7; cursor: pointer; }
+
+.weather-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.weather-btn {
+  padding: 8px 4px; border-radius: 8px;
+  background: var(--bg-app); border: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 11px; color: var(--ink-3); transition: all 0.12s;
+}
+.weather-btn:hover { border-color: var(--primary-light); }
+.weather-btn.selected { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-hover); }
+.weather-btn .e { font-size: 18px; line-height: 1; }
+
+.md-editor { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: white; }
+.md-toolbar {
+  display: flex; align-items: center; gap: 2px;
+  padding: 6px; background: var(--bg-app); border-bottom: 1px solid var(--border);
+}
+.md-toolbar button {
+  width: 30px; height: 28px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--ink-2); transition: all 0.12s;
+}
+.md-toolbar button:hover { background: white; color: var(--ink-1); }
+.md-toolbar .tab-switch { margin-left: auto; display: flex; gap: 2px; }
+.md-toolbar .tab-switch button { width: auto; padding: 0 10px; }
+.md-toolbar .tab-switch button.active { background: var(--primary); color: white; }
+.md-textarea {
+  width: 100%; min-height: 180px; padding: 14px;
+  border: 0; background: transparent; resize: vertical;
+  font-size: 13px; line-height: 1.7; color: var(--ink-1);
+  outline: none; font-family: 'Inter', 'Noto Sans SC', sans-serif;
+}
+.md-preview { padding: 14px; min-height: 180px; font-size: 13px; line-height: 1.7; color: var(--ink-1); }
+.md-preview h1, .md-preview h2, .md-preview h3 { margin: 12px 0 8px; font-weight: 600; }
+.md-preview h1 { font-size: 18px; } .md-preview h2 { font-size: 16px; } .md-preview h3 { font-size: 14px; }
+.md-preview ul, .md-preview ol { padding-left: 22px; margin: 8px 0; }
+.md-preview li { margin: 3px 0; }
+.md-preview code { background: var(--bg-soft); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+.md-preview pre { background: var(--bg-soft); padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+.md-preview blockquote { border-left: 3px solid var(--primary); padding-left: 10px; color: var(--ink-3); margin: 8px 0; }
+.md-preview p { margin: 6px 0; } .md-preview strong { font-weight: 600; } .md-preview em { color: var(--ink-2); }
+
+.autosave {
+  position: sticky; bottom: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; background: white;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--ink-3);
+}
+.autosave .state { display: flex; align-items: center; gap: 6px; }
+.autosave .state .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-4); }
+.autosave .state.editing .dot { background: var(--ink-3); }
+.autosave .state.saving .dot { background: var(--warning); animation: pulse 1.2s infinite; }
+.autosave .state.saved .dot { background: var(--success); }
+.autosave .state.failed .dot { background: var(--danger); }
+.autosave .state.conflict .dot { background: var(--warning); }
+.autosave .state .text { font-weight: 500; color: var(--ink-2); }
+.autosave .state.failed .text { color: var(--danger); }
+.autosave .state.conflict .text { color: var(--warning); }
+.autosave .meta { display: flex; gap: 12px; align-items: center; }
+.autosave .meta .word { color: var(--ink-3); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.detail { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-1); overflow: hidden; }
+.detail .dt-head { padding: 20px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, #FAFEF5 0%, white 100%); }
+.detail .dt-head .date-eyebrow { font-size: 11px; color: var(--ink-4); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.detail .dt-head h2 { font-size: 20px; font-weight: 700; color: var(--ink-1); margin-bottom: 10px; }
+.detail .dt-head .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.detail .dt-body { padding: 20px; }
+.detail .dt-content { font-size: 14px; line-height: 1.8; color: var(--ink-1); }
+.detail .dt-content p { margin: 8px 0; }
+.detail .dt-content h1, .detail .dt-content h2, .detail .dt-content h3 { margin: 16px 0 8px; font-weight: 600; }
+.detail .dt-content ul, .detail .dt-content ol { padding-left: 22px; margin: 8px 0; }
+.detail .dt-content li { margin: 4px 0; }
+.detail .dt-content code { background: var(--bg-soft); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.detail .dt-content blockquote { border-left: 3px solid var(--primary); padding-left: 12px; color: var(--ink-3); margin: 12px 0; }
+.detail .dt-content strong { font-weight: 600; }
+.detail .dt-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; background: var(--bg-app); }
+
+.ai-card {
+  background: linear-gradient(135deg, #FAF5FF 0%, white 100%);
+  border: 1px solid #DDD6FE;
+  border-radius: var(--r-md); padding: 16px; margin-bottom: 16px;
+}
+.ai-card.unavailable { background: var(--bg-app); border-color: var(--border); }
+.ai-card .ai-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ai-card .ai-head .l { display: flex; align-items: center; gap: 8px; }
+.ai-card .ai-head h4 { font-size: 13px; color: var(--ai); font-weight: 600; }
+.ai-card .ai-head .ico { font-size: 16px; }
+.ai-card .ai-body { font-size: 13px; line-height: 1.7; color: var(--ink-1); }
+.ai-card .ai-skeleton { height: 14px; border-radius: 4px; margin: 8px 0; background: linear-gradient(90deg, #EDE9FE 0%, #F5F3FF 50%, #EDE9FE 100%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+.ai-card .ai-skeleton.short { width: 60%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.ai-card .ai-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.ai-card .ai-actions button {
+  padding: 5px 10px; border-radius: 6px; font-size: 12px;
+  background: white; border: 1px solid #DDD6FE; color: var(--ai); transition: all 0.12s;
+}
+.ai-card .ai-actions button:hover { background: var(--ai-soft); }
+.ai-card .ai-actions button.danger { border-color: #FECACA; color: var(--danger); }
+.ai-card .ai-actions button.danger:hover { background: #FEF2F2; }
+.ai-card .ai-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+.ai-card .ai-error { background: #FEF2F2; border: 1px solid #FECACA; color: var(--danger); border-radius: 6px; padding: 10px 12px; font-size: 12px; }
+.ai-card .ai-empty { text-align: center; padding: 16px 0; }
+.ai-card .ai-empty .ico { font-size: 24px; margin-bottom: 6px; }
+.ai-card .ai-empty p { font-size: 12px; color: var(--ink-3); margin: 0 0 10px; }
+.ai-card .ai-empty button {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 14px; background: var(--ai); color: white;
+  border-radius: 8px; font-size: 12px; font-weight: 500; transition: all 0.15s;
+}
+.ai-card .ai-empty button:hover { background: #7C3AED; }
+.ai-card .ai-empty button:disabled { background: var(--ink-4); cursor: not-allowed; }
+
+.template-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.template-tile {
+  padding: 14px; border: 1px solid var(--border); border-radius: var(--r-md);
+  cursor: pointer; transition: all 0.15s; background: white;
+}
+.template-tile:hover { border-color: var(--primary-light); box-shadow: var(--shadow-1); }
+.template-tile .name { font-size: 13px; font-weight: 600; color: var(--ink-1); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.template-tile .desc { font-size: 11px; color: var(--ink-3); line-height: 1.5; }
+
+.mini-stat-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.mini-stat { flex: 1; min-width: 100px; padding: 12px; background: var(--bg-app); border-radius: 8px; }
+.mini-stat .l { font-size: 11px; color: var(--ink-3); margin-bottom: 4px; }
+.mini-stat .v { font-size: 16px; font-weight: 700; color: var(--ink-1); }
+
+.toast-stack {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  background: var(--ink-1); color: white;
+  padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: var(--shadow-2);
+  animation: toast-in 0.2s ease-out; display: flex; align-items: center; gap: 8px;
+}
+.toast.success { background: var(--success); } .toast.error { background: var(--danger); }
+.toast.warning { background: var(--warning); } .toast.info { background: var(--info); }
+.toast.ai { background: var(--ai); }
+@keyframes toast-in { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px); z-index: 90;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 80px; animation: fade-in 0.2s;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.overlay-panel {
+  background: white; border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3); max-width: 720px; width: 90%;
+  max-height: 80vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.overlay-panel.sm { max-width: 480px; }
+.overlay-panel .ov-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.overlay-panel .ov-head h3 { font-size: 15px; font-weight: 600; }
+.overlay-panel .ov-body { padding: 20px; overflow-y: auto; flex: 1; }
+.overlay-panel .ov-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid var(--border); background: var(--bg-app);
+}
+
+.cmdk {
+  background: white; border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3); max-width: 640px; width: 92%; overflow: hidden;
+}
+.cmdk .cmdk-input {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.cmdk .cmdk-input svg { width: 18px; height: 18px; color: var(--ink-4); }
+.cmdk .cmdk-input input { flex: 1; border: 0; outline: 0; font-size: 15px; background: transparent; }
+.cmdk .cmdk-input .kbd {
+  font-size: 11px; padding: 2px 6px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--ink-3);
+}
+.cmdk .cmdk-body { max-height: 420px; overflow-y: auto; padding: 8px 0; }
+.cmdk .cmdk-section {
+  font-size: 11px; color: var(--ink-4);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 8px 18px 4px; font-weight: 600;
+}
+.cmdk .cmdk-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; cursor: pointer; transition: background 0.1s; font-size: 13px;
+}
+.cmdk .cmdk-item:hover, .cmdk-item.focus { background: var(--bg-soft); }
+.cmdk .cmdk-item .ico {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--bg-soft); display: flex; align-items: center; justify-content: center; font-size: 13px;
+}
+.cmdk .cmdk-item .meta { margin-left: auto; font-size: 11px; color: var(--ink-4); }
+.cmdk .cmdk-item mark { background: #FEF3C7; padding: 0 2px; border-radius: 2px; }
+.cmdk .cmdk-empty { padding: 40px 20px; text-align: center; color: var(--ink-3); }
+.cmdk .cmdk-foot {
+  display: flex; gap: 16px; padding: 8px 18px;
+  border-top: 1px solid var(--border); font-size: 11px; color: var(--ink-4); background: var(--bg-app);
+}
+
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: white; border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.15);
+  z-index: 95; max-height: 85vh;
+  display: flex; flex-direction: column; animation: sheet-up 0.3s;
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet .sh-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border-h); margin: 8px auto 0; }
+.sheet .sh-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 8px; }
+.sheet .sh-head h3 { font-size: 16px; font-weight: 600; }
+.sheet .sh-body { padding: 8px 20px 20px; overflow-y: auto; flex: 1; }
+.sheet .sh-foot {
+  padding: 14px 20px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end; background: var(--bg-app);
+}
+
+.modal {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 96; display: flex; align-items: center; justify-content: center; animation: fade-in 0.2s;
+}
+.modal-panel {
+  background: white; border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3); width: 92%; max-width: 520px; overflow: hidden;
+}
+.modal-panel.lg { max-width: 720px; }
+.modal-panel .md-head {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-panel .md-head h3 { font-size: 16px; font-weight: 600; }
+.modal-panel .md-body { padding: 20px; }
+.modal-panel .md-foot {
+  padding: 14px 20px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end; background: var(--bg-app);
+}
+
+.mood-full { background: white; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-1); }
+.mood-full .mf-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.mood-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.mood-cell {
+  aspect-ratio: 1; border-radius: var(--r-sm);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; cursor: pointer; transition: all 0.12s;
+  font-size: 10px; color: var(--ink-3);
+  background: var(--bg-app); border: 1.5px solid var(--border);
+}
+.mood-cell:hover { transform: scale(1.05); border-color: var(--primary-light); }
+.mood-cell .e { font-size: 18px; }
+.mood-cell.m-1 { background: #FEE2E2; border-color: #FECACA; }
+.mood-cell.m-2 { background: #FFEDD5; border-color: #FED7AA; }
+.mood-cell.m-3 { background: #F5F5F4; border-color: #E7E5E4; }
+.mood-cell.m-4 { background: var(--primary-soft); border-color: var(--primary-light); }
+.mood-cell.m-5 { background: #DCFCE7; border-color: #BBF7D0; }
+.mood-cell.empty { background: white; border-style: dashed; color: var(--ink-4); }
+.mood-cell.future { background: var(--bg-soft); border-style: dashed; opacity: 0.5; cursor: not-allowed; }
+.mood-cell.active { box-shadow: 0 0 0 3px var(--primary-light); border-color: var(--primary); }
+
+.heat-grid { display: grid; grid-template-columns: repeat(31, 1fr); gap: 3px; }
+.heat-cell { aspect-ratio: 1; border-radius: 2px; background: var(--bg-soft); transition: all 0.12s; }
+.heat-cell:hover { transform: scale(1.4); }
+.heat-cell.m-1 { background: #FECACA; } .heat-cell.m-2 { background: #FED7AA; }
+.heat-cell.m-3 { background: #E7E5E4; } .heat-cell.m-4 { background: var(--primary-light); }
+.heat-cell.m-5 { background: #BBF7D0; } .heat-cell.empty { background: #F1F5F9; }
+.heat-cell.future { background: #F8FAFC; border: 1px dashed var(--border); }
+
+.mood-mini-chart { display: block; width: 100%; height: 60px; background: var(--bg-app); border-radius: 8px; padding: 6px; }
+
+.notif-list { display: flex; flex-direction: column; gap: 6px; }
+.notif-item {
+  display: flex; gap: 12px; padding: 12px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: white; cursor: pointer; transition: all 0.12s;
+}
+.notif-item:hover { background: var(--bg-app); }
+.notif-item.unread { border-left: 3px solid var(--primary); background: #FAFEF5; }
+.notif-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--primary-soft); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.notif-icon.ai { background: var(--ai-soft); color: var(--ai); }
+.notif-icon.danger { background: #FEE2E2; color: var(--danger); }
+.notif-icon.warning { background: #FEF3C7; color: #92400E; }
+.notif-body { flex: 1; min-width: 0; }
+.notif-body .ttl { font-size: 13px; font-weight: 600; color: var(--ink-1); margin-bottom: 2px; }
+.notif-body .desc { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.notif-body .time { font-size: 11px; color: var(--ink-4); margin-top: 4px; }
+
+.tabs {
+  display: flex; gap: 4px;
+  background: var(--bg-soft); padding: 4px;
+  border-radius: 10px; margin-bottom: 16px; width: fit-content;
+}
+.tabs .tab {
+  padding: 8px 14px; border-radius: 7px;
+  font-size: 13px; color: var(--ink-3); font-weight: 500; transition: all 0.15s;
+}
+.tabs .tab:hover { color: var(--ink-1); }
+.tabs .tab.active { background: white; color: var(--ink-1); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.tabs .tab .count {
+  display: inline-block; padding: 0 6px;
+  background: var(--bg-soft); border-radius: 999px; font-size: 11px; margin-left: 4px; color: var(--ink-3);
+}
+.tabs .tab.active .count { background: var(--primary-soft); color: var(--primary); }
+
+.recycle-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md);
+  margin-bottom: 8px; background: white; transition: all 0.12s;
+}
+.recycle-row:hover { box-shadow: var(--shadow-1); }
+.recycle-row.selected { border-color: var(--primary); background: #FAFEF5; }
+.recycle-row .rr-info { flex: 1; min-width: 0; }
+.recycle-row .rr-info .ttl { font-size: 13px; font-weight: 600; color: var(--ink-1); margin-bottom: 2px; }
+.recycle-row .rr-info .meta { font-size: 11px; color: var(--ink-3); }
+.recycle-row .rr-actions { display: flex; gap: 6px; }
+
+.trigger-bar {
+  position: fixed; bottom: 16px; right: 16px;
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 12px;
+  box-shadow: var(--shadow-2); z-index: 60; font-size: 11px; max-width: 260px;
+}
+.trigger-bar.collapsed { padding: 8px 12px; max-width: 120px; }
+.trigger-bar .tb-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px; font-weight: 600; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px;
+}
+.trigger-bar.collapsed .tb-btns { display: none; }
+.trigger-bar .tb-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+.trigger-bar .tb-btn {
+  padding: 4px 8px; border-radius: 6px;
+  background: var(--bg-soft); color: var(--ink-2);
+  font-size: 10px; font-weight: 500;
+  border: 1px solid var(--border); transition: all 0.12s;
+}
+.trigger-bar .tb-btn:hover { background: var(--primary-soft); color: var(--primary-hover); border-color: var(--primary-light); }
+
+.export-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+.export-option {
+  padding: 14px; border: 1.5px solid var(--border); border-radius: var(--r-md);
+  cursor: pointer; transition: all 0.12s; background: white;
+}
+.export-option:hover { border-color: var(--primary-light); }
+.export-option.selected { border-color: var(--primary); background: var(--primary-soft); }
+.export-option .eo-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.export-option .eo-desc { font-size: 11px; color: var(--ink-3); }
+.export-option .eo-meta { margin-top: 6px; font-size: 10px; color: var(--ink-4); }
+
+.kbd-shortcut {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 6px; background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 4px; font-size: 11px; color: var(--ink-3); font-family: monospace;
+}
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--ink-3); }
+.empty-state .ico { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state h3 { font-size: 15px; color: var(--ink-2); margin-bottom: 8px; }
+.empty-state p { font-size: 13px; margin: 0 0 16px; }
+
+.diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.diff-col { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.diff-col .dc-head { padding: 10px 14px; background: var(--bg-app); font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.diff-col .dc-head.mine { color: var(--primary-hover); }
+.diff-col .dc-head.server { color: var(--info); }
+.diff-col .dc-body { padding: 12px 14px; font-size: 12px; line-height: 1.7; max-height: 280px; overflow-y: auto; }
+.diff-col .dc-body ins { background: #DCFCE7; color: #166534; text-decoration: none; padding: 1px 2px; border-radius: 2px; display: inline-block; }
+.diff-col .dc-body del { background: #FEE2E2; color: #991B1B; text-decoration: line-through; padding: 1px 2px; border-radius: 2px; }
+
+.menu-toggle {
+  display: none; width: 36px; height: 36px; border-radius: 8px;
+  align-items: center; justify-content: center; color: var(--ink-2);
+}
+.menu-toggle:hover { background: var(--bg-soft); }
+
+@media (max-width: 1024px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .split { grid-template-columns: 1fr; }
+  .top-nav .modules { display: none; }
+}
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; grid-template-areas: "top" "main"; }
+  .side-nav { position: fixed; left: -240px; top: 64px; bottom: 0; width: 240px; z-index: 49; transition: left 0.25s; background: white; }
+  .side-nav.open { left: 0; box-shadow: var(--shadow-3); }
+  .menu-toggle { display: flex; }
+  .entry-grid { grid-template-columns: repeat(3, 1fr); }
+  .weather-grid { grid-template-columns: repeat(4, 1fr); }
+  .mood-grid { grid-template-columns: repeat(5, 1fr); }
+}
+@media (max-width: 480px) {
+  .main { padding: 16px; } .stats { grid-template-columns: repeat(2, 1fr); }
+  .entry-grid { grid-template-columns: 1fr; }
+  .mood-selector { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .mood-btn { padding: 8px 2px; } .mood-btn .e { font-size: 20px; }
+  .top-nav { padding: 0 12px; } .top-nav .user-name { display: none; }
+  .weather-grid { grid-template-columns: repeat(4, 1fr); }
+  .template-grid { grid-template-columns: 1fr; }
+  .page-head { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .page-head .actions { width: 100%; }
+}
+
+.row { display: flex; gap: 8px; align-items: center; }
+.spread { display: flex; justify-content: space-between; align-items: center; }
+.muted { color: var(--ink-3); }
+.text-12 { font-size: 12px; } .text-13 { font-size: 13px; }
+.fw-600 { font-weight: 600; }
+.mb-0 { margin-bottom: 0; } .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; }
+.mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; }
+.flex-1 { flex: 1; }
+.text-right { text-align: right; }
+mark { background: #FEF3C7; padding: 0 2px; border-radius: 2px; color: inherit; }
+
+.tl-list::-webkit-scrollbar, .cmdk .cmdk-body::-webkit-scrollbar,
+.sheet .sh-body::-webkit-scrollbar, .overlay-panel .ov-body::-webkit-scrollbar {
+  width: 6px;
+}
+.tl-list::-webkit-scrollbar-thumb, .cmdk .cmdk-body::-webkit-scrollbar-thumb,
+.sheet .sh-body::-webkit-scrollbar-thumb, .overlay-panel .ov-body::-webkit-scrollbar-thumb {
+  background: var(--border-h); border-radius: 3px;
+}
+.tl-list::-webkit-scrollbar-track, .cmdk .cmdk-body::-webkit-scrollbar-track,
+.sheet .sh-body::-webkit-scrollbar-track, .overlay-panel .ov-body::-webkit-scrollbar-track { background: transparent; }
+
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child { border-bottom: 0; }
+.setting-row .sr-info { flex: 1; }
+.setting-row .sr-info .ttl { font-size: 13px; font-weight: 600; color: var(--ink-1); margin-bottom: 2px; }
+.setting-row .sr-info .desc { font-size: 12px; color: var(--ink-3); }
+.switch {
+  width: 36px; height: 20px; border-radius: 999px; background: var(--border-h);
+  position: relative; cursor: pointer; transition: background 0.15s;
+}
+.switch::after {
+  content: ''; width: 16px; height: 16px; border-radius: 50%; background: white;
+  position: absolute; top: 2px; left: 2px; transition: left 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.switch.on { background: var(--primary); }
+.switch.on::after { left: 18px; }
+
+.stat-row-card {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 16px;
+}
+.stat-mini {
+  background: var(--bg-app); border-radius: 8px;
+  padding: 12px; text-align: center;
+}
+.stat-mini .l { font-size: 11px; color: var(--ink-3); }
+.stat-mini .v { font-size: 18px; font-weight: 700; color: var(--ink-1); margin-top: 4px; }
+
+.mood-bubble-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; margin-bottom: 8px;
+}
+.mood-bubble-grid .mbg-cell {
+  aspect-ratio: 1; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; background: var(--bg-soft);
+}
+.mood-bubble-grid .mbg-cell.m-1 { background: #FEE2E2; }
+.mood-bubble-grid .mbg-cell.m-2 { background: #FFEDD5; }
+.mood-bubble-grid .mbg-cell.m-3 { background: #F5F5F4; }
+.mood-bubble-grid .mbg-cell.m-4 { background: var(--primary-soft); }
+.mood-bubble-grid .mbg-cell.m-5 { background: #DCFCE7; }
+.mood-bubble-grid .mbg-cell.empty { background: white; border: 1px dashed var(--border); }
+.mood-bubble-grid .mbg-cell.future { background: #F8FAFC; border: 1px dashed var(--border-h); opacity: 0.5; }
+.mood-bubble-grid .mbg-cell.today { box-shadow: 0 0 0 2px var(--primary); }
+
+.weekday-row {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; margin-bottom: 4px;
+}
+.weekday-row .wd {
+  text-align: center; font-size: 10px; color: var(--ink-3); font-weight: 500;
+}
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  padding: 4px 10px; border-radius: 999px;
+  background: white; border: 1px solid var(--border);
+  font-size: 11px; color: var(--ink-2);
+}
+.tag.primary { background: var(--primary-soft); color: var(--primary-hover); border-color: var(--primary-light); }
+.tag.ai { background: var(--ai-soft); color: var(--ai); border-color: #DDD6FE; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top-nav">
+    <div class="row gap-3">
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="brand">
+        <div class="mark">L</div>
+        <span>Lifewise</span>
+      </div>
+    </div>
+    <nav class="modules" aria-label="主导航">
+      <button class="module" data-module="task">📋 任务</button>
+      <button class="module active" data-module="daily">📝 日记</button>
+      <button class="module" data-module="bill">💰 账单</button>
+      <button class="module" data-module="diet">🥗 饮食</button>
+      <button class="module" data-module="plan">🗓 计划</button>
+      <button class="module" data-module="ai">🤖 AI <span class="dot"></span></button>
+    </nav>
+    <div class="row gap-2">
+      <button class="bell" id="bellBtn" aria-label="通知">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="count">3</span>
+      </button>
+      <div class="user">
+        <div class="avatar">静</div>
+        <span class="user-name">静怡</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <aside class="side-nav" id="sideNav">
+    <div class="side-section">
+      <div class="side-title">日记</div>
+      <div class="side-item active" data-side="today">
+        <span class="ico">📝</span><span>今日记录</span>
+      </div>
+      <div class="side-item" data-side="timeline">
+        <span class="ico">📅</span><span>月度时间线</span>
+        <span class="count">22</span>
+      </div>
+      <div class="side-item" data-side="calendar">
+        <span class="ico">🗓</span><span>日历视图</span>
+      </div>
+      <div class="side-item" data-side="moodmap">
+        <span class="ico">🌡</span><span>心情图</span>
+      </div>
+      <div class="side-item" data-side="search">
+        <span class="ico">🔍</span><span>搜索 / 筛选</span>
+      </div>
+      <div class="side-item" data-side="templates">
+        <span class="ico">📋</span><span>模板库</span>
+        <span class="count">6</span>
+      </div>
+      <div class="side-item" data-side="stats">
+        <span class="ico">📊</span><span>统计 / 趋势</span>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">视图</div>
+      <div class="side-item" data-view="list"><span class="ico">📃</span><span>列表</span></div>
+      <div class="side-item" data-view="calendar"><span class="ico">🗓</span><span>日历</span></div>
+      <div class="side-item" data-view="mood"><span class="ico">🌡</span><span>心情图</span></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">其他</div>
+      <div class="side-item" data-side="recycle">
+        <span class="ico">🗑</span><span>回收站</span>
+        <span class="count">3</span>
+      </div>
+      <div class="side-item" data-side="export">
+        <span class="ico">📤</span><span>导出中心</span>
+      </div>
+      <div class="side-item" data-side="notifications">
+        <span class="ico">🔔</span><span>通知</span>
+        <span class="count">3</span>
+      </div>
+      <div class="side-item" data-side="settings">
+        <span class="ico">⚙</span><span>设置</span>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h4>本月心情不错 ✨</h4>
+      <p>你已连续写了 12 天日记,平均心情 3.8 星。</p>
+      <button class="btn-primary sm" style="width:100%;" id="sideWeekReport">查看周报</button>
+    </div>
+  </aside>
+
+  <main class="main" id="mainContent"><!-- 由 JS 注入 --></main>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<div class="trigger-bar" id="triggerBar">
+  <div class="tb-head">
+    <span>🧪 状态触发器</span>
+    <button class="link-inline" id="triggerHide" style="font-size:10px;">收起</button>
+  </div>
+  <div class="tb-btns" id="triggerBtns">
+    <button class="tb-btn" data-trigger="save-editing">编辑中</button>
+    <button class="tb-btn" data-trigger="save-saving">保存中</button>
+    <button class="tb-btn" data-trigger="save-saved">已保存</button>
+    <button class="tb-btn" data-trigger="save-failed">保存失败</button>
+    <button class="tb-btn" data-trigger="save-conflict">冲突</button>
+    <button class="tb-btn" data-trigger="draft-found">未提交草稿</button>
+    <button class="tb-btn" data-trigger="ai-idle">AI 未生成</button>
+    <button class="tb-btn" data-trigger="ai-loading">AI 生成中</button>
+    <button class="tb-btn" data-trigger="ai-success">AI 成功</button>
+    <button class="tb-btn" data-trigger="ai-fail">AI 失败</button>
+    <button class="tb-btn" data-trigger="ai-unavail">AI 不可用</button>
+    <button class="tb-btn" data-trigger="ai-timeout">AI 超时</button>
+    <button class="tb-btn" data-trigger="ollama-off">关 AI 服务</button>
+    <button class="tb-btn" data-trigger="ollama-on">开 AI 服务</button>
+    <button class="tb-btn" data-trigger="open-search">搜索弹层</button>
+    <button class="tb-btn" data-trigger="open-export">导出弹层</button>
+    <button class="tb-btn" data-trigger="open-conflict">冲突对比</button>
+    <button class="tb-btn" data-trigger="open-recover">恢复确认</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   MOCK DATA — 2026-07 全月 (31 条)
+   ============================================================ */
+const PRESET_HIGHLIGHTS = ['工作', '学习', '生活', '运动', '社交'];
+const CUSTOM_HIGHLIGHTS = ['复盘 Q3 OKR', '阅读', '冥想'];
+const WEATHER_LIST = [
+  { key: 'sunny',    e: '☀', l: '晴' },
+  { key: 'cloudy',   e: '⛅', l: '多云' },
+  { key: 'overcast', e: '☁', l: '阴' },
+  { key: 'rain',     e: '🌧', l: '雨' },
+  { key: 'thunder',  e: '⛈', l: '雷雨' },
+  { key: 'snow',     e: '🌨', l: '雪' },
+  { key: 'fog',      e: '🌫', l: '雾' }
+];
+const MOOD_LIST = [
+  { e: '😞', l: '很差', v: 1 },
+  { e: '🙁', l: '不好', v: 2 },
+  { e: '😐', l: '一般', v: 3 },
+  { e: '🙂', l: '不错', v: 4 },
+  { e: '😄', l: '极好', v: 5 }
+];
+const TEMPLATES = [
+  { id: 'tpl1', name: '每日复盘', desc: '完成的工作 · 心得 · 明日计划', icon: '📝', structure: '## 今日完成\n- \n\n## 心得\n- \n\n## 明日计划\n- ' },
+  { id: 'tpl2', name: '情绪日记', desc: '事件 · 感受 · 触发因素', icon: '💭', structure: '## 今天发生了什么\n- \n\n## 我的感受\n- \n\n## 是什么触发了这种情绪\n- ' },
+  { id: 'tpl3', name: '学习日志', desc: '学到的 · 不懂的 · 下一步', icon: '📚', structure: '## 学到的新知\n- \n\n## 还没搞懂\n- \n\n## 下一步行动\n- ' },
+  { id: 'tpl4', name: '感恩日记', desc: '3 件值得感恩的小事', icon: '🙏', structure: '## 今日 3 件值得感恩的事\n1. \n2. \n3. ' },
+  { id: 'tpl5', name: '运动打卡', desc: '项目 · 时长 · 感受', icon: '🏃', structure: '## 运动项目\n- \n\n## 时长\n- \n\n## 身体感受\n- ' },
+  { id: 'tpl6', name: '会议纪要', desc: '议题 · 结论 · 行动项', icon: '🤝', structure: '## 议题\n- \n\n## 讨论结论\n- \n\n## 行动项\n- [ ] ' }
+];
+
+const MOCK = (() => {
+  const data = {
+    '2026-07-01': { mood: 4, weather: 'sunny',    highlights: [{name:'工作',isPreset:true},{name:'学习',isPreset:true}], md: '## 今日\n- 完成产品 PRD v1.0 初稿\n- 与开发对齐本周迭代节奏\n- 阅读《深度工作》第 3 章', ai: { text: '今天用户集中推进了产品文档工作,并完成与开发的节奏对齐。整体效率较高,心情平稳。', edited: false }, updatedAt: Date.now() },
+    '2026-07-02': { mood: 5, weather: 'sunny',    highlights: [{name:'工作',isPreset:true}], md: '会议顺利,需求一次过审。\n\n- 完成数据看板原型 v0.3\n- 评审通过,排期下周二上线' },
+    '2026-07-03': { empty: true },
+    '2026-07-04': { mood: 3, weather: 'cloudy',   highlights: [{name:'生活',isPreset:true},{name:'社交',isPreset:true}], md: '周末与老朋友吃饭,聊起近况。\n\n- 三年没见,变化都挺大\n- 约了下次一起去爬山' },
+    '2026-07-05': { mood: 2, weather: 'rain',     highlights: [{name:'工作',isPreset:true}], md: '需求反复变更,有点疲惫。\n\n> 下午开了 3 个会,每个都拉长了半小时' },
+    '2026-07-06': { empty: true },
+    '2026-07-07': { mood: 5, weather: 'sunny',    highlights: [{name:'学习',isPreset:true},{name:'运动',isPreset:true}], md: '完成 5 公里晨跑 + 阅读《原子习惯》。\n\n- 6:30 起床,8 点前结束\n- 摘录了 5 条行动建议', ai: { text: '用户保持早起习惯,完成了阅读与运动。整体状态积极向上,值得继续保持。', edited: true }, updatedAt: Date.now() - 86400000 },
+    '2026-07-08': { mood: 4, weather: 'cloudy',   highlights: [{name:'工作',isPreset:true},{name:'社交',isPreset:true}], md: '项目启动会顺利召开,12 位同事到场。\n\n- 明确 Q3 OKR\n- 责任分工确认' },
+    '2026-07-09': { mood: 4, weather: 'sunny',    highlights: [{name:'工作',isPreset:true},{name:'学习',isPreset:true}], md: '集中精力做了产品调研,输出了 3 个方向的对比。' },
+    '2026-07-10': { empty: true },
+    '2026-07-11': { mood: 3, weather: 'overcast', highlights: [{name:'工作',isPreset:true}], md: '处理了几封积压邮件,做了一次 1:1。' },
+    '2026-07-12': { mood: 2, weather: 'rain',     highlights: [{name:'生活',isPreset:true}], md: '身体不舒服,休息了一天。\n\n> 应该是这两天加班太多,晚上 11 点就睡了' },
+    '2026-07-13': { mood: 4, weather: 'sunny',    highlights: [{name:'学习',isPreset:true},{name:'运动',isPreset:true}], md: '状态不错,完成了课程学习。', aiUnavailable: true },
+    '2026-07-14': { mood: 5, weather: 'sunny',    highlights: [{name:'工作',isPreset:true},{name:'学习',isPreset:true},{name:'社交',isPreset:true}], md: '团队季度复盘,数据很亮眼。\n\n- 月活增长 28%\n- 团队获得 Q2 优秀奖', ai: { text: '今天用户在季度复盘会议上表现积极,作为团队代表分享了工作成果,得到同事一致好评。整体心情达到本周峰值,社交与工作结合紧密。', edited: false }, updatedAt: Date.now() - 86400000 * 12 },
+    '2026-07-15': { mood: 5, weather: 'sunny',    highlights: [{name:'工作',isPreset:true},{name:'生活',isPreset:true}], md: '阳光很好,适合户外工作。\n\n- 阳台写代码 3 小时\n- 跟猫玩了一会儿' },
+    '2026-07-16': { mood: 4, weather: 'cloudy',   highlights: [{name:'学习',isPreset:true},{name:'运动',isPreset:true}], md: '新技能入门 + 健身。\n\n- TypeScript 泛型搞明白了\n- 跑步 5 公里' },
+    '2026-07-17': { mood: 3, weather: 'overcast', highlights: [{name:'工作',isPreset:true}], md: '平稳的一天。' },
+    '2026-07-18': { mood: 3, weather: 'rain',     highlights: [{name:'生活',isPreset:true},{name:'社交',isPreset:true}], md: '与家人视频通话。' },
+    '2026-07-19': { mood: 4, weather: 'sunny',    highlights: [{name:'工作',isPreset:true},{name:'学习',isPreset:true}], md: '完成季度 OKR 复盘。' },
+    '2026-07-20': { mood: 4, weather: 'cloudy',   highlights: [{name:'工作',isPreset:true}], md: '产品迭代上线路路通畅。' },
+    '2026-07-21': { mood: 5, weather: 'sunny',    highlights: [{name:'运动',isPreset:true},{name:'社交',isPreset:true}], md: '周末爬山,景色很美。' },
+    '2026-07-22': { mood: 4, weather: 'overcast', highlights: [{name:'运动',isPreset:true},{name:'复盘 Q3 OKR',isPreset:false}], md: '今天复盘了 Q3 OKR。\n\n- 进度 62%,节奏正常\n- 风险:招聘进度滞后' },
+    '2026-07-23': { mood: 5, weather: 'sunny',    highlights: [{name:'学习',isPreset:true}], md: '周末充电,看了三篇论文。' },
+    '2026-07-24': { mood: 4, weather: 'cloudy',   highlights: [{name:'工作',isPreset:true},{name:'学习',isPreset:true}], md: '调研报告初稿。' },
+    '2026-07-25': { mood: 3, weather: 'rain',     highlights: [{name:'生活',isPreset:true}], md: '身体有点累,早早休息。' },
+    '2026-07-26': { mood: 4, weather: 'cloudy',   highlights: [{name:'工作',isPreset:true},{name:'生活',isPreset:true}], md: '## 今日\n- 完成 Q3 数据分析\n- 团队同步,确认 Q3 节奏\n- 阅读《原子习惯》第 5 章\n\n明天开始做产品上线收尾。' },
+    '2026-07-27': { future: true },
+    '2026-07-28': { future: true },
+    '2026-07-29': { future: true },
+    '2026-07-30': { future: true },
+    '2026-07-31': { future: true }
+  };
+  return data;
+})();
+
+const RECYCLE_BIN = {
+  entries: [
+    { id: 'r1', date: '2026-06-28', title: '出差见闻', deletedAt: '3 天前', expiresIn: 27, mood: 3, preview: '上海之行,见到了几位老朋友……' },
+    { id: 'r2', date: '2026-06-15', title: '产品复盘草稿', deletedAt: '16 天前', expiresIn: 14, mood: 4, preview: 'Q2 总结:增长超预期,但留存有压力……' },
+    { id: 'r3', date: '2026-06-02', title: '旧版日记', deletedAt: '29 天前', expiresIn: 1, mood: 2, preview: '那天加班到很晚,什么都不想写……' }
+  ],
+  drafts: [
+    { id: 'd1', date: '2026-07-25', title: '未提交的草稿', savedAt: '昨天 23:42', preview: '今天的状态有点奇怪,想记录下来但又不想……' },
+    { id: 'd2', date: '2026-07-22', title: '复盘草稿', savedAt: '4 天前', preview: 'OKR 复盘……' }
+  ],
+  autosaves: [
+    { id: 'a1', date: '2026-07-26', title: '今日自动保存 v3', savedAt: '10 分钟前', preview: '## 今日\n- 完成 Q3 数据分析…' },
+    { id: 'a2', date: '2026-07-25', title: '昨日自动保存 v2', savedAt: '昨天 18:20', preview: '今天感觉一般般……' }
+  ]
+};
+
+const NOTIFICATIONS = [
+  { id: 'n1', type: 'ai',      ttl: 'AI 复盘已生成', desc: '7/14 的日记 AI 摘要已生成,点击查看', time: '5 分钟前', unread: true },
+  { id: 'n2', type: 'system',  ttl: '周报已就绪', desc: '本周共写了 5 篇日记,心情均值 4.0', time: '1 小时前', unread: true },
+  { id: 'n3', type: 'warning', ttl: '连续 2 天未记录', desc: '要不要现在补写一下?', time: '今天 09:00', unread: true },
+  { id: 'n4', type: 'danger',  ttl: '草稿保存失败', desc: '昨天 23:42 的草稿未能成功同步,已备份在本地', time: '昨天 23:43', unread: false },
+  { id: 'n5', type: 'system',  ttl: '模板更新', desc: '新增了 2 套模板:项目复盘 / 阅读笔记', time: '3 天前', unread: false },
+  { id: 'n6', type: 'ai',      ttl: 'AI 服务维护通知', desc: '今晚 23:00 - 23:30 AI 服务维护', time: '5 天前', unread: false }
+];
+
+const STATE = {
+  side: 'today',
+  currentDate: '2026-07-26',
+  selectedDate: '2026-07-26',
+  currentMonth: '2026-07',
+  view: 'list',
+  search: { q: '', moodMin: null, moodMax: null, dateFrom: null, dateTo: null, highlights: [] },
+  searchActive: false,
+  draft: null,
+  saveState: 'editing',
+  lastSavedAt: null,
+  aiState: 'A',
+  aiText: '',
+  aiEdited: false,
+  aiError: null,
+  aiStartedAt: null,
+  aiTimer: null,
+  ollamaHealthy: true,
+  conflictActive: false,
+  preview: false,
+  recycleTab: 'entries',
+  notifOpen: false,
+  searchOverlayOpen: false,
+  exportModalOpen: false,
+  conflictModalOpen: false,
+  recoverModalOpen: false,
+  triggerCollapsed: false,
+  aiTimeoutSeconds: 30
+};
+
+const TODAY = '2026-07-26';
+
+function getReport(date) { return MOCK[date] || null; }
+function getTodayReport() { return MOCK[TODAY]; }
+function isFuture(d) { const r = MOCK[d]; return r && r.future; }
+function isEmpty(d) { const r = MOCK[d]; return r && r.empty; }
+function isWritten(d) { const r = MOCK[d]; return r && !r.empty && !r.future; }
+
+function weatherOf(key) {
+  if (!key) return '';
+  const w = WEATHER_LIST.find(x => x.key === key);
+  return w ? `${w.e} ${w.l}` : '';
+}
+function weatherE(key) {
+  if (!key) return '—';
+  const w = WEATHER_LIST.find(x => x.key === key);
+  return w ? w.e : '—';
+}
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function simpleMarkdown(md) {
+  let html = escapeHtml(md || '');
+  html = html.replace(/^### (.*)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.*)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.*)$/gm, '<h1>$1</h1>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  html = html.replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>');
+  html = html.replace(/^\d+\. (.*)$/gm, '<li>$1</li>');
+  html = html.split('\n\n').map(p => {
+    if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<blockquote')) return p;
+    return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+  }).join('\n');
+  return html;
+}
+
+function formatDate(d, fmt) {
+  const date = new Date(d);
+  if (fmt === 'cn-month') return date.toLocaleDateString('zh-CN', {month: 'long', day: 'numeric'});
+  if (fmt === 'cn-full') return date.toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'});
+  return d;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, type = 'info', duration = 2400) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.getElementById('toastStack').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-10px)'; t.style.transition = 'all 0.2s'; setTimeout(() => t.remove(), 200); }, duration);
+}
+
+/* ============================================================
+   SAVE STATE UPDATE (5 态)
+   ============================================================ */
+function setSaveState(s) {
+  STATE.saveState = s;
+  const el = document.getElementById('autosaveState');
+  if (!el) return;
+  const text = el.querySelector('.text');
+  el.className = 'state ' + s;
+  const map = {
+    editing: '编辑中…',
+    saving: '正在保存…',
+    saved: '草稿已保存 ✓',
+    failed: '保存失败 ⟲ 重试',
+    conflict: '存在版本冲突 ⚠'
+  };
+  text.textContent = map[s];
+  if (s === 'saved' && STATE.lastSavedAt) {
+    const timeEl = document.getElementById('autosaveTime');
+    if (timeEl) timeEl.textContent = STATE.lastSavedAt.toTimeString().slice(0, 8);
+  }
+}
+
+function triggerSave() {
+  if (!STATE.draft) return;
+  STATE.saveState = 'editing';
+  setSaveState('editing');
+  clearTimeout(window._draftT);
+  window._draftT = setTimeout(doSave, 700);
+}
+
+function doSave() {
+  if (!STATE.draft) return;
+  STATE.saveState = 'saving';
+  setSaveState('saving');
+  setTimeout(() => {
+    if (STATE.conflictActive) {
+      STATE.saveState = 'conflict';
+      setSaveState('conflict');
+      toast('保存失败:存在版本冲突', 'error');
+    } else if (Math.random() < 0.04) {
+      STATE.saveState = 'failed';
+      setSaveState('failed');
+      toast('保存失败,请重试', 'error');
+    } else {
+      STATE.saveState = 'saved';
+      STATE.lastSavedAt = new Date();
+      setSaveState('saved');
+      const t = TODAY;
+      if (MOCK[t] && !MOCK[t].empty) {
+        MOCK[t].mood = STATE.draft.mood;
+        MOCK[t].highlights = STATE.draft.highlights;
+        MOCK[t].weather = STATE.draft.weather;
+        MOCK[t].md = STATE.draft.contentMd;
+      }
+    }
+  }, 500);
+}
+
+/* ============================================================
+   AI SUMMARY (5 态)
+   ============================================================ */
+function aiStart() {
+  if (!STATE.ollamaHealthy) {
+    STATE.aiState = 'U';
+    renderDetailBody();
+    toast('AI 服务暂不可用', 'warning');
+    return;
+  }
+  if (STATE.aiEdited) {
+    if (!confirm('重新生成会覆盖你已经编辑过的内容,确定吗?')) return;
+  }
+  STATE.aiState = 'B';
+  STATE.aiStartedAt = Date.now();
+  STATE.aiError = null;
+  renderDetailBody();
+  setTimeout(() => {
+    if (Math.random() < 0.85) {
+      const r = getReport(STATE.selectedDate);
+      STATE.aiState = 'C';
+      STATE.aiText = (r && r.ai) ? r.ai.text : '今天整体节奏平稳,完成了若干事项。建议明天继续保持当前状态。';
+      STATE.aiEdited = false;
+    } else {
+      STATE.aiState = 'D';
+      STATE.aiError = 'timeout';
+    }
+    renderDetailBody();
+  }, 1500);
+  const TO = (STATE.aiTimeoutSeconds || 30) * 1000;
+  clearTimeout(STATE.aiTimer);
+  STATE.aiTimer = setTimeout(() => {
+    if (STATE.aiState === 'B') {
+      STATE.aiState = 'D';
+      STATE.aiError = 'timeout';
+      renderDetailBody();
+      toast('AI 生成超时,请重试', 'error');
+    }
+  }, TO);
+}
+
+function aiDelete() {
+  STATE.aiState = 'A';
+  STATE.aiText = '';
+  STATE.aiEdited = false;
+  const r = getReport(STATE.selectedDate);
+  if (r) delete r.ai;
+  renderDetailBody();
+  toast('AI 摘要已删除', 'success');
+}
+
+function aiEdit(text) {
+  STATE.aiText = text;
+  STATE.aiEdited = true;
+}
+
+/* ============================================================
+   URL SYNC (Search filters)
+   ============================================================ */
+function syncSearchToUrl() {
+  const p = new URLSearchParams();
+  if (STATE.search.q) p.set('q', STATE.search.q);
+  if (STATE.search.dateFrom) p.set('dateFrom', STATE.search.dateFrom);
+  if (STATE.search.dateTo) p.set('dateTo', STATE.search.dateTo);
+  if (STATE.search.moodMin) p.set('moodMin', STATE.search.moodMin);
+  if (STATE.search.moodMax) p.set('moodMax', STATE.search.moodMax);
+  if (STATE.search.highlights.length) p.set('highlights', STATE.search.highlights.join(','));
+  const qs = p.toString();
+  history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+}
+
+function loadSearchFromUrl() {
+  const p = new URLSearchParams(location.search);
+  STATE.search.q = p.get('q') || '';
+  STATE.search.dateFrom = p.get('dateFrom') || null;
+  STATE.search.dateTo = p.get('dateTo') || null;
+  STATE.search.moodMin = p.get('moodMin') ? parseInt(p.get('moodMin')) : null;
+  STATE.search.moodMax = p.get('moodMax') ? parseInt(p.get('moodMax')) : null;
+  STATE.search.highlights = p.get('highlights') ? p.get('highlights').split(',') : [];
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function render() {
+  document.querySelectorAll('.side-item').forEach(el => el.classList.toggle('active', el.dataset.side === STATE.side));
+  const main = document.getElementById('mainContent');
+  if (STATE.side === 'today') main.innerHTML = renderTodayView();
+  else if (STATE.side === 'timeline') main.innerHTML = renderTimelineView();
+  else if (STATE.side === 'calendar') main.innerHTML = renderCalendarView();
+  else if (STATE.side === 'moodmap') main.innerHTML = renderMoodMapView();
+  else if (STATE.side === 'search') main.innerHTML = renderSearchView();
+  else if (STATE.side === 'templates') main.innerHTML = renderTemplatesView();
+  else if (STATE.side === 'stats') main.innerHTML = renderStatsView();
+  else if (STATE.side === 'recycle') main.innerHTML = renderRecycleView();
+  else if (STATE.side === 'export') main.innerHTML = renderExportView();
+  else if (STATE.side === 'notifications') main.innerHTML = renderNotificationsView();
+  else if (STATE.side === 'settings') main.innerHTML = renderSettingsView();
+  bindEvents();
+  syncSearchToUrl();
+}
+
+/* ============================================================
+   VIEW 1: TODAY DASHBOARD (V1)
+   ============================================================ */
+function renderTodayView() {
+  const r = getTodayReport();
+  const written = isWritten(TODAY);
+  const statusText = !written ? '今天还没有记录' : '今日已记录';
+  const moodBlock = !written
+    ? `<div class="mood-bubble empty">—</div>
+       <div class="mood-info"><div class="label">心情</div><div class="name">点击开始记录</div></div>`
+    : `<div class="mood-bubble m-${r.mood}">${MOOD_LIST[r.mood-1].e}</div>
+       <div class="mood-info"><div class="label">${MOOD_LIST[r.mood-1].l} · ${r.mood} 星</div><div class="name">${new Date(TODAY).toLocaleDateString('zh-CN', {month:'long', day:'numeric'})}</div></div>`;
+
+  const metaRow = !written ? '' : `
+    <div class="meta-row">
+      <span class="pill"><span class="e">${weatherE(r.weather)}</span>${weatherOf(r.weather).split(' ')[1] || ''}</span>
+      ${r.highlights.slice(0, 3).map(h => `<span class="pill ${h.isPreset ? 'primary' : 'ai'}">${h.isPreset ? '' : '✨'}${escapeHtml(h.name)}</span>`).join('')}
+    </div>`;
+
+  const preview = !written
+    ? '<div class="preview" style="color:var(--ink-4); text-align:center;">✎ 写下今天发生的事,记录让生活更清晰</div>'
+    : `<div class="preview">${escapeHtml((r.md || '').replace(/[#*`>]/g, '').slice(0, 120))}…</div>`;
+
+  const cta = !written
+    ? `<button class="btn-primary flex-1" data-go="write">📝 写今日日记</button>
+       <button class="btn-secondary" data-go="timeline">查看时间线</button>`
+    : `<button class="btn-primary flex-1" data-go="detail">查看详情</button>
+       <button class="btn-secondary" data-go="write">继续编辑</button>`;
+
+  const monthWritten = Object.keys(MOCK).filter(d => isWritten(d)).length;
+  const monthMood = Object.values(MOCK).filter(rr => rr && rr.mood).map(rr => rr.mood);
+  const avg = (monthMood.reduce((s,m)=>s+m,0) / monthMood.length).toFixed(1);
+  const streak = (() => {
+    let s = 0;
+    for (let i = 26; i >= 1; i--) {
+      const d = `2026-07-${String(i).padStart(2,'0')}`;
+      if (isWritten(d)) s++; else if (!isFuture(d) && !isEmpty(d)) break;
+    }
+    return s;
+  })();
+
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">TODAY · 2026-07-26 周日</div>
+        <h1>晚上好,静怡</h1>
+        <div class="sub">把今天记录下来,让生活更清晰</div>
+      </div>
+      <div class="actions">
+        <div class="view-switch">
+          <button class="active">快速记录</button>
+          <button>完整编辑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">本月已写</div>
+        <div class="value">${monthWritten}<span class="unit">/ 26 天</span></div>
+        <div class="delta">↑ 比上月多 3 天</div>
+      </div>
+      <div class="stat">
+        <div class="label">平均心情</div>
+        <div class="value">${avg}<span class="unit">星</span></div>
+        <div class="delta">↑ 较上半月 +0.3</div>
+      </div>
+      <div class="stat">
+        <div class="label">连续记录</div>
+        <div class="value">${streak}<span class="unit">天</span></div>
+        <div class="delta">保持节奏 ✨</div>
+      </div>
+      <div class="stat">
+        <div class="label">总字数</div>
+        <div class="value">${Object.values(MOCK).filter(rr=>rr&&rr.md).reduce((s,rr)=>s+(rr.md||'').length,0)}</div>
+        <div class="delta">本月新增 1.2k</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="col-stack">
+        <div class="today-card">
+          <div class="today-head">
+            <h3>${statusText}</h3>
+            <span class="date-pill">7/26</span>
+          </div>
+          <div class="mood-row">${moodBlock}</div>
+          ${metaRow}
+          ${preview}
+          <div class="actions-row">${cta}</div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>快捷入口</h3></div>
+          <div class="entry-grid">
+            <div class="entry-tile" data-go="timeline"><span class="ico">📅</span><div class="lbl">月度时间线</div><div class="num">${monthWritten} 篇</div></div>
+            <div class="entry-tile" data-go="search"><span class="ico">🔍</span><div class="lbl">搜索过往</div><div class="num">全文 + 标签</div></div>
+            <div class="entry-tile" data-go="templates"><span class="ico">📋</span><div class="lbl">模板库</div><div class="num">${TEMPLATES.length} 套</div></div>
+            <div class="entry-tile" data-go="stats"><span class="ico">📊</span><div class="lbl">统计 / 趋势</div><div class="num">月度复盘</div></div>
+            <div class="entry-tile" data-go="recycle"><span class="ico">🗑</span><div class="lbl">回收站</div><div class="num">30 天可恢复</div></div>
+            <div class="entry-tile" data-go="export"><span class="ico">📤</span><div class="lbl">导出中心</div><div class="num">.md / .zip</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-stack">
+        <div class="card">
+          <div class="card-head">
+            <h3>最近 7 天</h3>
+            <button class="btn-ghost" data-go="timeline">查看全部 →</button>
+          </div>
+          ${renderRecentList()}
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>使用模板</h3><button class="link-inline" data-go="templates">全部模板</button></div>
+          <div class="template-grid">
+            ${TEMPLATES.slice(0, 4).map(t => `
+              <div class="template-tile" data-template="${t.id}">
+                <div class="name">${t.icon} ${t.name}</div>
+                <div class="desc">${t.desc}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>本周心情 mini</h3><button class="btn-ghost" data-go="moodmap">全屏查看 →</button></div>
+          ${renderMoodMiniSvg()}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRecentList() {
+  const recent = [];
+  for (let i = 25; i >= 19; i--) {
+    const d = `2026-07-${String(i).padStart(2,'0')}`;
+    const rr = MOCK[d];
+    if (!rr || rr.empty) continue;
+    if (rr.future) continue;
+    recent.push({ d, r: rr });
+  }
+  return `<div class="col-stack" style="gap:8px;">
+    ${recent.map(({d, r}) => `
+      <div class="tl-item" data-date="${d}">
+        <div class="tl-date"><div class="d">${parseInt(d.split('-')[2])}</div><div>7 月</div></div>
+        <div class="tl-mood m-${r.mood}">${MOOD_LIST[r.mood-1].e}</div>
+        <div class="tl-body">
+          <div class="title">${MOOD_LIST[r.mood-1].l}的一天</div>
+          <div class="snippet">${escapeHtml((r.md||'').replace(/[#*`>]/g,'').slice(0, 50))}…</div>
+          <div class="meta">
+            ${(r.highlights||[]).slice(0,2).map(h => `<span class="pill ${h.isPreset?'':'ai'}" style="font-size:10px; padding:1px 8px;">${escapeHtml(h.name)}</span>`).join('')}
+          </div>
+        </div>
+        <div class="tl-status completed">已写</div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function renderMoodMiniSvg() {
+  const dates = Object.keys(MOCK).filter(d => d.startsWith('2026-07')).slice(0, 26);
+  const W = 600, H = 60, pad = 4;
+  const innerW = W - pad*2, innerH = H - pad*2;
+  const stepX = innerW / 30;
+  const pts = dates.map((d, i) => {
+    const rr = MOCK[d];
+    const x = pad + i * stepX;
+    let y = null;
+    if (rr && !rr.empty && !rr.future && rr.mood) {
+      y = H - pad - ((rr.mood - 1) / 4) * innerH;
+    }
+    return { x, y, r: rr };
+  });
+  const path = pts.filter(p => p.y !== null).map((p, i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  let svg = `<svg class="mood-mini-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  if (path) svg += `<path d="${path}" fill="none" stroke="#65A30D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  pts.forEach(p => {
+    if (p.r && !p.r.future && !p.r.empty && p.y !== null) {
+      const c = ['#EF4444','#F97316','#A8A29E','#84CC16','#10B981'][p.r.mood-1];
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${c}" stroke="white" stroke-width="1"/>`;
+    }
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+/* ============================================================
+   VIEW 2: TIMELINE (V2) — 月度时间线 / 31 日状态 / 月份切换 / mini SVG
+   ============================================================ */
+function renderTimelineView() {
+  const dates = Object.keys(MOCK).filter(d => d.startsWith(STATE.currentMonth));
+  const written = dates.filter(d => isWritten(d));
+  const avg = written.length ? (written.reduce((s,d)=>s+MOCK[d].mood,0)/written.length).toFixed(1) : '—';
+  const [yr, mo] = STATE.currentMonth.split('-');
+  const monthLabel = `${yr} 年 ${parseInt(mo)} 月`;
+
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">TIMELINE · ${monthLabel}</div>
+        <h1>月度时间线</h1>
+        <div class="sub">已写 <b>${written.length}</b> / ${dates.filter(d=>!isFuture(d)).length} 天 · 平均心情 <b>${avg}</b> 星</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm" id="exportMonth">📤 导出本月</button>
+        <button class="btn-primary sm" id="newEntry">+ 新建</button>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="col-stack">
+        <div class="month-bar">
+          <button class="nav" id="prevMonth">‹</button>
+          <div class="label">${monthLabel} <span class="avg">月均 ${avg}</span></div>
+          <button class="nav" id="nextMonth">›</button>
+        </div>
+
+        <div class="mood-chart">
+          <div class="chart-head">
+            <h4>月度心情曲线 (mini SVG)</h4>
+            <div class="chart-legend">
+              <span><span class="dot" style="background:#84CC16;"></span>4+</span>
+              <span><span class="dot" style="background:#A8A29E;"></span>3</span>
+              <span><span class="dot" style="background:#F97316;"></span>≤2</span>
+            </div>
+          </div>
+          ${renderMoodChartSvg()}
+          <div class="keyword-slot">☁ 关键词云 · 预留区(DR-013 · 待确认)</div>
+        </div>
+
+        <div class="timeline">
+          <div class="tl-head">
+            <h4>每日记录 (${dates.length} 天)</h4>
+            <span class="pill">${written.length} / ${dates.filter(d=>!isFuture(d)).length}</span>
+          </div>
+          <div class="tl-list">
+            ${dates.map(d => renderTimelineItem(d)).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-stack" id="detailColumn">
+        ${renderDetail()}
+      </div>
+    </div>
+  `;
+}
+
+function renderTimelineItem(d) {
+  const r = MOCK[d];
+  const day = parseInt(d.split('-')[2], 10);
+  const month = parseInt(d.split('-')[1], 10);
+  if (r.future) {
+    return `<div class="tl-item future" aria-disabled="true">
+      <div class="tl-date"><div class="d">${day}</div><div>${month} 月</div></div>
+      <div class="tl-mood empty">·</div>
+      <div class="tl-body">
+        <div class="title">未来日期</div>
+        <div class="snippet">不可编辑</div>
+      </div>
+      <div class="tl-status future">未来</div>
+    </div>`;
+  }
+  if (r.empty) {
+    return `<div class="tl-item" data-action="empty" data-date="${d}">
+      <div class="tl-date"><div class="d">${day}</div><div>${month} 月</div></div>
+      <div class="tl-mood empty">○</div>
+      <div class="tl-body">
+        <div class="title">这天没有记录</div>
+        <div class="snippet">历史未写日不可补写</div>
+      </div>
+      <div class="tl-status empty">未写</div>
+    </div>`;
+  }
+  const status = STATE.conflictActive && STATE.draft && STATE.draft.date === d ? 'conflict' : 'completed';
+  return `<div class="tl-item ${STATE.selectedDate === d ? 'active' : ''}" data-date="${d}">
+    <div class="tl-date"><div class="d">${day}</div><div>${month} 月</div></div>
+    <div class="tl-mood m-${r.mood}">${MOOD_LIST[r.mood-1].e}</div>
+    <div class="tl-body">
+      <div class="title">${MOOD_LIST[r.mood-1].l}的一天</div>
+      <div class="snippet">${escapeHtml((r.md||'').replace(/[#*`>]/g,'').slice(0, 60))}…</div>
+      <div class="meta">
+        ${(r.highlights||[]).slice(0,2).map(h => `<span class="pill ${h.isPreset?'':'ai'}" style="font-size:10px; padding:1px 8px;">${escapeHtml(h.name)}</span>`).join('')}
+      </div>
+    </div>
+    <div class="tl-status ${status}">${status==='completed'?'✓ 已写':status==='conflict'?'⚠ 冲突':'草稿'}</div>
+  </div>`;
+}
+
+function renderMoodChartSvg() {
+  const dates = Object.keys(MOCK).filter(d => d.startsWith(STATE.currentMonth));
+  const W = 600, H = 100, pad = 12;
+  const innerW = W - pad*2, innerH = H - pad*2;
+  const stepX = innerW / 30;
+  const pts = dates.map((d, i) => {
+    const r = MOCK[d];
+    const x = pad + i * stepX;
+    let y = null;
+    if (r && !r.empty && !r.future && r.mood) {
+      y = H - pad - ((r.mood - 1) / 4) * innerH;
+    }
+    return { x, y, r, d };
+  });
+  const path = pts.filter(p => p.y !== null).map((p, i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%; height:100px;">`;
+  for (let i = 0; i <= 4; i++) {
+    const y = H - pad - (i / 4) * innerH;
+    svg += `<line x1="${pad}" y1="${y.toFixed(1)}" x2="${W-pad}" y2="${y.toFixed(1)}" stroke="#E2E8F0" stroke-width="0.5"/>`;
+  }
+  if (path) svg += `<path d="${path}" fill="none" stroke="#65A30D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  pts.forEach(p => {
+    if (p.r && !p.r.future && !p.r.empty && p.y !== null) {
+      const c = ['#EF4444','#F97316','#A8A29E','#84CC16','#10B981'][p.r.mood-1];
+      const isSel = STATE.selectedDate === p.d;
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isSel?5:3.5}" fill="${c}" stroke="white" stroke-width="1.5"/>`;
+    } else if (p.r && p.r.future) {
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${(H-pad/2).toFixed(1)}" r="1.5" fill="#E2E8F0"/>`;
+    } else {
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${(H-pad/2).toFixed(1)}" r="2" fill="#CBD5E1"/>`;
+    }
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+/* ============================================================
+   VIEW 2b: CALENDAR (日历视图)
+   ============================================================ */
+function renderCalendarView() {
+  const dates = Object.keys(MOCK).filter(d => d.startsWith(STATE.currentMonth));
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">CALENDAR · 2026 年 7 月</div>
+        <h1>日历视图</h1>
+        <div class="sub">点击日期查看或编辑</div>
+      </div>
+    </div>
+    <div class="mood-full">
+      <div class="mf-head">
+        <h3>7 月心情格子 (31 天)</h3>
+        <button class="btn-ghost" data-go="moodmap">→ 全屏心情图</button>
+      </div>
+      <div class="mood-grid">
+        ${dates.map(d => {
+          const r = MOCK[d];
+          const day = parseInt(d.split('-')[2]);
+          if (r.future) return `<div class="mood-cell future"><span class="e">${day}</span><span>未来</span></div>`;
+          if (r.empty) return `<div class="mood-cell empty" data-date="${d}"><span class="e">${day}</span><span>未写</span></div>`;
+          const isSel = STATE.selectedDate === d;
+          return `<div class="mood-cell m-${r.mood} ${isSel?'active':''}" data-date="${d}">
+            <span class="e">${MOOD_LIST[r.mood-1].e}</span>
+            <span>${day}日</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="mt-4 muted text-12">
+        共 ${dates.filter(d=>isWritten(d)).length} 篇日记 ·
+        心情均值 ${(dates.filter(d=>isWritten(d)).reduce((s,d)=>s+MOCK[d].mood,0)/Math.max(dates.filter(d=>isWritten(d)).length,1)).toFixed(1)} 星
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 2c: MOOD MAP (全屏心情图)
+   ============================================================ */
+function renderMoodMapView() {
+  const dates = Object.keys(MOCK).filter(d => d.startsWith(STATE.currentMonth));
+  const written = dates.filter(d => isWritten(d));
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">MOOD MAP · 2026 年 7 月</div>
+        <h1>心情图 (全屏)</h1>
+        <div class="sub">可视化月度心情分布与趋势</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm" data-go="timeline">← 时间线</button>
+      </div>
+    </div>
+
+    <div class="mood-full mb-4">
+      <div class="mf-head">
+        <h3>心情热力图 (31 格)</h3>
+        <span class="pill">${written.length} 篇</span>
+      </div>
+      <div class="heat-grid">
+        ${dates.map(d => {
+          const r = MOCK[d];
+          if (r.future) return `<div class="heat-cell future" title="${d} 未来"></div>`;
+          if (r.empty) return `<div class="heat-cell empty" title="${d} 未写"></div>`;
+          return `<div class="heat-cell m-${r.mood}" title="${d} ${MOOD_LIST[r.mood-1].l}"></div>`;
+        }).join('')}
+      </div>
+      <div class="row mt-3 gap-3" style="font-size:11px; color:var(--ink-3); flex-wrap:wrap;">
+        <span>图例:</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#FECACA;border-radius:2px;vertical-align:middle;"></span> 很差</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#FED7AA;border-radius:2px;vertical-align:middle;"></span> 不好</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#E7E5E4;border-radius:2px;vertical-align:middle;"></span> 一般</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#D9F99D;border-radius:2px;vertical-align:middle;"></span> 不错</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#BBF7D0;border-radius:2px;vertical-align:middle;"></span> 极好</span>
+      </div>
+    </div>
+
+    <div class="mood-full">
+      <div class="mf-head">
+        <h3>月度心情曲线 (SVG)</h3>
+        <span class="pill">月均 ${(written.reduce((s,d)=>s+MOCK[d].mood,0)/Math.max(written.length,1)).toFixed(1)}</span>
+      </div>
+      ${renderMoodChartSvg()}
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 3: DETAIL (V4)
+   ============================================================ */
+function renderDetail() {
+  if (STATE.side === 'today') return '';
+  const d = STATE.selectedDate;
+  if (isFuture(d) || isEmpty(d)) {
+    return `<div class="card" style="text-align:center; padding:48px 24px;">
+      <div style="font-size:48px; margin-bottom:12px;">${isFuture(d) ? '🕒' : '📝'}</div>
+      <h3 style="margin-bottom:8px;">${isFuture(d) ? '未来日期' : '这天没有记录'}</h3>
+      <p class="muted text-13">${isFuture(d) ? '未来日期不可编辑' : '历史未写日不支持补写'}</p>
+    </div>`;
+  }
+  const r = getReport(d);
+  return `<div class="detail" id="detailRoot">
+    <div class="dt-head">
+      <div class="date-eyebrow">${new Date(d).toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'long'})}</div>
+      <h2>${MOOD_LIST[r.mood-1].l}的一天 · ${r.mood} 星</h2>
+      <div class="row">
+        <div class="mood-bubble m-${r.mood}">${MOOD_LIST[r.mood-1].e}</div>
+        <span class="pill"><span class="e">${weatherE(r.weather)}</span>${weatherOf(r.weather).split(' ')[1]||''}</span>
+        ${(r.highlights||[]).map(h => `<span class="pill ${h.isPreset?'':'ai'}">${h.isPreset?'':'✨'}${escapeHtml(h.name)}</span>`).join('')}
+      </div>
+    </div>
+    <div class="dt-body" id="detailBody">
+      ${renderDetailBody()}
+    </div>
+    <div class="dt-footer">
+      <button class="btn-ghost danger" data-action="delete">🗑 删除</button>
+      <button class="btn-secondary sm" data-action="export-day">📤 导出</button>
+      <button class="btn-primary sm" data-action="edit">✏ 编辑</button>
+    </div>
+  </div>`;
+}
+
+function renderDetailBody() {
+  const d = STATE.selectedDate;
+  if (isFuture(d) || isEmpty(d)) return '';
+  const r = getReport(d);
+  return `
+    <div id="aiCard">${renderAiCard(r)}</div>
+    <div class="dt-content">${simpleMarkdown(r.md)}</div>
+  `;
+}
+
+function renderAiCard(r) {
+  if (r.aiUnavailable || !STATE.ollamaHealthy) {
+    return `<div class="ai-card unavailable">
+      <div class="ai-head">
+        <div class="l"><span class="ico">🤖</span><h4>AI 复盘</h4></div>
+        <span class="pill">不可用</span>
+      </div>
+      <div class="ai-empty">
+        <div class="ico">⚠️</div>
+        <p>AI 服务暂不可用,稍后再试</p>
+        <button disabled>生成 AI 复盘</button>
+      </div>
+    </div>`;
+  }
+  if (STATE.aiState === 'A') {
+    return `<div class="ai-card">
+      <div class="ai-head">
+        <div class="l"><span class="ico">🤖</span><h4>AI 复盘</h4></div>
+        <span class="pill">未生成</span>
+      </div>
+      <div class="ai-empty">
+        <div class="ico">✨</div>
+        <p>基于今日内容生成一段复盘摘要</p>
+        <button data-action="ai-start">🤖 生成 AI 复盘</button>
+      </div>
+    </div>`;
+  }
+  if (STATE.aiState === 'B') {
+    const sec = Math.floor((Date.now() - STATE.aiStartedAt) / 1000);
+    return `<div class="ai-card">
+      <div class="ai-head">
+        <div class="l"><span class="ico">🤖</span><h4>AI 复盘</h4></div>
+        <span class="pill warning">生成中</span>
+      </div>
+      <div class="ai-body">
+        <div class="ai-skeleton"></div>
+        <div class="ai-skeleton"></div>
+        <div class="ai-skeleton short"></div>
+        <div class="muted text-12" style="margin-top:10px;">AI 正在生成摘要…已等待 ${sec} 秒 · 最长 ${STATE.aiTimeoutSeconds} 秒</div>
+      </div>
+    </div>`;
+  }
+  if (STATE.aiState === 'D') {
+    return `<div class="ai-card">
+      <div class="ai-head">
+        <div class="l"><span class="ico">🤖</span><h4>AI 复盘</h4></div>
+        <span class="pill danger">生成失败</span>
+      </div>
+      <div class="ai-error">生成失败:${STATE.aiError || 'timeout'} ⟲</div>
+      <div class="ai-actions" style="margin-top:12px;">
+        <button data-action="ai-start">重试</button>
+      </div>
+    </div>`;
+  }
+  const isStale = r.ai && r.ai.edited === false && r.updatedAt && (Date.now() - r.updatedAt > 7 * 86400000);
+  let badge = '<span class="pill">已生成</span>';
+  if (r.ai && r.ai.edited) badge = '<span class="pill">✏ 已编辑</span>';
+  else if (isStale) badge = '<span class="pill warning">⚠ 内容已更新</span>';
+  return `<div class="ai-card">
+    <div class="ai-head">
+      <div class="l"><span class="ico">🤖</span><h4>AI 复盘</h4></div>
+      ${badge}
+    </div>
+    <div class="ai-body" contenteditable="true" data-ai-edit>${escapeHtml(STATE.aiText)}</div>
+    <div class="muted text-12" style="margin-top:8px;">基于 ollama-llama3-8b · 200 字以内</div>
+    <div class="ai-actions">
+      <button data-action="ai-edit">编辑</button>
+      <button data-action="ai-regen">重新生成</button>
+      <button class="danger" data-action="ai-delete">删除</button>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   VIEW 4: SEARCH (V5) — 完整筛选 + URL 同步 + 高亮
+   ============================================================ */
+function renderSearchView() {
+  const moodRange = `${STATE.search.moodMin || '1'}-${STATE.search.moodMax || '5'} 星`;
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">SEARCH · 全文 + 标签筛选</div>
+        <h1>搜索过往日记</h1>
+        <div class="sub">URL 同步:?q=...&dateFrom=...&dateTo=...&moodMin=...&moodMax=...&highlights=...</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm" id="openCmdK">⌘K 全局搜索</button>
+        <button class="btn-primary sm" id="exportFiltered">📤 导出结果</button>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="field" style="margin-bottom:12px;">
+        <label class="field-label"><span>关键词</span><span class="helper">${STATE.search.q ? `匹配 "${escapeHtml(STATE.search.q)}"` : '试试 "深度工作" 或 "复盘"'}</span></label>
+        <div class="input-wrap">
+          <span class="leading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input class="input" id="searchQ" type="text" placeholder="搜索正文、标题、亮点…" value="${escapeHtml(STATE.search.q)}" />
+          ${STATE.search.q ? '<span class="trailing" id="clearQ">×</span>' : ''}
+        </div>
+      </div>
+
+      <div class="row gap-3" style="flex-wrap:wrap;">
+        <div class="field" style="flex:1; min-width:200px; margin-bottom:0;">
+          <label class="field-label"><span>心情 ≥</span><span class="helper">${STATE.search.moodMin ? `≥ ${STATE.search.moodMin} 星` : '不限'}</span></label>
+          <div class="row gap-2">
+            ${MOOD_LIST.map(m => `<button class="mood-btn ${STATE.search.moodMin===m.v?'selected':''}" style="flex:1; padding:8px;" data-mood="${m.v}"><span class="e">${m.e}</span></button>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="row gap-3" style="margin-top:12px;">
+        <div class="field" style="flex:1;">
+          <label class="field-label"><span>心情 ≤</span><span class="helper">${STATE.search.moodMax ? `≤ ${STATE.search.moodMax} 星` : '不限'}</span></label>
+          <div class="row gap-2">
+            ${MOOD_LIST.map(m => `<button class="mood-btn ${STATE.search.moodMax===m.v?'selected':''}" style="flex:1; padding:8px;" data-moodmax="${m.v}"><span class="e">${m.e}</span></button>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="row gap-3" style="margin-top:12px;">
+        <div class="field" style="flex:1;">
+          <label class="field-label"><span>开始日期</span></label>
+          <div class="input-wrap"><input class="input" id="dateFrom" type="date" value="${STATE.search.dateFrom || ''}" /></div>
+        </div>
+        <div class="field" style="flex:1;">
+          <label class="field-label"><span>结束日期</span></label>
+          <div class="input-wrap"><input class="input" id="dateTo" type="date" value="${STATE.search.dateTo || ''}" /></div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:12px;">
+        <label class="field-label"><span>亮点标签</span><span class="helper">${STATE.search.highlights.length ? `已选 ${STATE.search.highlights.length} 个` : '多选'}</span></label>
+        <div class="chip-group">
+          ${PRESET_HIGHLIGHTS.map(p => `<button class="chip ${STATE.search.highlights.includes(p)?'selected':''}" data-hl="${p}">${p}</button>`).join('')}
+          ${CUSTOM_HIGHLIGHTS.map(p => `<button class="chip custom ${STATE.search.highlights.includes(p)?'selected':''}" data-hl="${p}">✨ ${p}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="row gap-2" style="margin-top:16px; flex-wrap:wrap;">
+        <button class="btn-primary sm" data-action="search-go">应用筛选</button>
+        <button class="btn-ghost" data-action="search-reset">重置</button>
+        <span class="muted text-12" style="margin-left:auto;">心情范围: ${moodRange}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>搜索结果</h3>
+        <span class="pill">${getFilteredDates().length} 条命中</span>
+      </div>
+      <div class="col-stack" style="gap:8px;">
+        ${getFilteredDates().slice(0, 12).map(d => {
+          const r = MOCK[d];
+          if (!r || r.future) return '';
+          return `<div class="tl-item" data-date="${d}">
+            <div class="tl-date"><div class="d">${parseInt(d.split('-')[2])}</div><div>7 月</div></div>
+            <div class="tl-mood m-${r.mood}">${MOOD_LIST[r.mood-1].e}</div>
+            <div class="tl-body">
+              <div class="title">${highlightText((r.md||'').replace(/[#*`>]/g,'').slice(0, 40), STATE.search.q)}</div>
+              <div class="snippet">${highlightText((r.md||'').slice(0, 80), STATE.search.q)}…</div>
+              <div class="meta">
+                ${(r.highlights||[]).map(h => `<span class="pill ${h.isPreset?'':'ai'}" style="font-size:10px; padding:1px 8px;">${escapeHtml(h.name)}</span>`).join('')}
+              </div>
+            </div>
+            <div class="tl-status completed">命中</div>
+          </div>`;
+        }).join('') || '<div class="empty-state"><div class="ico">🔍</div><h3>没有匹配的日记</h3><p>试试别的关键词,或调整心情/日期范围</p></div>'}
+      </div>
+    </div>
+  `;
+}
+
+function highlightText(text, q) {
+  if (!q) return escapeHtml(text);
+  try {
+    const re = new RegExp('(' + escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return escapeHtml(text).replace(re, '<mark>$1</mark>');
+  } catch(e) { return escapeHtml(text); }
+}
+
+function getFilteredDates() {
+  const dates = Object.keys(MOCK).filter(d => isWritten(d));
+  return dates.filter(d => {
+    const r = MOCK[d];
+    if (STATE.search.q) {
+      const hay = ((r.md||'') + ' ' + (r.highlights||[]).map(h=>h.name).join(' ')).toLowerCase();
+      if (!hay.includes(STATE.search.q.toLowerCase())) return false;
+    }
+    if (STATE.search.moodMin && r.mood < STATE.search.moodMin) return false;
+    if (STATE.search.moodMax && r.mood > STATE.search.moodMax) return false;
+    if (STATE.search.dateFrom && d < STATE.search.dateFrom) return false;
+    if (STATE.search.dateTo && d > STATE.search.dateTo) return false;
+    if (STATE.search.highlights.length) {
+      const names = (r.highlights||[]).map(h => h.name);
+      if (!STATE.search.highlights.some(h => names.includes(h))) return false;
+    }
+    return true;
+  });
+}
+
+/* ============================================================
+   VIEW 5: TEMPLATES
+   ============================================================ */
+function renderTemplatesView() {
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">TEMPLATES · 快速开始</div>
+        <h1>模板库</h1>
+        <div class="sub">挑选一个模板,自动填充结构</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm">+ 自定义模板</button>
+      </div>
+    </div>
+
+    <div class="template-grid">
+      ${TEMPLATES.map(t => `
+        <div class="template-tile card" data-template="${t.id}" style="cursor:pointer;">
+          <div class="name" style="font-size:15px; margin-bottom:8px;">${t.icon} ${t.name}</div>
+          <div class="desc" style="margin-bottom:12px;">${t.desc}</div>
+          <pre style="background:var(--bg-app); padding:10px; border-radius:6px; font-size:11px; color:var(--ink-3); margin:0; white-space:pre-wrap; line-height:1.5;">${escapeHtml(t.structure)}</pre>
+          <div class="row gap-2" style="margin-top:12px;">
+            <button class="btn-primary sm flex-1" data-template-use="${t.id}">使用此模板</button>
+            <button class="btn-ghost">预览</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 6: STATS
+   ============================================================ */
+function renderStatsView() {
+  const dates = Object.keys(MOCK).filter(d => d.startsWith(STATE.currentMonth));
+  const written = dates.filter(d => isWritten(d));
+  const moods = written.map(d => MOCK[d].mood);
+  const avg = (moods.reduce((s,m)=>s+m,0)/Math.max(moods.length,1)).toFixed(2);
+  const dist = [1,2,3,4,5].map(v => moods.filter(m => m===v).length);
+  const totalWords = written.reduce((s,d)=>s+(MOCK[d].md||'').length, 0);
+  const hiCounts = {};
+  written.forEach(d => (MOCK[d].highlights||[]).forEach(h => { hiCounts[h.name] = (hiCounts[h.name]||0)+1; }));
+  const topHi = Object.entries(hiCounts).sort((a,b)=>b[1]-a[1]).slice(0, 5);
+  const maxC = Math.max(...dist, 1);
+
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">STATS · 月度复盘</div>
+        <h1>统计与趋势</h1>
+        <div class="sub">2026 年 7 月 · 心情、写作、亮点分布</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm">对比上月</button>
+        <button class="btn-primary sm" id="openExport">📤 导出报告</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">写作天数</div>
+        <div class="value">${written.length}<span class="unit">天</span></div>
+        <div class="delta">+3 vs 上月</div>
+      </div>
+      <div class="stat">
+        <div class="label">平均心情</div>
+        <div class="value">${avg}<span class="unit">星</span></div>
+        <div class="delta">+0.3 vs 上月</div>
+      </div>
+      <div class="stat">
+        <div class="label">总字数</div>
+        <div class="value">${totalWords}</div>
+        <div class="delta">+1.2k vs 上月</div>
+      </div>
+      <div class="stat">
+        <div class="label">最长连续</div>
+        <div class="value">12<span class="unit">天</span></div>
+        <div class="delta">保持节奏</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="col-stack">
+        <div class="card">
+          <div class="card-head">
+            <h3>心情分布</h3>
+            <span class="pill">${written.length} 篇样本</span>
+          </div>
+          <div class="col-stack" style="gap:10px;">
+            ${[5,4,3,2,1].map(v => {
+              const c = dist[v-1];
+              const pct = written.length ? ((c/written.length)*100).toFixed(0) : 0;
+              return `<div class="row" style="gap:10px;">
+                <div style="width:60px; font-size:13px;">${MOOD_LIST[v-1].e} ${MOOD_LIST[v-1].l}</div>
+                <div style="flex:1; background:var(--bg-soft); border-radius:999px; overflow:hidden; height:18px;">
+                  <div style="background:${['#10B981','#84CC16','#A8A29E','#F97316','#EF4444'][v-1]}; width:${(c/maxC)*100}%; height:100%; border-radius:999px; transition:width 0.4s;"></div>
+                </div>
+                <div style="width:60px; text-align:right; font-size:12px; color:var(--ink-3);">${c} 篇 · ${pct}%</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h3>心情趋势</h3>
+            <span class="pill">7 月</span>
+          </div>
+          ${renderMoodChartSvg()}
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>每日心情分布 (日历热力图)</h3></div>
+          <div class="weekday-row">
+            <div class="wd">1</div><div class="wd">2</div><div class="wd">3</div>
+            <div class="wd">4</div><div class="wd">5</div><div class="wd">6</div>
+            <div class="wd">7-31</div>
+          </div>
+          <div class="mood-bubble-grid">
+            ${dates.map(d => {
+              const r = MOCK[d];
+              const day = parseInt(d.split('-')[2]);
+              const isToday = d === TODAY;
+              if (r.future) return `<div class="mbg-cell future">${day}</div>`;
+              if (r.empty) return `<div class="mbg-cell empty">${day}</div>`;
+              return `<div class="mbg-cell m-${r.mood} ${isToday?'today':''}">${day}</div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-stack">
+        <div class="card">
+          <div class="card-head"><h3>亮点 Top 5</h3></div>
+          <div class="col-stack" style="gap:8px;">
+            ${topHi.map(([name, c]) => `
+              <div class="row" style="gap:10px;">
+                <div class="pill ${name==='复盘 Q3 OKR'?'ai':''}" style="min-width:90px; justify-content:center;">${escapeHtml(name)}</div>
+                <div style="flex:1; background:var(--bg-soft); border-radius:6px; height:8px; overflow:hidden;">
+                  <div style="background:var(--primary); width:${(c/written.length)*100}%; height:100%;"></div>
+                </div>
+                <div style="font-size:12px; color:var(--ink-3); width:50px; text-align:right;">${c} 次</div>
+              </div>
+            `).join('') || '<div class="muted text-12">暂无亮点数据</div>'}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>天气分布</h3></div>
+          <div class="row" style="gap:6px; flex-wrap:wrap;">
+            ${WEATHER_LIST.map(w => {
+              const c = written.filter(d => MOCK[d].weather === w.key).length;
+              return `<div class="pill" style="flex-direction:column; padding:8px 10px; gap:2px;">
+                <span class="e" style="font-size:18px;">${w.e}</span>
+                <span style="font-size:10px;">${c} 天</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>写作时段 (mock)</h3></div>
+          <div class="stat-row-card">
+            <div class="stat-mini"><div class="l">清晨 6-9</div><div class="v">5 篇</div></div>
+            <div class="stat-mini"><div class="l">上午 9-12</div><div class="v">8 篇</div></div>
+            <div class="stat-mini"><div class="l">下午 12-18</div><div class="v">3 篇</div></div>
+          </div>
+          <div class="muted text-12 mt-2">平均时段:上午 10:24</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 7: RECYCLE (G1) — 3 模块: 日记 / 草稿 / 自动保存
+   ============================================================ */
+function renderRecycleView() {
+  const tab = STATE.recycleTab;
+  const counts = {
+    entries: RECYCLE_BIN.entries.length,
+    drafts: RECYCLE_BIN.drafts.length,
+    autosaves: RECYCLE_BIN.autosaves.length
+  };
+  const list = RECYCLE_BIN[tab] || [];
+
+  let body = '';
+  if (tab === 'entries') {
+    body = `<div class="col-stack" style="gap:8px;">
+      ${list.map(item => `
+        <div class="recycle-row">
+          <div class="mood-bubble m-${item.mood}">${MOOD_LIST[item.mood-1].e}</div>
+          <div class="rr-info">
+            <div class="ttl">${item.date} · ${escapeHtml(item.title)}</div>
+            <div class="meta">${escapeHtml(item.preview)}</div>
+            <div class="meta">删除于 ${item.deletedAt} · <span style="color:${item.expiresIn <= 3 ? 'var(--danger)' : 'var(--ink-3)'};">${item.expiresIn} 天后永久删除</span></div>
+          </div>
+          <div class="rr-actions">
+            <button class="btn-secondary sm" data-recover="${item.id}">恢复</button>
+            <button class="btn-ghost danger" data-purge="${item.id}">永久删除</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  } else if (tab === 'drafts') {
+    body = `<div class="col-stack" style="gap:8px;">
+      ${list.map(item => `
+        <div class="recycle-row">
+          <div class="mood-bubble empty">📝</div>
+          <div class="rr-info">
+            <div class="ttl">${escapeHtml(item.title)} <span class="pill" style="margin-left:8px; font-size:10px;">${item.date}</span></div>
+            <div class="meta">${escapeHtml(item.preview)}</div>
+            <div class="meta">本地保存于 ${item.savedAt}</div>
+          </div>
+          <div class="rr-actions">
+            <button class="btn-primary sm" data-recover="${item.id}">继续编辑</button>
+            <button class="btn-ghost danger" data-purge="${item.id}">删除草稿</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  } else if (tab === 'autosaves') {
+    body = `<div class="col-stack" style="gap:8px;">
+      ${list.map(item => `
+        <div class="recycle-row">
+          <div class="mood-bubble empty">💾</div>
+          <div class="rr-info">
+            <div class="ttl">${escapeHtml(item.title)} <span class="pill" style="margin-left:8px; font-size:10px;">${item.date}</span></div>
+            <div class="meta">${escapeHtml(item.preview)}</div>
+            <div class="meta">自动保存于 ${item.savedAt}</div>
+          </div>
+          <div class="rr-actions">
+            <button class="btn-primary sm" data-recover="${item.id}">恢复此版本</button>
+            <button class="btn-ghost danger" data-purge="${item.id}">删除快照</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">RECYCLE · 30 天可恢复</div>
+        <h1>回收站</h1>
+        <div class="sub">软删除的日记会在 30 天后永久删除</div>
+      </div>
+      <div class="actions">
+        <button class="btn-ghost" id="emptyBin">🗑 清空回收站</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab ${tab==='entries'?'active':''}" data-rtab="entries">📄 已删除日记 <span class="count">${counts.entries}</span></button>
+      <button class="tab ${tab==='drafts'?'active':''}" data-rtab="drafts">📝 未提交草稿 <span class="count">${counts.drafts}</span></button>
+      <button class="tab ${tab==='autosaves'?'active':''}" data-rtab="autosaves">💾 自动保存快照 <span class="count">${counts.autosaves}</span></button>
+    </div>
+
+    ${body || `<div class="empty-state"><div class="ico">🗑</div><h3>这里空空如也</h3><p>删除的日记会出现在这里,30 天内可恢复</p></div>`}
+
+    <div class="card mt-4">
+      <div class="card-head"><h3>回收站规则</h3></div>
+      <ul style="font-size:13px; color:var(--ink-2); line-height:2; padding-left:20px; list-style:disc;">
+        <li>日记删除后进入回收站,30 天后自动永久删除</li>
+        <li>未提交的草稿仅保留本地,清除浏览器数据后会丢失</li>
+        <li>自动保存快照保留最近 10 个版本,可手动恢复任意版本</li>
+        <li>永久删除操作不可撤销</li>
+      </ul>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 8: EXPORT (G2) — Sheet (底部抽屉)
+   ============================================================ */
+function renderExportView() {
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">EXPORT · 导出中心</div>
+        <h1>导出你的日记</h1>
+        <div class="sub">支持单条 .md 或月度 .zip</div>
+      </div>
+    </div>
+
+    <div class="export-options">
+      <div class="export-option selected" data-export="single-md">
+        <div class="eo-name">📄 单条 Markdown</div>
+        <div class="eo-desc">选择一日,导出为 .md 文件,含元数据头</div>
+        <div class="eo-meta">约 1-5 KB · UTF-8</div>
+      </div>
+      <div class="export-option" data-export="month-zip">
+        <div class="eo-name">📦 月度 ZIP 压缩包</div>
+        <div class="eo-desc">导出整月日记,压缩为 .zip,包含 README 索引</div>
+        <div class="eo-meta">约 20-100 KB · ZIP</div>
+      </div>
+      <div class="export-option" data-export="json">
+        <div class="eo-name">🔧 原始 JSON</div>
+        <div class="eo-desc">导出原始数据,用于备份或迁移</div>
+        <div class="eo-meta">约 50-200 KB · JSON</div>
+      </div>
+      <div class="export-option" data-export="pdf">
+        <div class="eo-name">🖨 PDF 打印版</div>
+        <div class="eo-desc">排版优化,适合打印或分享</div>
+        <div class="eo-meta">约 1-3 MB · PDF</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="card-head"><h3>单条导出</h3></div>
+        <p class="muted text-13 mb-3">选择一日,导出 Markdown 格式</p>
+        <div class="field">
+          <label class="field-label"><span>日期</span></label>
+          <div class="input-wrap">
+            <span class="leading">📅</span>
+            <input class="input" id="expDate" type="date" value="${TODAY}" />
+          </div>
+        </div>
+        <button class="btn-primary" style="width:100%;" id="dlSingle">下载 .md 文件</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>月度导出</h3></div>
+        <p class="muted text-13 mb-3">导出整月日记,压缩为 .zip</p>
+        <div class="field">
+          <label class="field-label"><span>月份</span></label>
+          <div class="input-wrap">
+            <span class="leading">🗓</span>
+            <input class="input" id="expMonth" type="month" value="2026-07" />
+          </div>
+        </div>
+        <button class="btn-primary" style="width:100%;" id="dlMonth">下载 .zip 压缩包</button>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-head"><h3>导出历史</h3></div>
+      <div class="col-stack" style="gap:6px; font-size:13px;">
+        <div class="row spread"><span>📄 lifewise-2026-07.md</span><span class="muted text-12">3 天前 · 28 KB</span></div>
+        <div class="row spread"><span>📦 lifewise-2026-06.zip</span><span class="muted text-12">6 月 30 日 · 142 KB</span></div>
+        <div class="row spread"><span>📄 2026-07-14.md</span><span class="muted text-12">7 月 14 日 · 2 KB</span></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 9: NOTIFICATIONS (G3)
+   ============================================================ */
+function renderNotificationsView() {
+  const unread = NOTIFICATIONS.filter(n => n.unread).length;
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">NOTIFICATIONS · 通知中心</div>
+        <h1>通知</h1>
+        <div class="sub">${unread} 条未读 · 共 ${NOTIFICATIONS.length} 条</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm" id="markAllRead">全部标为已读</button>
+        <button class="btn-ghost">⚙ 通知设置</button>
+      </div>
+    </div>
+
+    <div class="notif-list">
+      ${NOTIFICATIONS.map(n => {
+        const iconMap = { ai: '🤖', system: '🔔', warning: '⚠', danger: '🚨' };
+        return `<div class="notif-item ${n.unread?'unread':''}" data-nid="${n.id}">
+          <div class="notif-icon ${n.type}">${iconMap[n.type] || '🔔'}</div>
+          <div class="notif-body">
+            <div class="ttl">${escapeHtml(n.ttl)} ${n.unread?'<span class="badge dot" style="background:var(--primary); margin-left:6px;"></span>':''}</div>
+            <div class="desc">${escapeHtml(n.desc)}</div>
+            <div class="time">${escapeHtml(n.time)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-head"><h3>通知偏好设置</h3></div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">AI 复盘生成完成</div><div class="desc">当日记 AI 摘要生成后推送</div></div>
+        <div class="switch on" data-pref="ai"></div>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">周报提醒</div><div class="desc">每周日推送周报</div></div>
+        <div class="switch on" data-pref="weekly"></div>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">未记录提醒</div><div class="desc">连续 2 天未记录时提醒</div></div>
+        <div class="switch on" data-pref="remind"></div>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">保存失败告警</div><div class="desc">草稿保存失败时立即通知</div></div>
+        <div class="switch on" data-pref="fail"></div>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">产品更新公告</div><div class="desc">新功能上线时推送</div></div>
+        <div class="switch" data-pref="product"></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   VIEW 10: SETTINGS
+   ============================================================ */
+function renderSettingsView() {
+  return `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">SETTINGS · 个人设置</div>
+        <h1>设置</h1>
+        <div class="sub">个性化你的日记体验</div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-head"><h3>日记偏好</h3></div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">默认心情</div><div class="desc">新建日记时的初始心情</div></div>
+        <select class="input-wrap" style="padding:6px 12px; font-size:13px;" id="defMood">
+          ${MOOD_LIST.map(m => `<option value="${m.v}">${m.e} ${m.l}</option>`).join('')}
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">自动保存间隔</div><div class="desc">编辑停顿多久后自动保存</div></div>
+        <select class="input-wrap" style="padding:6px 12px; font-size:13px;" id="autosaveInt">
+          <option value="500">0.5 秒</option>
+          <option value="700" selected>0.7 秒</option>
+          <option value="1500">1.5 秒</option>
+          <option value="3000">3 秒</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">AI 超时阈值</div><div class="desc">超过此时间视为超时失败</div></div>
+        <select class="input-wrap" style="padding:6px 12px; font-size:13px;" id="aiTimeout">
+          <option value="15">15 秒</option>
+          <option value="30" selected>30 秒</option>
+          <option value="60">60 秒</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">启用 AI 服务</div><div class="desc">关闭后所有 AI 功能不可用</div></div>
+        <div class="switch ${STATE.ollamaHealthy?'on':''}" id="toggleOllama"></div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-head"><h3>外观</h3></div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">主题</div><div class="desc">浅色 / 深色 / 跟随系统</div></div>
+        <select class="input-wrap" style="padding:6px 12px; font-size:13px;">
+          <option>浅色</option>
+          <option>深色</option>
+          <option>跟随系统</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">字号</div><div class="desc">影响日记正文显示</div></div>
+        <select class="input-wrap" style="padding:6px 12px; font-size:13px;">
+          <option>小</option>
+          <option selected>中</option>
+          <option>大</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>数据</h3></div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">导出全部日记</div><div class="desc">下载本地所有数据的 JSON 备份</div></div>
+        <button class="btn-secondary sm" id="exportAllData">立即导出</button>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">清空缓存</div><div class="desc">清除本地草稿与自动保存快照</div></div>
+        <button class="btn-ghost danger" id="clearCache">清空</button>
+      </div>
+      <div class="setting-row">
+        <div class="sr-info"><div class="ttl">退出登录</div><div class="desc">退出当前账号</div></div>
+        <button class="btn-ghost danger">退出</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   EVENT BINDING
+   ============================================================ */
+function bindEvents() {
+  document.querySelectorAll('.top-nav .module').forEach(el => {
+    el.onclick = () => {
+      document.querySelectorAll('.top-nav .module').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+      const m = el.dataset.module;
+      if (m !== 'daily') toast(`已切换到「${el.textContent.trim()}」模块(原型演示)`, 'info');
+    };
+  });
+
+  document.querySelectorAll('.side-item').forEach(el => {
+    el.onclick = () => {
+      const s = el.dataset.side;
+      const v = el.dataset.view;
+      if (s) { STATE.side = s; render(); }
+      if (v) { STATE.view = v; toast('视图已切换:' + v, 'info'); }
+    };
+  });
+
+  const mt = document.getElementById('menuToggle');
+  if (mt) mt.onclick = () => document.getElementById('sideNav').classList.toggle('open');
+
+  const bellBtn = document.getElementById('bellBtn');
+  if (bellBtn) bellBtn.onclick = () => { STATE.side = 'notifications'; render(); };
+
+  const wr = document.getElementById('sideWeekReport');
+  if (wr) wr.onclick = () => { STATE.side = 'stats'; render(); toast('跳转到统计页', 'success'); };
+
+  document.querySelectorAll('[data-go]').forEach(b => {
+    b.onclick = () => {
+      const target = b.dataset.go;
+      if (target === 'write') openEditor();
+      else if (target === 'detail') { STATE.side = 'timeline'; STATE.selectedDate = TODAY; render(); }
+      else if (target === 'timeline') { STATE.side = 'timeline'; render(); }
+      else if (target === 'calendar') { STATE.side = 'calendar'; render(); }
+      else if (target === 'moodmap') { STATE.side = 'moodmap'; render(); }
+      else if (target === 'search') { STATE.side = 'search'; render(); }
+      else if (target === 'templates') { STATE.side = 'templates'; render(); }
+      else if (target === 'stats') { STATE.side = 'stats'; render(); }
+      else if (target === 'recycle') { STATE.side = 'recycle'; render(); }
+      else if (target === 'export') { STATE.side = 'export'; render(); }
+    };
+  });
+
+  // timeline items
+  document.querySelectorAll('.tl-item[data-date]').forEach(el => {
+    el.onclick = () => {
+      const d = el.dataset.date;
+      STATE.selectedDate = d;
+      const r = MOCK[d];
+      if (r && r.ai) { STATE.aiState = 'C'; STATE.aiText = r.ai.text; STATE.aiEdited = r.ai.edited || false; }
+      else if (r && r.aiUnavailable || (r && !STATE.ollamaHealthy)) STATE.aiState = 'U';
+      else STATE.aiState = 'A';
+      if (STATE.side === 'timeline' || STATE.side === 'calendar') render();
+      else { STATE.side = 'timeline'; render(); }
+    };
+  });
+
+  document.querySelectorAll('.tl-item[data-action="empty"]').forEach(el => {
+    el.onclick = () => toast('这天没有记录,不支持补写历史日报', 'warning');
+  });
+
+  document.querySelectorAll('.mood-cell[data-date]').forEach(el => {
+    el.onclick = () => {
+      const d = el.dataset.date;
+      STATE.selectedDate = d;
+      const r = MOCK[d];
+      if (r && r.ai) { STATE.aiState = 'C'; STATE.aiText = r.ai.text; STATE.aiEdited = r.ai.edited || false; }
+      else if (r && r.aiUnavailable) STATE.aiState = 'U';
+      else STATE.aiState = 'A';
+      STATE.side = 'timeline'; render();
+    };
+  });
+
+  // month nav
+  const prev = document.getElementById('prevMonth');
+  if (prev) prev.onclick = () => {
+    const [y, m] = STATE.currentMonth.split('-').map(Number);
+    const nm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+    STATE.currentMonth = nm;
+    toast(`已切换到 ${nm}`, 'info');
+    render();
+  };
+  const next = document.getElementById('nextMonth');
+  if (next) next.onclick = () => {
+    const [y, m] = STATE.currentMonth.split('-').map(Number);
+    const nm = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+    STATE.currentMonth = nm;
+    toast(`已切换到 ${nm}`, 'info');
+    render();
+  };
+
+  const newEntry = document.getElementById('newEntry');
+  if (newEntry) newEntry.onclick = () => openEditor();
+  const exportMonth = document.getElementById('exportMonth');
+  if (exportMonth) exportMonth.onclick = () => openExportSheet();
+  const openExport = document.getElementById('openExport');
+  if (openExport) openExport.onclick = () => openExportSheet();
+
+  // templates
+  document.querySelectorAll('[data-template-use]').forEach(b => {
+    b.onclick = () => {
+      const t = TEMPLATES.find(x => x.id === b.dataset.templateUse);
+      if (t) { openEditor(t.structure); toast('已应用模板:' + t.name, 'success'); }
+    };
+  });
+
+  // search
+  const searchQ = document.getElementById('searchQ');
+  if (searchQ) {
+    searchQ.oninput = (e) => { STATE.search.q = e.target.value; renderSearchViewInline(); };
+  }
+  const clearQ = document.getElementById('clearQ');
+  if (clearQ) clearQ.onclick = () => { STATE.search.q = ''; renderSearchViewInline(); };
+  const dateFrom = document.getElementById('dateFrom');
+  if (dateFrom) dateFrom.onchange = e => { STATE.search.dateFrom = e.target.value; renderSearchViewInline(); };
+  const dateTo = document.getElementById('dateTo');
+  if (dateTo) dateTo.onchange = e => { STATE.search.dateTo = e.target.value; renderSearchViewInline(); };
+  document.querySelectorAll('[data-mood]').forEach(b => {
+    if (b.closest('.input-wrap')) return;
+    b.onclick = () => {
+      const v = parseInt(b.dataset.mood);
+      STATE.search.moodMin = STATE.search.moodMin === v ? null : v;
+      renderSearchViewInline();
+    };
+  });
+  document.querySelectorAll('[data-moodmax]').forEach(b => {
+    b.onclick = () => {
+      const v = parseInt(b.dataset.moodmax);
+      STATE.search.moodMax = STATE.search.moodMax === v ? null : v;
+      renderSearchViewInline();
+    };
+  });
+  document.querySelectorAll('[data-hl]').forEach(b => {
+    b.onclick = () => {
+      const v = b.dataset.hl;
+      const i = STATE.search.highlights.indexOf(v);
+      if (i >= 0) STATE.search.highlights.splice(i, 1);
+      else STATE.search.highlights.push(v);
+      renderSearchViewInline();
+    };
+  });
+  const searchReset = document.querySelector('[data-action="search-reset"]');
+  if (searchReset) searchReset.onclick = () => { STATE.search = { q:'', moodMin:null, moodMax:null, dateFrom:null, dateTo:null, highlights:[] }; render(); };
+  const searchGo = document.querySelector('[data-action="search-go"]');
+  if (searchGo) searchGo.onclick = () => { STATE.searchActive = true; syncSearchToUrl(); toast(`已应用筛选 · 命中 ${getFilteredDates().length} 条 · URL 已同步`, 'success'); };
+  const openCmdK = document.getElementById('openCmdK');
+  if (openCmdK) openCmdK.onclick = () => openCmdKOverlay();
+  const exportFiltered = document.getElementById('exportFiltered');
+  if (exportFiltered) exportFiltered.onclick = () => openExportSheet();
+
+  // detail actions
+  document.querySelectorAll('[data-action="edit"]').forEach(b => b.onclick = () => openEditor());
+  document.querySelectorAll('[data-action="delete"]').forEach(b => b.onclick = () => {
+    if (confirm('确定删除这条日记吗?30 天内可在回收站恢复。')) {
+      const d = STATE.selectedDate;
+      if (MOCK[d]) { MOCK[d].deletedAt = Date.now(); delete MOCK[d].md; }
+      toast('日记已删除 · 30 天内可恢复', 'success');
+      STATE.side = 'recycle'; render();
+    }
+  });
+  document.querySelectorAll('[data-action="export-day"]').forEach(b => b.onclick = () => openExportSheet());
+
+  // AI actions
+  document.querySelectorAll('[data-action="ai-start"]').forEach(b => b.onclick = aiStart);
+  document.querySelectorAll('[data-action="ai-regen"]').forEach(b => b.onclick = aiStart);
+  document.querySelectorAll('[data-action="ai-delete"]').forEach(b => b.onclick = aiDelete);
+  document.querySelectorAll('[data-action="ai-edit"]').forEach(b => b.onclick = () => {
+    const el = document.querySelector('[data-ai-edit]');
+    if (el) { el.focus(); toast('进入编辑模式', 'info'); }
+  });
+  const aiEditEl = document.querySelector('[data-ai-edit]');
+  if (aiEditEl) {
+    aiEditEl.onblur = () => aiEdit(aiEditEl.innerText);
+  }
+
+  // Recycle tabs
+  document.querySelectorAll('[data-rtab]').forEach(b => {
+    b.onclick = () => { STATE.recycleTab = b.dataset.rtab; render(); };
+  });
+  document.querySelectorAll('[data-recover]').forEach(b => {
+    b.onclick = () => openRecoverConfirm(b.dataset.recover);
+  });
+  document.querySelectorAll('[data-purge]').forEach(b => {
+    b.onclick = () => {
+      if (confirm('确定要永久删除吗?此操作不可撤销。')) toast('已永久删除', 'warning');
+    };
+  });
+  const emptyBin = document.getElementById('emptyBin');
+  if (emptyBin) emptyBin.onclick = () => {
+    if (confirm('确定清空回收站吗?所有内容将不可恢复。')) toast('回收站已清空', 'warning');
+  };
+
+  // Notifications
+  const markAllRead = document.getElementById('markAllRead');
+  if (markAllRead) markAllRead.onclick = () => {
+    NOTIFICATIONS.forEach(n => n.unread = false);
+    toast('已全部标为已读', 'success');
+    render();
+  };
+  document.querySelectorAll('[data-pref]').forEach(s => {
+    s.onclick = () => { s.classList.toggle('on'); toast('偏好已更新', 'success'); };
+  });
+
+  // Settings toggles
+  const toggleOllama = document.getElementById('toggleOllama');
+  if (toggleOllama) toggleOllama.onclick = () => {
+    STATE.ollamaHealthy = !STATE.ollamaHealthy;
+    toggleOllama.classList.toggle('on');
+    if (!STATE.ollamaHealthy) { STATE.aiState = 'U'; toast('AI 服务已关闭', 'warning'); }
+    else { STATE.aiState = 'A'; toast('AI 服务已开启', 'success'); }
+  };
+
+  // Export options
+  document.querySelectorAll('[data-export]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('[data-export]').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+    };
+  });
+  const dlSingle = document.getElementById('dlSingle');
+  if (dlSingle) dlSingle.onclick = () => toast('已下载 .md 文件', 'success');
+  const dlMonth = document.getElementById('dlMonth');
+  if (dlMonth) dlMonth.onclick = () => toast('已下载 .zip 压缩包', 'success');
+  const exportAllData = document.getElementById('exportAllData');
+  if (exportAllData) exportAllData.onclick = () => toast('已导出全部数据', 'success');
+  const clearCache = document.getElementById('clearCache');
+  if (clearCache) clearCache.onclick = () => {
+    if (confirm('确认清空本地缓存?')) toast('缓存已清空', 'warning');
+  };
+}
+
+function renderSearchViewInline() {
+  document.getElementById('mainContent').innerHTML = renderSearchView();
+  bindEvents();
+}
+
+/* ============================================================
+   EDITOR (V3) — 5 态自动保存
+   ============================================================ */
+function openEditor(prefill = '') {
+  const r = getTodayReport();
+  STATE.draft = {
+    mood: (r && r.mood) || 3,
+    highlights: r ? [...(r.highlights||[])] : [],
+    weather: r ? r.weather : null,
+    contentMd: prefill || (r ? r.md : ''),
+    lastSavedAt: null,
+    conflictBaseVersion: 1,
+    date: TODAY
+  };
+  STATE.saveState = 'editing';
+  STATE.lastSavedAt = null;
+  STATE.conflictActive = false;
+
+  const main = document.getElementById('mainContent');
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">EDITOR · ${new Date(TODAY).toLocaleDateString('zh-CN', {month:'long', day:'numeric', weekday:'long'})}</div>
+        <h1>写今日日记</h1>
+        <div class="sub">自动保存 · Markdown 支持 · AI 摘要</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary sm" id="cancelEdit">取消</button>
+        <button class="btn-primary sm" id="saveNow">立即保存</button>
+      </div>
+    </div>
+
+    <div class="editor">
+      <div class="ed-head">
+        <h3>${STATE.draft.contentMd ? '继续编辑' : '新建日记'}</h3>
+        <span class="date">${TODAY}</span>
+      </div>
+
+      <div class="ed-body">
+        <div class="conflict-banner ${STATE.conflictActive ? 'show' : ''}" id="conflictBanner">
+          <span>⚠ 检测到版本冲突</span>
+          <div class="actions">
+            <button id="openConflictDiff">查看差异</button>
+            <button class="primary" id="resolveMine">保留我的</button>
+            <button id="resolveServer">采用服务端</button>
+          </div>
+        </div>
+
+        <div class="draft-toast" id="draftToast">
+          <span>📝 检测到上次未提交的草稿</span>
+          <div class="actions">
+            <button class="primary" id="keepDraft">保留</button>
+            <button id="discardDraft">放弃</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">
+            <span>心情 · MOOD</span>
+            <span class="helper" id="moodHint">3 星 · 一般</span>
+          </label>
+          <div class="mood-selector" id="moodSel">
+            ${MOOD_LIST.map(m => `
+              <button class="mood-btn ${STATE.draft.mood===m.v?'selected':''}" data-mood="${m.v}">
+                <span class="e">${m.e}</span>
+                <span>${m.l}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">
+            <span>亮点 · HIGHLIGHTS</span>
+            <span class="helper"><span id="hlCount">${STATE.draft.highlights.length}</span> / 3</span>
+          </label>
+          <div class="chip-group" id="hlChips">
+            ${PRESET_HIGHLIGHTS.map(p => {
+              const sel = STATE.draft.highlights.find(h => h.name === p && h.isPreset);
+              const full = STATE.draft.highlights.length >= 3 && !sel;
+              return `<button class="chip ${sel?'selected':''} ${full?'disabled':''}" data-preset="${p}">${p}</button>`;
+            }).join('')}
+            ${STATE.draft.highlights.filter(h => !h.isPreset).map(h => `<button class="chip custom" data-custom="${escapeHtml(h.name)}">✨ ${escapeHtml(h.name)} <span class="x" data-rm="${escapeHtml(h.name)}">×</span></button>`).join('')}
+            <button class="chip add" id="addCustom">+ 自定义</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">
+            <span>天气 · WEATHER</span>
+            <span class="helper" id="weatherHint">${weatherOf(STATE.draft.weather) || '未选'}</span>
+          </label>
+          <div class="weather-grid">
+            ${WEATHER_LIST.map(w => `
+              <button class="weather-btn ${STATE.draft.weather===w.key?'selected':''}" data-w="${w.key}">
+                <span class="e">${w.e}</span>
+                <span>${w.l}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">
+            <span>正文 · CONTENT</span>
+            <span class="helper"><span id="wc">${STATE.draft.contentMd.length}</span> 字</span>
+          </label>
+          <div class="md-editor">
+            <div class="md-toolbar">
+              <button data-md="bold" title="加粗"><strong>B</strong></button>
+              <button data-md="italic" title="斜体"><em>I</em></button>
+              <button data-md="h" title="标题">H</button>
+              <button data-md="ul" title="列表">•</button>
+              <button data-md="ol" title="编号">1.</button>
+              <button data-md="quote" title="引用">"</button>
+              <button data-md="code" title="代码">&lt;/&gt;</button>
+              <div class="tab-switch">
+                <button class="active" data-tab="edit">编辑</button>
+                <button data-tab="preview">预览</button>
+              </div>
+            </div>
+            <textarea class="md-textarea" id="mdTa" placeholder="今天发生了什么?支持 Markdown…">${escapeHtml(STATE.draft.contentMd)}</textarea>
+            <div class="md-preview" id="mdPreview" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="autosave">
+        <div class="state editing" id="autosaveState">
+          <span class="dot"></span>
+          <span class="text">编辑中…</span>
+        </div>
+        <div class="meta">
+          <span class="word" id="autosaveTime"></span>
+          <button class="link-inline" id="forceConflict">模拟冲突</button>
+          <button class="link-inline" id="forceDraft">模拟未提交草稿</button>
+        </div>
+      </div>
+    </div>
+  `;
+  bindEditorEvents();
+}
+
+function bindEditorEvents() {
+  document.querySelectorAll('#moodSel .mood-btn').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#moodSel .mood-btn').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+      STATE.draft.mood = parseInt(b.dataset.mood);
+      document.getElementById('moodHint').textContent = `${STATE.draft.mood} 星 · ${MOOD_LIST[STATE.draft.mood-1].l}`;
+      triggerSave();
+    };
+  });
+
+  document.querySelectorAll('#hlChips [data-preset]').forEach(c => {
+    c.onclick = () => {
+      const name = c.dataset.preset;
+      const idx = STATE.draft.highlights.findIndex(h => h.name === name);
+      if (idx >= 0) STATE.draft.highlights.splice(idx, 1);
+      else if (STATE.draft.highlights.length < 3) STATE.draft.highlights.push({ name, isPreset: true });
+      else { toast('最多 3 个亮点', 'warning'); return; }
+      openEditorRefresh();
+    };
+  });
+  document.querySelectorAll('#hlChips [data-rm]').forEach(c => {
+    c.onclick = (e) => {
+      e.stopPropagation();
+      const name = c.dataset.rm;
+      STATE.draft.highlights = STATE.draft.highlights.filter(h => h.name !== name);
+      openEditorRefresh();
+    };
+  });
+  const addCustom = document.getElementById('addCustom');
+  if (addCustom) addCustom.onclick = () => {
+    const name = prompt('自定义亮点(≤ 20 字):');
+    if (!name) return;
+    if (name.length > 20) { toast('最多 20 字', 'warning'); return; }
+    if (STATE.draft.highlights.length >= 3) { toast('最多 3 个亮点', 'warning'); return; }
+    STATE.draft.highlights.push({ name, isPreset: false });
+    openEditorRefresh();
+  };
+
+  document.querySelectorAll('.weather-btn').forEach(b => {
+    b.onclick = () => {
+      STATE.draft.weather = b.dataset.w;
+      document.getElementById('weatherHint').textContent = weatherOf(STATE.draft.weather);
+      document.querySelectorAll('.weather-btn').forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected');
+      triggerSave();
+    };
+  });
+
+  const ta = document.getElementById('mdTa');
+  if (ta) {
+    ta.oninput = () => {
+      STATE.draft.contentMd = ta.value;
+      document.getElementById('wc').textContent = ta.value.length;
+      triggerSave();
+    };
+  }
+
+  document.querySelectorAll('.md-toolbar [data-md]').forEach(b => {
+    b.onclick = () => {
+      const t = document.getElementById('mdTa');
+      const s = t.selectionStart, e = t.selectionEnd;
+      const sel = t.value.substring(s, e) || '文本';
+      const map = {
+        bold: `**${sel}**`,
+        italic: `*${sel}*`,
+        h: `## ${sel}`,
+        ul: `- ${sel}`,
+        ol: `1. ${sel}`,
+        quote: `> ${sel}`,
+        code: `\`${sel}\``
+      };
+      t.value = t.value.substring(0, s) + map[b.dataset.md] + t.value.substring(e);
+      t.focus();
+      t.dispatchEvent(new Event('input'));
+    };
+  });
+
+  document.querySelectorAll('.md-toolbar [data-tab]').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('.md-toolbar [data-tab]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      if (b.dataset.tab === 'edit') {
+        document.getElementById('mdTa').style.display = 'block';
+        document.getElementById('mdPreview').style.display = 'none';
+      } else {
+        document.getElementById('mdTa').style.display = 'none';
+        document.getElementById('mdPreview').style.display = 'block';
+        document.getElementById('mdPreview').innerHTML = simpleMarkdown(STATE.draft.contentMd);
+        toast('已切换到预览', 'info');
+      }
+    };
+  });
+
+  const fc = document.getElementById('forceConflict');
+  if (fc) fc.onclick = () => {
+    STATE.conflictActive = true;
+    STATE.saveState = 'conflict';
+    setSaveState('conflict');
+    document.getElementById('conflictBanner').classList.add('show');
+    toast('已触发冲突场景', 'warning');
+  };
+
+  const fd = document.getElementById('forceDraft');
+  if (fd) fd.onclick = () => {
+    document.getElementById('draftToast').classList.add('show');
+    toast('检测到上次未提交的草稿', 'info');
+  };
+
+  const ocd = document.getElementById('openConflictDiff');
+  if (ocd) ocd.onclick = () => openConflictDiff();
+
+  const rm = document.getElementById('resolveMine');
+  if (rm) rm.onclick = () => {
+    STATE.conflictActive = false;
+    document.getElementById('conflictBanner').classList.remove('show');
+    STATE.saveState = 'saved';
+    STATE.lastSavedAt = new Date();
+    setSaveState('saved');
+    toast('已保留我的版本', 'success');
+  };
+
+  const rs = document.getElementById('resolveServer');
+  if (rs) rs.onclick = () => {
+    STATE.conflictActive = false;
+    document.getElementById('conflictBanner').classList.remove('show');
+    STATE.saveState = 'saved';
+    STATE.lastSavedAt = new Date();
+    setSaveState('saved');
+    toast('已采用服务端版本', 'success');
+  };
+
+  setTimeout(() => {
+    const dt = document.getElementById('draftToast');
+    if (dt) {
+      const keep = document.getElementById('keepDraft');
+      const disc = document.getElementById('discardDraft');
+      if (keep) keep.onclick = () => { dt.classList.remove('show'); toast('已恢复草稿', 'success'); };
+      if (disc) disc.onclick = () => { dt.classList.remove('show'); toast('已放弃草稿', 'info'); };
+    }
+  }, 600);
+
+  const sn = document.getElementById('saveNow');
+  if (sn) sn.onclick = () => { doSave(); toast('已提交保存', 'success'); };
+  const ce = document.getElementById('cancelEdit');
+  if (ce) ce.onclick = () => { render(); };
+
+  setSaveState(STATE.saveState);
+}
+
+function openEditorRefresh() {
+  const cur = document.getElementById('mdTa');
+  const md = cur ? cur.value : STATE.draft.contentMd;
+  openEditor(md);
+}
+
+/* ============================================================
+   OVERLAY: Search Cmd+K
+   ============================================================ */
+function openCmdKOverlay() {
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.id = 'cmdkOverlay';
+  ov.onclick = (e) => { if (e.target === ov) closeOverlay(); };
+  ov.innerHTML = `
+    <div class="cmdk" onclick="event.stopPropagation()">
+      <div class="cmdk-input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="cmdkInput" placeholder="搜索日记 / 模板 / 操作…" autocomplete="off" />
+        <span class="kbd">ESC</span>
+      </div>
+      <div class="cmdk-body" id="cmdkBody">
+        ${renderCmdKResults('')}
+      </div>
+      <div class="cmdk-foot">
+        <span><span class="kbd-shortcut">↑↓</span> 选择</span>
+        <span><span class="kbd-shortcut">↵</span> 打开</span>
+        <span><span class="kbd-shortcut">ESC</span> 关闭</span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  document.getElementById('cmdkInput').focus();
+  document.getElementById('cmdkInput').oninput = (e) => {
+    document.getElementById('cmdkBody').innerHTML = renderCmdKResults(e.target.value);
+  };
+  document.addEventListener('keydown', cmdkEscHandler);
+}
+
+function cmdkEscHandler(e) {
+  if (e.key === 'Escape') closeOverlay();
+}
+
+function renderCmdKResults(q) {
+  const sections = [];
+  const lower = q.toLowerCase();
+
+  // Actions
+  const actions = [
+    { ico: '📝', name: '写今日日记', meta: 'Enter 打开编辑器', action: () => openEditor() },
+    { ico: '🔍', name: '搜索过往日记', meta: 'Enter 跳转', action: () => { STATE.side = 'search'; render(); } },
+    { ico: '📅', name: '月度时间线', meta: 'Enter 跳转', action: () => { STATE.side = 'timeline'; render(); } },
+    { ico: '🗑', name: '回收站', meta: '3 项', action: () => { STATE.side = 'recycle'; render(); } },
+    { ico: '📤', name: '导出中心', meta: 'Enter 跳转', action: () => { STATE.side = 'export'; render(); } },
+    { ico: '🤖', name: '生成今日 AI 复盘', meta: 'AI', action: () => { aiStart(); closeOverlay(); } }
+  ].filter(a => !q || a.name.toLowerCase().includes(lower));
+
+  if (actions.length) {
+    sections.push(`<div class="cmdk-section">操作</div>`);
+    sections.push(actions.map((a, i) => `<div class="cmdk-item" data-cmdk-action="${i}"><div class="ico">${a.ico}</div><span>${a.name}</span><span class="meta">${a.meta}</span></div>`).join(''));
+  }
+
+  // Diary entries
+  const entries = Object.keys(MOCK).filter(d => isWritten(MOCK[d] && MOCK[d].md ? d : null))
+    .map(d => ({ d, r: MOCK[d] }))
+    .filter(x => !q || (x.r.md && x.r.md.toLowerCase().includes(lower)) || d.includes(lower));
+  if (entries.length) {
+    sections.push(`<div class="cmdk-section">日记 (${entries.length})</div>`);
+    sections.push(entries.slice(0, 6).map((e, i) => {
+      const r = e.r;
+      const snippet = (r.md||'').replace(/[#*`>]/g,'').slice(0, 60);
+      return `<div class="cmdk-item" data-cmdk-entry="${e.d}">
+        <div class="ico">${MOOD_LIST[r.mood-1].e}</div>
+        <span>${highlightText(snippet, q)}</span>
+        <span class="meta">${e.d}</span>
+      </div>`;
+    }).join(''));
+  }
+
+  if (!sections.length) {
+    return `<div class="cmdk-empty">没有匹配项</div>`;
+  }
+
+  setTimeout(() => {
+    document.querySelectorAll('[data-cmdk-action]').forEach(el => {
+      el.onclick = () => { actions[parseInt(el.dataset.cmdkAction)].action(); closeOverlay(); };
+    });
+    document.querySelectorAll('[data-cmdk-entry]').forEach(el => {
+      el.onclick = () => {
+        STATE.selectedDate = el.dataset.cmdkEntry;
+        STATE.side = 'timeline';
+        render();
+        closeOverlay();
+      };
+    });
+  }, 0);
+
+  return sections.join('');
+}
+
+/* ============================================================
+   SHEET: Export options (G2)
+   ============================================================ */
+function openExportSheet() {
+  closeOverlay();
+  const sh = document.createElement('div');
+  sh.className = 'sheet';
+  sh.id = 'exportSheet';
+  sh.innerHTML = `
+    <div class="sh-handle"></div>
+    <div class="sh-head">
+      <h3>导出 · ${TODAY}</h3>
+      <button class="btn-ghost" onclick="closeOverlay()">关闭</button>
+    </div>
+    <div class="sh-body">
+      <div class="export-options">
+        <div class="export-option selected" data-fmt="md">
+          <div class="eo-name">📄 Markdown</div>
+          <div class="eo-desc">单文件 .md,含 frontmatter</div>
+          <div class="eo-meta">UTF-8 · 适合阅读</div>
+        </div>
+        <div class="export-option" data-fmt="json">
+          <div class="eo-name">🔧 JSON</div>
+          <div class="eo-desc">原始数据结构</div>
+          <div class="eo-meta">UTF-8 · 适合迁移</div>
+        </div>
+        <div class="export-option" data-fmt="html">
+          <div class="eo-name">🌐 HTML</div>
+          <div class="eo-desc">独立 HTML 文件</div>
+          <div class="eo-meta">含样式 · 可直接打开</div>
+        </div>
+        <div class="export-option" data-fmt="pdf">
+          <div class="eo-name">🖨 PDF</div>
+          <div class="eo-desc">排版优化版</div>
+          <div class="eo-meta">适合打印/分享</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label"><span>包含内容</span></label>
+        <div class="row gap-2" style="flex-wrap:wrap;">
+          <label class="checkbox"><input type="checkbox" checked /><span class="check"></span> 正文</label>
+          <label class="checkbox"><input type="checkbox" checked /><span class="check"></span> 心情</label>
+          <label class="checkbox"><input type="checkbox" checked /><span class="check"></span> 天气</label>
+          <label class="checkbox"><input type="checkbox" checked /><span class="check"></span> 亮点</label>
+          <label class="checkbox"><input type="checkbox" /><span class="check"></span> AI 摘要</label>
+        </div>
+      </div>
+    </div>
+    <div class="sh-foot">
+      <button class="btn-ghost" onclick="closeOverlay()">取消</button>
+      <button class="btn-primary" onclick="closeOverlay(); window._toastFn && window._toastFn('已生成导出文件','success');">下载</button>
+    </div>
+  `;
+  document.body.appendChild(sh);
+  setTimeout(() => {
+    sh.querySelectorAll('[data-fmt]').forEach(b => {
+      b.onclick = () => {
+        sh.querySelectorAll('[data-fmt]').forEach(x => x.classList.remove('selected'));
+        b.classList.add('selected');
+      };
+    });
+  }, 0);
+}
+
+function openRecoverConfirm(id) {
+  closeOverlay();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.id = 'recoverModal';
+  m.onclick = (e) => { if (e.target === m) closeOverlay(); };
+  m.innerHTML = `
+    <div class="modal-panel" onclick="event.stopPropagation()">
+      <div class="md-head">
+        <h3>恢复日记</h3>
+        <button class="btn-ghost" onclick="closeOverlay()">×</button>
+      </div>
+      <div class="md-body">
+        <div class="row gap-3 mb-3">
+          <div class="mood-bubble m-4">🙂</div>
+          <div>
+            <div style="font-weight:600;">2026-06-28 · 出差见闻</div>
+            <div class="muted text-12">删除于 3 天前 · 27 天后永久删除</div>
+          </div>
+        </div>
+        <div class="dt-content" style="font-size:13px;">上海之行,见到了几位老朋友。聊起这几年的变化,大家都变化挺大……</div>
+        <div class="row gap-2 mt-3">
+          <span class="pill primary">生活</span>
+          <span class="pill primary">社交</span>
+        </div>
+      </div>
+      <div class="md-foot">
+        <button class="btn-ghost" onclick="closeOverlay()">取消</button>
+        <button class="btn-secondary" onclick="closeOverlay(); toast('仅查看','info');">仅查看</button>
+        <button class="btn-primary" onclick="closeOverlay(); toast('已恢复到原位置','success');">恢复到原位置</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+}
+
+function openConflictDiff() {
+  closeOverlay();
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.id = 'conflictModal';
+  m.onclick = (e) => { if (e.target === m) closeOverlay(); };
+  m.innerHTML = `
+    <div class="modal-panel lg" onclick="event.stopPropagation()">
+      <div class="md-head">
+        <h3>冲突对比</h3>
+        <button class="btn-ghost" onclick="closeOverlay()">×</button>
+      </div>
+      <div class="md-body">
+        <div class="muted text-12 mb-3">服务端最新版本 vs 你当前的编辑</div>
+        <div class="diff-grid">
+          <div class="diff-col">
+            <div class="dc-head mine"><span>我的版本</span><span>本地</span></div>
+            <div class="dc-body">## 今日<ins>- 完成 Q3 数据分析</ins><br>- 团队同步,确认 Q3 节奏<br>- 阅读《<del>深度工作</del><ins>原子习惯</ins>》第 <ins>5</ins> 章<br><br>明天开始做产品<ins>上线收尾</ins>。</div>
+          </div>
+          <div class="diff-col">
+            <div class="dc-head server"><span>服务端</span><span>2 分钟前</span></div>
+            <div class="dc-body">## 今日<br>- 完成 Q3 数据分析<ins>报告</ins><br>- 团队同步,确认 Q3 节奏<br>- 阅读《<ins>深度工作</ins>》第 <del>5</del><ins>3</ins> 章<br><br>明天<ins>继续优化文档</ins>。</div>
+          </div>
+        </div>
+      </div>
+      <div class="md-foot">
+        <button class="btn-ghost" onclick="closeOverlay()">取消</button>
+        <button class="btn-secondary" onclick="closeOverlay(); toast('已采用服务端版本','success');">采用服务端</button>
+        <button class="btn-primary" onclick="closeOverlay(); toast('已保留我的版本','success');">保留我的</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+}
+
+function closeOverlay() {
+  document.querySelectorAll('.overlay, .sheet, .modal').forEach(el => el.remove());
+  document.removeEventListener('keydown', cmdkEscHandler);
+}
+
+/* ============================================================
+   STATE TRIGGERS (bottom right)
+   ============================================================ */
+function bindTriggerBar() {
+  const tb = document.getElementById('triggerBar');
+  const btns = document.getElementById('triggerBtns');
+  const hide = document.getElementById('triggerHide');
+  if (hide) hide.onclick = () => {
+    STATE.triggerCollapsed = !STATE.triggerCollapsed;
+    tb.classList.toggle('collapsed', STATE.triggerCollapsed);
+    hide.textContent = STATE.triggerCollapsed ? '展开' : '收起';
+  };
+  btns.querySelectorAll('[data-trigger]').forEach(b => {
+    b.onclick = () => handleTrigger(b.dataset.trigger);
+  });
+}
+
+function handleTrigger(t) {
+  if (t === 'save-editing') { STATE.saveState = 'editing'; setSaveState('editing'); toast('状态:编辑中','info'); }
+  else if (t === 'save-saving') { STATE.saveState = 'saving'; setSaveState('saving'); toast('状态:正在保存','info'); }
+  else if (t === 'save-saved') { STATE.saveState = 'saved'; STATE.lastSavedAt = new Date(); setSaveState('saved'); toast('状态:已保存','success'); }
+  else if (t === 'save-failed') { STATE.saveState = 'failed'; setSaveState('failed'); toast('状态:保存失败','error'); }
+  else if (t === 'save-conflict') {
+    STATE.saveState = 'conflict'; setSaveState('conflict');
+    STATE.conflictActive = true;
+    const banner = document.getElementById('conflictBanner');
+    if (banner) banner.classList.add('show');
+    else { openEditor(); setTimeout(() => { const b = document.getElementById('conflictBanner'); if (b) b.classList.add('show'); }, 100); }
+    toast('状态:版本冲突','warning');
+  }
+  else if (t === 'draft-found') {
+    openEditor();
+    setTimeout(() => { const dt = document.getElementById('draftToast'); if (dt) dt.classList.add('show'); }, 100);
+    toast('检测到未提交草稿','info');
+  }
+  else if (t === 'ai-idle') { STATE.aiState = 'A'; renderDetailBody(); toast('AI 状态:未生成','info'); }
+  else if (t === 'ai-loading') { STATE.aiState = 'B'; STATE.aiStartedAt = Date.now(); renderDetailBody(); toast('AI 状态:生成中','info'); }
+  else if (t === 'ai-success') { STATE.aiState = 'C'; STATE.aiText = '今天整体节奏平稳,完成了若干事项。建议明天继续保持当前状态。'; STATE.aiEdited = false; renderDetailBody(); toast('AI 状态:成功','success'); }
+  else if (t === 'ai-fail') { STATE.aiState = 'D'; STATE.aiError = 'network'; renderDetailBody(); toast('AI 状态:失败','error'); }
+  else if (t === 'ai-unavail') { STATE.aiState = 'U'; renderDetailBody(); toast('AI 状态:不可用','warning'); }
+  else if (t === 'ai-timeout') {
+    STATE.aiState = 'B'; STATE.aiStartedAt = Date.now(); renderDetailBody();
+    setTimeout(() => { if (STATE.aiState === 'B') { STATE.aiState = 'D'; STATE.aiError = 'timeout'; renderDetailBody(); toast('AI 超时','error'); } }, 2000);
+  }
+  else if (t === 'ollama-off') { STATE.ollamaHealthy = false; STATE.aiState = 'U'; renderDetailBody(); toast('AI 服务已关闭','warning'); }
+  else if (t === 'ollama-on') { STATE.ollamaHealthy = true; STATE.aiState = 'A'; renderDetailBody(); toast('AI 服务已开启','success'); }
+  else if (t === 'open-search') { openCmdKOverlay(); }
+  else if (t === 'open-export') { openExportSheet(); }
+  else if (t === 'open-conflict') { openConflictDiff(); }
+  else if (t === 'open-recover') { openRecoverConfirm('r1'); }
+}
+
+/* ============================================================
+   GLOBAL KEYBOARD SHORTCUTS
+   ============================================================ */
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    openCmdKOverlay();
+  }
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  loadSearchFromUrl();
+  render();
+  bindTriggerBar();
+  window._toastFn = toast;
+});
+</script>
+</body>
+</html>
