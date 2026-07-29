@@ -77,6 +77,17 @@
   --shadow-lg:0 12px 32px rgba(15,23,42,.12);
 
   --motion-fast:150ms ease-out;
+
+  /* === 与 02 (daily) 顶部导航栏范式对齐的别名 === */
+  --primary: var(--brand);
+  --primary-hover: var(--brand-hover);
+  --primary-soft: var(--brand-soft);
+  --primary-light: var(--brand-softer);
+  --accent: var(--brand-light);
+  --bg-soft: var(--bg-alt);
+  --ink-1: var(--text-1);
+  --ink-2: var(--text-2);
+  --ink-3: var(--text-3);
 }
 
 *,*::before,*::after{box-sizing:border-box;}
@@ -101,42 +112,87 @@ em,i{font-style:normal;}
 /* sr-only */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
-/* ============================================================
-   通用布局
-   ============================================================ */
-.app{display:grid;grid-template-rows:auto 1fr;min-height:100vh;max-width:1440px;margin:0 auto;}
+/* 与 02 daily 顶部栏对齐：全局 .row / .gap 工具类（替代原作用域版本） */
+.row { display: flex; align-items: center; gap: 8px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 
-/* ====== 顶部导航 .top-nav ====== */
-.top-nav{
-  height:64px;
-  background:rgba(255,255,255,.85);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 var(--sp-5);
-  position:sticky;top:0;z-index:50;
+/* ============================================================
+   通用布局（与 02 daily 范式对齐）
+   ============================================================ */
+.app{
+  display:grid;
+  grid-template-rows:64px 1fr;
+  min-height:100vh;
+  max-width:1440px;
+  margin:0 auto;
 }
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--text-1);}
-.brand .logo-mark{
-  width:34px;height:34px;border-radius:10px;
-  background:linear-gradient(135deg,var(--brand-light),var(--brand));
-  display:flex;align-items:center;justify-content:center;
-  color:white;font-size:16px;font-weight:700;
-  box-shadow:0 2px 8px rgba(101,163,13,.3);
+
+/* ====== 顶部导航 .top-nav (按 daily 范式重写) ====== */
+.top-nav {
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
 }
-.nav-modules{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:12px;}
-.nav-modules a{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:8px 14px;border-radius:9px;
-  font-size:var(--fs-caption);font-weight:500;color:var(--text-3);
-  transition:all var(--motion-fast);
+.top-nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--ink-1); }
+.top-nav .brand .mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  color: white; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
 }
-.nav-modules a:hover{background:white;color:var(--text-2);text-decoration:none;}
-.nav-modules a.active{background:white;color:var(--brand);box-shadow:var(--shadow-sm);font-weight:600;}
-.nav-modules .ico{font-size:15px;}
+.top-nav .modules { display: flex; gap: 4px; background: var(--bg-soft); padding: 4px; border-radius: 10px; flex: 0 0 auto; margin: 0 auto; }
+.top-nav .module {
+  padding: 8px 14px; font-size: 13px; font-weight: 500;
+  color: var(--ink-3); border-radius: 7px;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s; position: relative;
+}
+.top-nav .module:hover { color: var(--ink-1); }
+.top-nav .module.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-weight: 600; }
+.top-nav .module .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); display: none; }
+.top-nav .module.has-badge .dot { display: inline-block; }
+.top-nav .user { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.top-nav .user:hover { background: var(--bg-soft); }
+.top-nav .avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--primary-light) 100%);
+  color: var(--primary-hover);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px;
+}
+.top-nav .user-name { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.top-nav .bell {
+  position: relative; width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2); cursor: pointer; transition: all 0.15s;
+}
+.top-nav .bell:hover { background: var(--bg-soft); }
+.top-nav .bell .count {
+  position: absolute; top: 4px; right: 4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--danger); color: white;
+  font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid white;
+}
+.top-nav .menu-toggle {
+  display: none;
+  width: 36px; height: 36px; border-radius: 8px;
+  align-items: center; justify-content: center;
+  color: var(--ink-2); cursor: pointer; transition: all 0.15s;
+}
+.top-nav .menu-toggle:hover { background: var(--bg-soft); }
+@media (max-width: 768px) {
+  .top-nav .modules { display: none; }
+  .top-nav .user-name { display: none; }
+  .top-nav .menu-toggle { display: flex; }
+}
 
 .nav-right{display:flex;align-items:center;gap:var(--sp-3);}
 .icon-btn{
@@ -157,14 +213,15 @@ em,i{font-style:normal;}
 }
 
 /* ====== 主体两列：侧栏 + 内容 ====== */
-.layout{display:grid;grid-template-columns:240px 1fr;gap:var(--sp-5);padding:var(--sp-5);align-items:start;}
+.layout{display:grid;grid-template-columns:240px 1fr;gap:var(--sp-5);padding:0 var(--sp-5) var(--sp-5);align-items:start;}
 
 /* ====== 侧栏 .side-nav ====== */
 .side-nav{
   background:white;border-radius:var(--r-lg);
   box-shadow:var(--shadow-sm);
   padding:var(--sp-3);
-  position:sticky;top:80px;
+  position:sticky;top:64px;align-self:flex-start;
+  height:calc(100vh - 64px);overflow-y:auto;
 }
 .side-section{margin-bottom:var(--sp-4);}
 .side-section:last-child{margin-bottom:0;}
@@ -754,11 +811,17 @@ em,i{font-style:normal;}
   padding:var(--sp-3) var(--sp-4);border-radius:var(--r-md);
   font-size:var(--fs-caption);z-index:200;
   display:flex;flex-direction:column;gap:var(--sp-2);
-  box-shadow:var(--shadow-lg);transition:transform var(--motion-fast);
+  box-shadow:var(--shadow-lg);transition:transform var(--motion-fast),visibility 0s linear .15s;
   max-width:90vw;
-  min-width:280px;
+  visibility:hidden;
+  pointer-events:none;
 }
-.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.show{
+  transform:translateX(-50%) translateY(0);
+  visibility:visible;
+  pointer-events:auto;
+  transition:transform var(--motion-fast),visibility 0s;
+}
 .toast .actions{display:flex;gap:var(--sp-2);}
 .toast .actions button{
   padding:5px 14px;border-radius:var(--r-sm);
@@ -960,7 +1023,7 @@ em,i{font-style:normal;}
 
 @media (max-width:768px){
   .top-nav{padding:0 var(--sp-3);height:56px;}
-  .nav-modules{display:none;}
+  .modules{display:none;}
   .layout{grid-template-columns:1fr;padding:var(--sp-3);gap:var(--sp-3);}
   .side-nav{position:static;}
   .side-section:nth-child(2){display:none;}
@@ -1000,25 +1063,36 @@ em,i{font-style:normal;}
 <div class="app">
 
 <!-- ====== 顶部导航 ====== -->
-<nav class="top-nav" aria-label="主导航">
-  <div class="brand">
-    <div class="logo-mark">L</div>
-    <span>Lifewise</span>
+<header class="top-nav">
+  <div class="row gap-3">
+    <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="brand">
+      <div class="mark">L</div>
+      <span>Lifewise</span>
+    </div>
   </div>
-  <div class="nav-modules" role="navigation">
-    <a href="#"><span class="ico">📋</span>任务</a>
-    <a href="#"><span class="ico">📝</span>日记</a>
-    <a href="#"><span class="ico">💰</span>账单</a>
-    <a href="#" class="active"><span class="ico">🥗</span>饮食</a>
-    <a href="#"><span class="ico">🎯</span>计划</a>
-    <a href="#"><span class="ico">🤖</span>AI</a>
+  <nav class="modules" aria-label="主导航">
+    <button class="module" data-module="task" onclick="gotoModule('task')">📋 任务</button>
+    <button class="module" data-module="daily" onclick="gotoModule('daily')">📝 日记</button>
+    <button class="module" data-module="bill" onclick="gotoModule('bill')">💰 账单</button>
+    <button class="module active" data-module="diet" onclick="gotoModule('diet')">🥗 饮食</button>
+    <button class="module" data-module="plan" onclick="gotoModule('plan')">🗓 计划</button>
+    <button class="module" data-module="ai" onclick="gotoModule('ai')">🤖 AI <span class="dot"></span></button>
+  </nav>
+  <div class="row gap-2">
+    <button class="bell" id="bellBtn" aria-label="通知">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="count">3</span>
+    </button>
+    <div class="user">
+      <div class="avatar">静</div>
+      <span class="user-name">静怡</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
   </div>
-  <div class="nav-right">
-    <button class="icon-btn" aria-label="搜索">🔍</button>
-    <button class="icon-btn" aria-label="通知">🔔<span class="dot"></span></button>
-    <div class="avatar" aria-label="用户头像">小</div>
-  </div>
-</nav>
+</header>
 
 <!-- ====== 主体布局 ====== -->
 <div class="layout">
@@ -1645,11 +1719,11 @@ const NUTRITION_TARGETS = {
 
 // MealDraft（演示草稿恢复）
 const INITIAL_DRAFT = {
-  draftKey: 'meal_draft_u_001_2026-07-28_breakfast',
+  draftKey: 'meal_draft_u_001_2026-07-29_breakfast',
   slot: 'breakfast',
   items: [{ foodId: 'f_001', name: '煎饼', servings: 1 }],
   note: '准备加餐...',
-  lastSavedAt: '2026-07-28T07:30:00+08:00'
+  lastSavedAt: '2026-07-29T07:30:00+08:00'
 };
 
 /* ============================================================
@@ -1657,7 +1731,7 @@ const INITIAL_DRAFT = {
    ============================================================ */
 const STATE = {
   currentSeg: 'today',
-  today: '2026-07-28',
+  today: '2026-07-29',
   // 4 段展示
   weekState: 'full', // empty | quick-only | loading | full
   // 食物库
@@ -1672,6 +1746,8 @@ const STATE = {
   sheetOpen: false,
   sheetMode: 'add', // add | detail | edit | quick
   sheetSlot: 'breakfast',
+  sheetCat: '全部',
+  sheetSearch: '',
   sheetSelectedFood: null,
   sheetServings: 1,
   sheetNote: '',
@@ -1760,6 +1836,28 @@ function calcMifflin(t) {
 }
 function fmtDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function getWeekRange(todayIso) {
+  // 返回本周 7 天(周一-周日)的日期对象数组 + 中文星期标签
+  const t = new Date(todayIso);
+  const day = (t.getDay() + 6) % 7; // 0=Mon..6=Sun
+  const monday = new Date(t); monday.setDate(t.getDate() - day);
+  const labels = ['周一','周二','周三','周四','周五','周六','周日'];
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    days.push({ date: d, label: labels[i], iso: fmtDate(d), isToday: fmtDate(d) === todayIso });
+  }
+  return days;
 }
 
 /* ============================================================
@@ -1865,7 +1963,7 @@ function renderMealCards() {
         <div class="emoji">${meta.emoji}</div>
         <div class="body">
           <h4>${meta.name} · 草稿待恢复</h4>
-          <div class="meta">${draft.items.length} 项待恢复 · "${draft.note}"</div>
+          <div class="meta">${draft.items.length} 项待恢复 · "${escapeHtml(draft.note)}"</div>
         </div>
         <div class="kcal">${draft.items.length}<small>项待恢复</small></div>
       </article>`;
@@ -1886,7 +1984,7 @@ function renderMealCards() {
     return `<article class="meal-card" data-slot="${s}" tabindex="0" onclick="openSheet('detail','${s}')" oncontextmenu="ctxMenuFor(event,'${s}')" aria-label="${meta.name} 已记录 ${m.kcal} 千卡">
       <div class="emoji">${meta.emoji}</div>
       <div class="body">
-        <h4>${meta.name}${m.isQuick ? ' · 懒人模式' : (m.note ? ' · ' + m.note.split('').slice(0,8).join('') : '')}</h4>
+        <h4>${meta.name}${m.isQuick ? ' · 懒人模式' : (m.note ? ' · ' + escapeHtml(m.note.slice(0, 8)) : '')}</h4>
         <div class="meta">${nutrientLine}</div>
       </div>
       <div class="kcal">${m.kcal}<small>kcal</small></div>
@@ -1945,14 +2043,12 @@ function renderWeek() {
     </div>
   `;
 
-  // WeekChart 7 柱
-  const dayNums = [28,29,30,31,1,2,3]; // 简化为以今日为中心
-  const dayLabels = ['周三','周四','周五','周六','周日','周一','周二'];
-  const bars = dayNums.map((d, i) => {
-    const dateStr = `2026-07-${String(d).padStart(2,'0')}`;
-    const dmeals = MEALS.filter(m => sameDay(m.takenAt, dateStr));
+  // WeekChart 7 柱(基于 STATE.today 动态计算本周日期)
+  const weekDays = getWeekRange(STATE.today);
+  const bars = weekDays.map((wd, i) => {
+    const dmeals = MEALS.filter(m => sameDay(m.takenAt, wd.iso));
     const k = dmeals.reduce((s, m) => s + m.kcal, 0);
-    return { d, k };
+    return { iso: wd.iso, d: wd.date.getDate(), label: wd.label, isToday: wd.isToday, k };
   });
   const max = Math.max(target * 1.4, ...bars.map(b => b.k), 2400);
   const W = 700, H = 220, padL = 40, padB = 30, padT = 24, padR = 8;
@@ -1975,10 +2071,10 @@ function renderWeek() {
     const h = (b.k / max) * (H - padT - padB);
     const x = padL + i * bw + 8;
     const y = H - padB - h;
-    const isToday = i === 0; // 假设第 1 天为今日
+    const isToday = b.isToday;
     const fill = b.k === 0 ? 'var(--bg-alt)' : (b.k > target * 1.1 ? 'var(--danger)' : (b.k >= target * 0.85 ? 'var(--warning)' : 'var(--brand)'));
     const opa = b.k === 0 ? 0.4 : 1;
-    return `<rect x="${x}" y="${y}" width="${bw-16}" height="${Math.max(h, 2)}" rx="6" fill="${fill}" opacity="${opa}"/><text x="${x + (bw-16)/2}" y="${y - 6}" text-anchor="middle" font-size="11" fill="var(--text-2)" font-weight="600">${b.k || '·'}</text><text x="${x + (bw-16)/2}" y="${H-12}" text-anchor="middle" font-size="11" fill="${isToday?'var(--brand)':'var(--text-3)'}" font-weight="${isToday?'600':'400'}">${dayLabels[i]}${isToday?' · 今日':''}</text><text x="${x + (bw-16)/2}" y="${H+2}" text-anchor="middle" font-size="10" fill="var(--text-mute)">${dayNums[i]}/7</text>`;
+    return `<rect x="${x}" y="${y}" width="${bw-16}" height="${Math.max(h, 2)}" rx="6" fill="${fill}" opacity="${opa}"/><text x="${x + (bw-16)/2}" y="${y - 6}" text-anchor="middle" font-size="11" fill="var(--text-2)" font-weight="600">${b.k || '·'}</text><text x="${x + (bw-16)/2}" y="${H-12}" text-anchor="middle" font-size="11" fill="${isToday?'var(--brand)':'var(--text-3)'}" font-weight="${isToday?'600':'400'}">${b.label}${isToday?' · 今日':''}</text><text x="${x + (bw-16)/2}" y="${H+2}" text-anchor="middle" font-size="10" fill="var(--text-mute)">${b.d}/${b.date.getMonth()+1}</text>`;
   }).join('');
 
   const refY = H - padB - (target / max) * (H - padT - padB);
@@ -2162,11 +2258,11 @@ function renderFoods() {
   if (q && list.length === 0) {
     mount.innerHTML = `<div class="empty"><div class="illus">🔍</div><h3>暂无匹配结果</h3><p>换个关键词，或自定义一个新食物</p><button class="btn-primary" onclick="openFoodSheet('custom')">➕ 自定义食物</button></div>`;
   } else {
-    mount.innerHTML = list.map(f => `<article class="food-item ${f.isCustom?'custom':''}" tabindex="0" onclick="openFoodSheet('view','${f.id}')" aria-label="${f.name} ${f.kcalPer100g} 千卡每百克">
+    mount.innerHTML = list.map(f => `<article class="food-item ${f.isCustom?'custom':''}" tabindex="0" onclick="openFoodSheet('view','${f.id}')" aria-label="${escapeHtml(f.name)} ${f.kcalPer100g} 千卡每百克">
       <div class="cat">${CAT_EMOJI[f.category]||'🍽'}</div>
       <div class="info">
-        <h4>${f.name}</h4>
-        <div class="meta">${f.category} · ${f.kcalPer100g} kcal/100g ${f.isCustom?'· <span class="aliases">自定义</span>':''}</div>
+        <h4>${escapeHtml(f.name)}</h4>
+        <div class="meta">${escapeHtml(f.category)} · ${f.kcalPer100g} kcal/100g ${f.isCustom?'· <span class="aliases">自定义</span>':''}</div>
       </div>
       <div class="nutri">${f.kcalPer100g}<small>kcal</small></div>
     </article>`).join('');
@@ -2346,7 +2442,7 @@ function switchTarget(t) {
   STATE.target = t;
   STATE.targetProfile = null;
   updateSideGoal();
-  showToast(`🎯 已切换至「${({cut:'减脂期',maintain:'维持体重',bulk:'增肌期'})[t]}」`);
+  showToast(`🎯 已切换至「${({cut:'减脂期',maintain:'维持体重',bulk:'增肌期'})[t]}」`, null);
   renderCurrentSeg();
 }
 
@@ -2573,9 +2669,6 @@ function renderSheet() {
   }
 }
 
-let STATE_sheetCat = '全部';
-Object.defineProperty(STATE, 'sheetCat', { get(){return STATE_sheetCat;}, set(v){STATE_sheetCat=v;} });
-
 function switchSheetMode(mode) {
   STATE.sheetMode = mode;
   renderSheet();
@@ -2585,7 +2678,7 @@ function renderAddBody(isEdit) {
   const slot = STATE.sheetSlot;
   const m = todayMeals().find(x => x.slot === slot);
   // 同 slot 5 分钟内提示（mock 总是触发演示）
-  const sameSlot = m && !isEdit && STATE.sheetMode === 'add';
+  const sameSlot = m && !isEdit && STATE.sheetMode === 'add' && Math.abs(new Date(m.takenAt) - new Date()) < 30 * 60 * 1000;
 
   let html = '';
   if (sameSlot) {
@@ -2630,7 +2723,7 @@ function renderAddBody(isEdit) {
     });
   }
   list.slice(0, 12).forEach(f => {
-    html += `<article class="food-item ${f.isCustom?'custom':''} ${STATE.sheetSelectedFood && STATE.sheetSelectedFood.id===f.id?'selected':''}" onclick="selectSheetFood('${f.id}')"><div class="cat">${CAT_EMOJI[f.category]||'🍽'}</div><div class="info"><h4>${f.name}</h4><div class="meta">${f.category} · ${f.kcalPer100g} kcal/100g</div></div><div class="nutri">${f.kcalPer100g}<small>kcal</small></div></article>`;
+    html += `<article class="food-item ${f.isCustom?'custom':''} ${STATE.sheetSelectedFood && STATE.sheetSelectedFood.id===f.id?'selected':''}" onclick="selectSheetFood('${f.id}')"><div class="cat">${CAT_EMOJI[f.category]||'🍽'}</div><div class="info"><h4>${escapeHtml(f.name)}</h4><div class="meta">${escapeHtml(f.category)} · ${f.kcalPer100g} kcal/100g</div></div><div class="nutri">${f.kcalPer100g}<small>kcal</small></div></article>`;
   });
   html += `</div>`;
 
@@ -2641,9 +2734,6 @@ function renderAddBody(isEdit) {
   html += `<div id="sheet-detail">${STATE.sheetSelectedFood ? renderSheetDetail() : ''}</div>`;
   return html;
 }
-
-let STATE_sheetSearch = '';
-Object.defineProperty(STATE, 'sheetSearch', { get(){return STATE_sheetSearch;}, set(v){STATE_sheetSearch=v;} });
 
 function onSheetSearch(v) {
   STATE.sheetSearch = v.toLowerCase();
@@ -2678,7 +2768,7 @@ function renderSheetDetail() {
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:48px;height:48px;border-radius:12px;background:white;display:flex;align-items:center;justify-content:center;font-size:24px">${CAT_EMOJI[f.category]||'🍽'}</div>
         <div style="flex:1">
-          <h4 style="font-size:var(--fs-body);font-weight:600;margin:0">${f.name}</h4>
+          <h4 style="font-size:var(--fs-body);font-weight:600;margin:0">${escapeHtml(f.name)}</h4>
           <div style="font-size:var(--fs-caption);color:var(--text-3)">${f.category} · ${f.kcalPer100g} kcal/100g ${f.isCustom?'· 🌟 自定义':''}</div>
         </div>
         <span class="pill brand"><span class="dot"></span> 已选</span>
@@ -2698,7 +2788,7 @@ function renderSheetDetail() {
         <div class="item"><div class="v">${fa}g</div><div class="l">脂肪</div></div>
       </div>
       <div class="note-field">
-        <textarea id="sheet-note" placeholder="备注（可选，≤200字）" maxlength="200" oninput="STATE.sheetNote=this.value; STATE.sheetDirty=true;">${STATE.sheetNote}</textarea>
+        <textarea id="sheet-note" placeholder="备注（可选，≤200字）" maxlength="200" oninput="STATE.sheetNote=this.value; STATE.sheetDirty=true;">${escapeHtml(STATE.sheetNote)}</textarea>
         <div class="count"><span id="note-count">${STATE.sheetNote.length}</span>/200</div>
       </div>
     </div>
@@ -2764,7 +2854,7 @@ function addMealItem(slot, foodId, servings) {
   }];
   MEALS.push({
     id, userId:'u_001', slot,
-    takenAt:`2026-07-28T${String(SLOT_META[slot].hour).padStart(2,'0')}:30:00+08:00`,
+    takenAt:`2026-07-29T${String(SLOT_META[slot].hour).padStart(2,'0')}:30:00+08:00`,
     note: STATE.sheetNote || '', kcal:k,
     nutrients:items[0].nutrients, itemCount:1, items, isQuick:false,
     createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), deletedAt:null
@@ -2809,7 +2899,7 @@ function renderDetailBody() {
         const f = it.foodId ? FOODS.find(x => x.id === it.foodId) : null;
         const emoji = f ? CAT_EMOJI[f.category] : '⚠';
         const warnLabel = !it.foodId ? (m.isQuick ? '<span class="warn-label">⚠ 懒人</span>' : '<span class="warn-label">⚠ 已删除</span>') : '';
-        return `<div class="mli"><div class="emoji">${emoji}</div><div class="body"><h5>${it.nameSnapshot}</h5><div class="meta">${it.servings} 份 · ${it.nutrients.protein}g 蛋白 · ${it.nutrients.carb}g 碳水 · ${it.nutrients.fat}g 脂肪 ${warnLabel}</div></div><div class="kcal">${it.kcal}<small>kcal</small></div></div>`;
+        return `<div class="mli"><div class="emoji">${emoji}</div><div class="body"><h5>${escapeHtml(it.nameSnapshot)}</h5><div class="meta">${it.servings} 份 · ${it.nutrients.protein}g 蛋白 · ${it.nutrients.carb}g 碳水 · ${it.nutrients.fat}g 脂肪 ${warnLabel}</div></div><div class="kcal">${it.kcal}<small>kcal</small></div></div>`;
       }).join('')
     : `<div style="padding:var(--sp-3)"><p style="color:var(--text-3);font-size:var(--fs-caption);margin:0 0 var(--sp-3)">使用「编辑」调整食物条目</p><button class="btn-primary" onclick="switchSheetMode('edit')">→ 进入编辑模式</button></div>`;
 
@@ -2829,7 +2919,7 @@ function renderDetailBody() {
     </div>
   `;
 
-  const noteLine = m.note ? `<div class="card" style="background:var(--bg);box-shadow:none;padding:var(--sp-3);margin:var(--sp-3) 0"><div style="font-size:var(--fs-caption);color:var(--text-3)">📝 备注</div><div style="font-size:var(--fs-body);color:var(--text-1);margin-top:4px">${m.note}</div></div>` : '';
+  const noteLine = m.note ? `<div class="card" style="background:var(--bg);box-shadow:none;padding:var(--sp-3);margin:var(--sp-3) 0"><div style="font-size:var(--fs-caption);color:var(--text-3)">📝 备注</div><div style="font-size:var(--fs-body);color:var(--text-1);margin-top:4px">${escapeHtml(m.note)}</div></div>` : '';
 
   return `
     ${nutrientLine}
@@ -2861,7 +2951,7 @@ function renderQuickBody() {
       <span>kcal</span>
     </div>
     <div class="note-field">
-      <textarea id="quick-note" placeholder="备注（可选，≤200字）" maxlength="200">${STATE.sheetNote}</textarea>
+      <textarea id="quick-note" placeholder="备注（可选，≤200字）" maxlength="200">${escapeHtml(STATE.sheetNote)}</textarea>
       <div class="count"><span id="note-count">${STATE.sheetNote.length}</span>/200</div>
     </div>
     <div style="background:var(--bg);padding:var(--sp-3);border-radius:var(--r-sm);margin-top:var(--sp-3);font-size:var(--fs-caption);color:var(--text-3)">
@@ -2878,7 +2968,7 @@ function confirmQuick() {
   // 模拟加入 meal
   const id = `meal_quick_${Date.now()}`;
   const items = [{ id:`mi_${id}`, mealId:id, foodId:null, nameSnapshot:note || '懒人加餐', servings:1, unit:'份', kcal:k, nutrients:{protein:0,carb:0,fat:0}, createdAt:new Date().toISOString(), deletedAt:null }];
-  MEALS.push({ id, userId:'u_001', slot, takenAt:`2026-07-28T${String(SLOT_META[slot].hour).padStart(2,'0')}:30:00+08:00`, note, kcal:k, nutrients:{protein:0,carb:0,fat:0}, itemCount:1, items, isQuick:true, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), deletedAt:null });
+  MEALS.push({ id, userId:'u_001', slot, takenAt:`2026-07-29T${String(SLOT_META[slot].hour).padStart(2,'0')}:30:00+08:00`, note, kcal:k, nutrients:{protein:0,carb:0,fat:0}, itemCount:1, items, isQuick:true, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), deletedAt:null });
   showToast(`✓ ${SLOT_META[slot].name}已记录 · 共 ${k} kcal（懒人模式）`);
   closeSheet();
   renderCurrentSeg();
@@ -2915,7 +3005,7 @@ function renderFoodSheet() {
         <div class="food-detail">
           <div class="big-emoji">${CAT_EMOJI[f.category]||'🍽'}</div>
           <div style="flex:1;min-width:0">
-            <h4>${f.name}</h4>
+            <h4>${escapeHtml(f.name)}</h4>
             <div class="meta">${f.category} · ${f.kcalPer100g} kcal/100g ${f.isCustom?'· 🌟 自定义':''}</div>
           </div>
           ${f.isCustom?'<span class="pill brand"><span class="dot"></span> 我的</span>':'<span class="badge" style="background:var(--brand-soft);color:var(--brand-hover)">内置</span>'}
@@ -2929,7 +3019,7 @@ function renderFoodSheet() {
         <div class="field">
           <label class="field-label"><span>别名</span><span class="helper">用于拼音/英文搜索</span></label>
           <div style="display:flex;flex-wrap:wrap;gap:4px">
-            ${(f.nameAliases||[]).map(a => `<span class="pill">${a}</span>`).join('')}
+            ${(f.nameAliases||[]).map(a => `<span class="pill">${escapeHtml(a)}</span>`).join('')}
           </div>
         </div>
         <div class="field">
@@ -3298,6 +3388,22 @@ document.addEventListener('keydown', e => {
     }
   }, 30000);
 })();
+
+/* ============================================================
+   跨模块跳转（与 expense-ui / daily-ui 保持一致）
+   ============================================================ */
+const MODULE_PATHS = {
+  task: '../01-task-ui/new-01-task-ui.html',
+  daily: '../02-daily-ui/new-02-daily-ui.html',
+  bill: '../03-expense-ui/new-03-expense-ui.html',
+  diet: '../04-diet-ui/new-04-diet-ui.html',
+  plan: '../05-plan-ui/new-05-plan-ui.html',
+  ai: '../06-ai-ui/new-06-ai-ui.html',
+};
+function gotoModule(key) {
+  const p = MODULE_PATHS[key];
+  if (p) window.location.href = p;
+}
 </script>
 
 </body>
