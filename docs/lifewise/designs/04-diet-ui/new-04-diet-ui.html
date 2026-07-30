@@ -217,39 +217,52 @@ em,i{font-style:normal;}
 
 /* ====== 侧栏 .side-nav ====== */
 .side-nav{
-  background:white;border-radius:var(--r-lg);
-  box-shadow:var(--shadow-sm);
-  padding:var(--sp-3);
+  background:rgba(255,255,255,0.7);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border-right:1px solid var(--border);
+  padding:20px 12px;
   position:sticky;top:64px;align-self:flex-start;
   height:calc(100vh - 64px);overflow-y:auto;
 }
-.side-section{margin-bottom:var(--sp-4);}
-.side-section:last-child{margin-bottom:0;}
-.side-section h4{
-  font-size:var(--fs-micro);color:var(--text-mute);
-  text-transform:uppercase;letter-spacing:.05em;
-  margin:0 var(--sp-3) var(--sp-2);font-weight:600;
+.side-nav .side-section{margin-bottom:20px;}
+.side-nav .side-title{
+  font-size:11px;font-weight:600;color:var(--text-mute);
+  text-transform:uppercase;letter-spacing:.5px;
+  padding:0 12px 8px;
 }
-.side-item{
+.side-nav .side-item{
   display:flex;align-items:center;gap:10px;
-  padding:10px var(--sp-3);border-radius:var(--r-sm);
-  color:var(--text-2);font-size:var(--fs-caption);font-weight:500;
-  transition:all var(--motion-fast);cursor:pointer;
+  padding:9px 12px;border-radius:8px;
+  font-size:13px;color:var(--ink-2);
+  cursor:pointer;transition:all .12s;margin-bottom:2px;
 }
-.side-item:hover{background:var(--bg);color:var(--text-1);text-decoration:none;}
-.side-item.active{background:var(--brand-soft);color:var(--brand);font-weight:600;}
-.side-item .ico{font-size:16px;width:20px;text-align:center;}
-.side-item .badge{margin-left:auto;background:var(--danger);color:white;font-size:10px;padding:2px 6px;border-radius:999px;font-weight:600;}
+.side-nav .side-item:hover{background:var(--bg-soft);color:var(--ink-1);}
+.side-nav .side-item.active{background:var(--primary-soft);color:var(--primary-hover);font-weight:600;}
+.side-nav .side-item .ico{width:16px;text-align:center;font-size:14px;}
+.side-nav .side-item .count{
+  margin-left:auto;font-size:11px;
+  background:var(--bg-soft);color:var(--ink-3);
+  padding:1px 7px;border-radius:999px;font-weight:500;
+}
+.side-nav .side-item.active .count{background:white;color:var(--primary);}
+.side-nav .side-card{
+  margin:12px;padding:14px;
+  background:linear-gradient(135deg,var(--primary-soft) 0%,#FEFCE8 100%);
+  border:1px solid var(--primary-light);
+  border-radius:10px;
+}
+.side-nav .side-card h4{font-size:13px;color:var(--primary-hover);margin-bottom:6px;}
+.side-nav .side-card p{font-size:12px;color:var(--ink-3);margin:0 0 10px;line-height:1.5;}
 
-.side-profile{
+.side-nav .side-profile{
   padding:var(--sp-3);
   border-top:1px solid var(--border);
   display:flex;align-items:center;gap:10px;
 }
-.side-profile .avatar{width:36px;height:36px;font-size:13px;}
-.side-profile .info{flex:1;min-width:0;}
-.side-profile .info .name{font-size:var(--fs-caption);font-weight:600;color:var(--text-1);}
-.side-profile .info .goal{font-size:var(--fs-micro);color:var(--text-mute);}
+.side-nav .side-profile .avatar{width:36px;height:36px;font-size:13px;}
+.side-nav .side-profile .info{flex:1;min-width:0;}
+.side-nav .side-profile .info .name{font-size:var(--fs-caption);font-weight:600;color:var(--text-1);}
+.side-nav .side-profile .info .goal{font-size:var(--fs-micro);color:var(--text-mute);}
 
 /* ====== 内容区 ====== */
 .content{display:flex;flex-direction:column;gap:var(--sp-4);min-width:0;}
@@ -1100,9 +1113,9 @@ em,i{font-style:normal;}
   <!-- ====== 侧栏 ====== -->
   <aside class="side-nav" aria-label="健康模块导航">
     <div class="side-section">
-      <h4>健康</h4>
+      <div class="side-title">健康</div>
       <a class="side-item active" data-seg="today" onclick="goSeg('today')">
-        <span class="ico">🍴</span>今日<span class="badge" id="side-badge" hidden>0</span>
+        <span class="ico">🍴</span>今日<span class="count" id="side-badge" hidden>0</span>
       </a>
       <a class="side-item" data-seg="week" onclick="goSeg('week')">
         <span class="ico">📊</span>本周
@@ -1116,7 +1129,7 @@ em,i{font-style:normal;}
     </div>
 
     <div class="side-section">
-      <h4>快捷</h4>
+      <div class="side-title">快捷</div>
       <a class="side-item" onclick="goSeg('camera')">
         <span class="ico">📷</span>拍照记餐
       </a>
@@ -1129,7 +1142,7 @@ em,i{font-style:normal;}
     </div>
 
     <div class="side-section">
-      <h4>推荐目标</h4>
+      <div class="side-title">推荐目标</div>
       <a class="side-item" onclick="switchTarget('cut')">
         <span class="ico">🔥</span>减脂期
       </a>

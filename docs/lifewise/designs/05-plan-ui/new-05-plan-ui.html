@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>计划管理 — Lifewise</title>#
+<title>计划管理 — Lifewise</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -209,22 +209,18 @@ input, textarea, select { font-family: inherit; }
 .app {
   display: grid;
   grid-template-rows: 64px 1fr;
+  grid-template-columns: 232px 1fr;
+  grid-template-areas: "top top" "side main";
   min-height: 100vh;
   max-width: 1440px;
   margin: 0 auto;
 }
 
 /* ============================================================
-   4. Layout — Sidebar + Content
+   4. Side Nav (与 02 daily 范式对齐：grid-area: side)
    ============================================================ */
-.layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: var(--sp-5);
-  padding: var(--sp-5);
-}
-
 .side-nav {
+  grid-area: side;
   background: white;
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
@@ -260,7 +256,7 @@ input, textarea, select { font-family: inherit; }
 /* ============================================================
    5. Content area
    ============================================================ */
-.content { padding-left: var(--sp-5); min-width: 0; }
+.content { grid-area: main; padding: var(--sp-5); min-width: 0; }
 
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -1098,7 +1094,7 @@ input, textarea, select { font-family: inherit; }
 
 /* ====== Top Nav（与 02 daily 范式对齐） ====== */
 .top-nav {
-  height: 64px;
+  grid-area: top;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 24px;
   background: rgba(255, 255, 255, 0.85);
@@ -1149,17 +1145,19 @@ input, textarea, select { font-family: inherit; }
   display: flex; align-items: center; justify-content: center;
   border: 2px solid white;
 }
-.top-nav .menu-toggle {
-  display: none;
-  width: 36px; height: 36px; border-radius: 8px;
-  align-items: center; justify-content: center;
-  color: var(--ink-2); cursor: pointer; transition: all 0.15s;
+.menu-toggle {
+  display: none; width: 36px; height: 36px; border-radius: 8px;
+  align-items: center; justify-content: center; color: var(--ink-2);
 }
-.top-nav .menu-toggle:hover { background: var(--bg-soft); }
-@media (max-width: 768px) {
+.menu-toggle:hover { background: var(--bg-soft); }
+@media (max-width: 1024px) {
   .top-nav .modules { display: none; }
-  .top-nav .user-name { display: none; }
-  .top-nav .menu-toggle { display: flex; }
+}
+@media (max-width: 768px) {
+  .menu-toggle { display: flex; }
+}
+@media (max-width: 480px) {
+  .top-nav { padding: 0 12px; } .top-nav .user-name { display: none; }
 }
 </style>
 </head>
@@ -1181,12 +1179,12 @@ input, textarea, select { font-family: inherit; }
       </div>
     </div>
     <nav class="modules" aria-label="主导航">
-      <button class="module" data-module="task" onclick="gotoModule('task')">📋 任务</button>
-      <button class="module" data-module="daily" onclick="gotoModule('daily')">📝 日记</button>
-      <button class="module" data-module="bill" onclick="gotoModule('bill')">💰 账单</button>
-      <button class="module" data-module="diet" onclick="gotoModule('diet')">🥗 饮食</button>
-      <button class="module active" data-module="plan" onclick="gotoModule('plan')">🗓 计划</button>
-      <button class="module" data-module="ai" onclick="gotoModule('ai')">🤖 AI <span class="dot"></span></button>
+      <button class="module" data-module="task">📋 任务</button>
+      <button class="module" data-module="daily">📝 日记</button>
+      <button class="module" data-module="bill">💰 账单</button>
+      <button class="module" data-module="diet">🥗 饮食</button>
+      <button class="module active" data-module="plan">🗓 计划</button>
+      <button class="module" data-module="ai">🤖 AI <span class="dot"></span></button>
     </nav>
     <div class="row gap-2">
       <button class="bell" id="bellBtn" aria-label="通知">
@@ -1204,9 +1202,7 @@ input, textarea, select { font-family: inherit; }
   <!-- ============================================================
        Layout — Sidebar + Content
        ============================================================ -->
-  <div class="layout">
-
-    <aside class="side-nav" id="sideNav">
+  <aside class="side-nav" id="sideNav">
       <div class="side-nav-section">
         <h3 class="side-nav-title">视图</h3>
         <button class="side-link active" data-view="dashboard">
@@ -1544,7 +1540,6 @@ input, textarea, select { font-family: inherit; }
       <div class="plan-grid" id="doneGrid"></div>
 
     </main>
-  </div>
 
   <!-- ============================================================
        FAB (mobile fallback)
@@ -3292,6 +3287,18 @@ function gotoModule(key) {
   const p = MODULE_PATHS[key];
   if (p) window.location.href = p;
 }
+
+/* ============================================================
+   TOP-NAV EVENT BINDING (aligned with 02-daily paradigm)
+   ============================================================ */
+document.querySelectorAll('.top-nav .module').forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll('.top-nav .module').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    const m = el.dataset.module;
+    if (m && m !== 'plan') gotoModule(m);
+  };
+});
 </script>
 
 </body>

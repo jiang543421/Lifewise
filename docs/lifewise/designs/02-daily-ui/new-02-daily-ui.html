@@ -95,7 +95,7 @@ h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; }
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
 }
-.top-nav .modules { display: flex; gap: 4px; background: var(--bg-soft); padding: 4px; border-radius: 10px; }
+.top-nav .modules { display: flex; gap: 4px; background: var(--bg-soft); padding: 4px; border-radius: 10px; flex: 0 0 auto; margin: 0 auto; }
 .top-nav .module {
   padding: 8px 14px; font-size: 13px; font-weight: 500;
   color: var(--ink-3); border-radius: 7px;
@@ -135,7 +135,9 @@ h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; }
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   border-right: 1px solid var(--border);
-  padding: 20px 12px; overflow-y: auto;
+  padding: 20px 12px;
+  position: sticky; top: 64px; align-self: flex-start;
+  height: calc(100vh - 64px); overflow-y: auto;
 }
 .side-nav .side-section { margin-bottom: 20px; }
 .side-nav .side-title {
@@ -886,6 +888,7 @@ h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; }
   .entry-grid { grid-template-columns: repeat(3, 1fr); }
   .weather-grid { grid-template-columns: repeat(4, 1fr); }
   .mood-grid { grid-template-columns: repeat(5, 1fr); }
+  .trigger-bar { display: none; }
 }
 @media (max-width: 480px) {
   .main { padding: 16px; } .stats { grid-template-columns: repeat(2, 1fr); }
@@ -1049,13 +1052,6 @@ mark { background: #FEF3C7; padding: 0 2px; border-radius: 2px; color: inherit; 
       <div class="side-item" data-side="stats">
         <span class="ico">📊</span><span>统计 / 趋势</span>
       </div>
-    </div>
-
-    <div class="side-section">
-      <div class="side-title">视图</div>
-      <div class="side-item" data-view="list"><span class="ico">📃</span><span>列表</span></div>
-      <div class="side-item" data-view="calendar"><span class="ico">🗓</span><span>日历</span></div>
-      <div class="side-item" data-view="mood"><span class="ico">🌡</span><span>心情图</span></div>
     </div>
 
     <div class="side-section">
@@ -1314,7 +1310,7 @@ function setSaveState(s) {
     failed: '保存失败 ⟲ 重试',
     conflict: '存在版本冲突 ⚠'
   };
-  text.textContent = map[s];
+  if (text) text.textContent = map[s];
   if (s === 'saved' && STATE.lastSavedAt) {
     const timeEl = document.getElementById('autosaveTime');
     if (timeEl) timeEl.textContent = STATE.lastSavedAt.toTimeString().slice(0, 8);
@@ -1346,12 +1342,15 @@ function doSave() {
       STATE.saveState = 'saved';
       STATE.lastSavedAt = new Date();
       setSaveState('saved');
-      const t = TODAY;
+      const t = (STATE.draft && STATE.draft.date) || TODAY;
       if (MOCK[t] && !MOCK[t].empty) {
         MOCK[t].mood = STATE.draft.mood;
         MOCK[t].highlights = STATE.draft.highlights;
         MOCK[t].weather = STATE.draft.weather;
         MOCK[t].md = STATE.draft.contentMd;
+      } else {
+        if (!MOCK[t]) MOCK[t] = { date: t, entries: [], mood: STATE.draft.mood, highlights: STATE.draft.highlights, weather: STATE.draft.weather, md: STATE.draft.contentMd };
+        else if (MOCK[t].empty) { MOCK[t].empty = false; MOCK[t].mood = STATE.draft.mood; MOCK[t].highlights = STATE.draft.highlights; MOCK[t].weather = STATE.draft.weather; MOCK[t].md = STATE.draft.contentMd; delete MOCK[t].future; }
       }
     }
   }, 500);
@@ -1363,7 +1362,7 @@ function doSave() {
 function aiStart() {
   if (!STATE.ollamaHealthy) {
     STATE.aiState = 'U';
-    renderDetailBody();
+    updateDetailBody();
     toast('AI 服务暂不可用', 'warning');
     return;
   }
@@ -1373,7 +1372,7 @@ function aiStart() {
   STATE.aiState = 'B';
   STATE.aiStartedAt = Date.now();
   STATE.aiError = null;
-  renderDetailBody();
+  updateDetailBody();
   setTimeout(() => {
     if (Math.random() < 0.85) {
       const r = getReport(STATE.selectedDate);
@@ -1384,7 +1383,7 @@ function aiStart() {
       STATE.aiState = 'D';
       STATE.aiError = 'timeout';
     }
-    renderDetailBody();
+    updateDetailBody();
   }, 1500);
   const TO = (STATE.aiTimeoutSeconds || 30) * 1000;
   clearTimeout(STATE.aiTimer);
@@ -1392,7 +1391,7 @@ function aiStart() {
     if (STATE.aiState === 'B') {
       STATE.aiState = 'D';
       STATE.aiError = 'timeout';
-      renderDetailBody();
+      updateDetailBody();
       toast('AI 生成超时,请重试', 'error');
     }
   }, TO);
@@ -1404,7 +1403,7 @@ function aiDelete() {
   STATE.aiEdited = false;
   const r = getReport(STATE.selectedDate);
   if (r) delete r.ai;
-  renderDetailBody();
+  updateDetailBody();
   toast('AI 摘要已删除', 'success');
 }
 
@@ -1920,6 +1919,25 @@ function renderDetailBody() {
     <div id="aiCard">${renderAiCard(r)}</div>
     <div class="dt-content">${simpleMarkdown(r.md)}</div>
   `;
+}
+
+function updateDetailBody() {
+  const el = document.getElementById('detailBody');
+  if (!el) return;
+  el.innerHTML = renderDetailBody();
+  bindDetailBodyEvents();
+}
+
+function bindDetailBodyEvents() {
+  document.querySelectorAll('#detailBody [data-action="ai-start"]').forEach(b => b.onclick = aiStart);
+  document.querySelectorAll('#detailBody [data-action="ai-regen"]').forEach(b => b.onclick = aiStart);
+  document.querySelectorAll('#detailBody [data-action="ai-delete"]').forEach(b => b.onclick = aiDelete);
+  document.querySelectorAll('#detailBody [data-action="ai-edit"]').forEach(b => b.onclick = () => {
+    const el = document.querySelector('#detailBody [data-ai-edit]');
+    if (el) { el.focus(); toast('进入编辑模式', 'info'); }
+  });
+  const aiEditEl = document.querySelector('#detailBody [data-ai-edit]');
+  if (aiEditEl) aiEditEl.onblur = () => aiEdit(aiEditEl.innerText);
 }
 
 function renderAiCard(r) {
@@ -2626,9 +2644,7 @@ function bindEvents() {
   document.querySelectorAll('.side-item').forEach(el => {
     el.onclick = () => {
       const s = el.dataset.side;
-      const v = el.dataset.view;
       if (s) { STATE.side = s; render(); }
-      if (v) { STATE.view = v; toast('视图已切换:' + v, 'info'); }
     };
   });
 
@@ -3153,6 +3169,7 @@ function openEditorRefresh() {
    OVERLAY: Search Cmd+K
    ============================================================ */
 function openCmdKOverlay() {
+  if (document.getElementById('cmdkOverlay')) return;
   const ov = document.createElement('div');
   ov.className = 'overlay';
   ov.id = 'cmdkOverlay';
@@ -3175,11 +3192,45 @@ function openCmdKOverlay() {
     </div>
   `;
   document.body.appendChild(ov);
-  document.getElementById('cmdkInput').focus();
-  document.getElementById('cmdkInput').oninput = (e) => {
+  const cmdkInput = document.getElementById('cmdkInput');
+  cmdkInput.focus();
+  cmdkInput.oninput = (e) => {
     document.getElementById('cmdkBody').innerHTML = renderCmdKResults(e.target.value);
+    cmdkSelectedIdx = 0;
+    updateCmdKSelection();
   };
+  cmdkInput.addEventListener('keydown', cmdkKeyHandler);
   document.addEventListener('keydown', cmdkEscHandler);
+}
+
+let cmdkSelectedIdx = 0;
+
+function cmdkKeyHandler(e) {
+  const body = document.getElementById('cmdkBody');
+  if (!body) return;
+  const items = body.querySelectorAll('[data-cmdk-action], [data-cmdk-entry]');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    cmdkSelectedIdx = (cmdkSelectedIdx + 1) % items.length;
+    updateCmdKSelection();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    cmdkSelectedIdx = (cmdkSelectedIdx - 1 + items.length) % items.length;
+    updateCmdKSelection();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const active = items[cmdkSelectedIdx];
+    if (active) active.click();
+  }
+}
+
+function updateCmdKSelection() {
+  const body = document.getElementById('cmdkBody');
+  if (!body) return;
+  const items = body.querySelectorAll('[data-cmdk-action], [data-cmdk-entry]');
+  items.forEach((el, i) => el.classList.toggle('focus', i === cmdkSelectedIdx));
+  if (items[cmdkSelectedIdx]) items[cmdkSelectedIdx].scrollIntoView({ block: 'nearest' });
 }
 
 function cmdkEscHandler(e) {
@@ -3418,17 +3469,17 @@ function handleTrigger(t) {
     setTimeout(() => { const dt = document.getElementById('draftToast'); if (dt) dt.classList.add('show'); }, 100);
     toast('检测到未提交草稿','info');
   }
-  else if (t === 'ai-idle') { STATE.aiState = 'A'; renderDetailBody(); toast('AI 状态:未生成','info'); }
-  else if (t === 'ai-loading') { STATE.aiState = 'B'; STATE.aiStartedAt = Date.now(); renderDetailBody(); toast('AI 状态:生成中','info'); }
-  else if (t === 'ai-success') { STATE.aiState = 'C'; STATE.aiText = '今天整体节奏平稳,完成了若干事项。建议明天继续保持当前状态。'; STATE.aiEdited = false; renderDetailBody(); toast('AI 状态:成功','success'); }
-  else if (t === 'ai-fail') { STATE.aiState = 'D'; STATE.aiError = 'network'; renderDetailBody(); toast('AI 状态:失败','error'); }
-  else if (t === 'ai-unavail') { STATE.aiState = 'U'; renderDetailBody(); toast('AI 状态:不可用','warning'); }
+  else if (t === 'ai-idle') { STATE.aiState = 'A'; updateDetailBody(); toast('AI 状态:未生成','info'); }
+  else if (t === 'ai-loading') { STATE.aiState = 'B'; STATE.aiStartedAt = Date.now(); updateDetailBody(); toast('AI 状态:生成中','info'); }
+  else if (t === 'ai-success') { STATE.aiState = 'C'; STATE.aiText = '今天整体节奏平稳,完成了若干事项。建议明天继续保持当前状态。'; STATE.aiEdited = false; updateDetailBody(); toast('AI 状态:成功','success'); }
+  else if (t === 'ai-fail') { STATE.aiState = 'D'; STATE.aiError = 'network'; updateDetailBody(); toast('AI 状态:失败','error'); }
+  else if (t === 'ai-unavail') { STATE.aiState = 'U'; updateDetailBody(); toast('AI 状态:不可用','warning'); }
   else if (t === 'ai-timeout') {
-    STATE.aiState = 'B'; STATE.aiStartedAt = Date.now(); renderDetailBody();
-    setTimeout(() => { if (STATE.aiState === 'B') { STATE.aiState = 'D'; STATE.aiError = 'timeout'; renderDetailBody(); toast('AI 超时','error'); } }, 2000);
+    STATE.aiState = 'B'; STATE.aiStartedAt = Date.now(); updateDetailBody();
+    setTimeout(() => { if (STATE.aiState === 'B') { STATE.aiState = 'D'; STATE.aiError = 'timeout'; updateDetailBody(); toast('AI 超时','error'); } }, 2000);
   }
-  else if (t === 'ollama-off') { STATE.ollamaHealthy = false; STATE.aiState = 'U'; renderDetailBody(); toast('AI 服务已关闭','warning'); }
-  else if (t === 'ollama-on') { STATE.ollamaHealthy = true; STATE.aiState = 'A'; renderDetailBody(); toast('AI 服务已开启','success'); }
+  else if (t === 'ollama-off') { STATE.ollamaHealthy = false; STATE.aiState = 'U'; updateDetailBody(); toast('AI 服务已关闭','warning'); }
+  else if (t === 'ollama-on') { STATE.ollamaHealthy = true; STATE.aiState = 'A'; updateDetailBody(); toast('AI 服务已开启','success'); }
   else if (t === 'open-search') { openCmdKOverlay(); }
   else if (t === 'open-export') { openExportSheet(); }
   else if (t === 'open-conflict') { openConflictDiff(); }

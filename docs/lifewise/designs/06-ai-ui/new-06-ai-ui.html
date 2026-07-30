@@ -158,12 +158,18 @@ a:hover { text-decoration: underline; }
 .app { max-width: 1440px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
 .top-nav {
   position: sticky; top: 0; z-index: 50;
-  display: flex; align-items: center; gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
   padding: 12px 24px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid #E2E8F0;
 }
+.top-nav > .row.gap-3 { justify-self: start; }
+.top-nav > nav.modules { justify-self: center; }
+.top-nav > .row.gap-2 { justify-self: end; }
 .top-nav-logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: #0F172A; }
 .top-nav-logo .mark {
   width: 32px; height: 32px; border-radius: 8px;
@@ -172,7 +178,8 @@ a:hover { text-decoration: underline; }
   color: white; font-weight: 700; font-size: 15px;
   box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
 }
-.top-nav-modules { display: flex; align-items: center; gap: 4px; flex: 1; margin-left: 8px; }
+.top-nav-modules { display: flex; align-items: center; gap: 4px; flex: 0 1 auto; margin: 0 auto; }
+.top-nav > .menu-toggle { margin-left: auto; }
 .nav-item {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 12px; border-radius: 8px;
@@ -1296,8 +1303,8 @@ a:hover { text-decoration: underline; }
    21. 演示导航（开发期可见，方便切换视图）
    ========================================================= */
 .demo-bar {
-  position: fixed; top: 10px; right: 10px;
-  z-index: 999;
+  position: fixed; top: 80px; right: 16px;
+  z-index: 60;
   background: #0F172A; color: white;
   padding: 6px 12px; border-radius: 999px;
   font-size: 12px;
@@ -1311,6 +1318,448 @@ a:hover { text-decoration: underline; }
 }
 .demo-bar button:hover { background: rgba(255,255,255,0.1); color: white; }
 .demo-bar button.active { background: var(--ai-accent); color: white; }
+
+/* ====== Unify top-nav style (from daily module) ====== */
+.top-nav .row { display: flex; align-items: center; }
+.top-nav .row.gap-3 { gap: 12px; }
+.top-nav .row.gap-2 { gap: 8px; }
+.top-nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text-1); }
+.top-nav .brand .mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--green-500) 0%, var(--green-600) 100%);
+  color: white; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
+}
+.top-nav .modules { display: flex; gap: 4px; background: var(--bg-2); padding: 4px; border-radius: 10px; flex: 0 0 auto; margin: 0 auto; }
+.top-nav .module {
+  padding: 8px 14px; font-size: 13px; font-weight: 500;
+  color: var(--text-3); border-radius: 7px;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s; position: relative; background: transparent;
+}
+.top-nav .module:hover { color: var(--text-1); }
+.top-nav .module.active { background: white; color: var(--ai-accent-deep); box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-weight: 600; }
+.top-nav .module .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--error); display: none; }
+.top-nav .module.has-badge .dot { display: inline-block; }
+.top-nav .user { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.top-nav .user:hover { background: var(--bg-2); }
+.top-nav .avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--green-100) 0%, var(--green-50) 100%);
+  color: var(--green-700);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px;
+}
+.top-nav .user-name { font-size: 13px; font-weight: 500; color: var(--text-2); }
+.top-nav .bell {
+  position: relative; width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-2); cursor: pointer; transition: all 0.15s;
+  background: transparent;
+}
+.top-nav .bell:hover { background: var(--bg-2); }
+.top-nav .bell .count {
+  position: absolute; top: 4px; right: 4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--error); color: white;
+  font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid white;
+}
+.top-nav .menu-toggle {
+  display: none;
+  width: 36px; height: 36px; border-radius: 8px;
+  align-items: center; justify-content: center;
+  color: var(--text-2); cursor: pointer; transition: all 0.15s; background: transparent;
+}
+.top-nav .menu-toggle:hover { background: var(--bg-2); }
+@media (max-width: 768px) {
+  .top-nav .modules { display: none; }
+  .top-nav .user-name { display: none; }
+  .top-nav .menu-toggle { display: flex; }
+}
+
+/* =========================================================
+   22. 智能对话主页（chat）
+   ========================================================= */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  height: calc(100vh - 57px - 48px);
+  min-height: 600px;
+  margin-bottom: 24px;
+}
+.chat-sessions {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-sessions-head {
+  padding: 14px;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-sessions-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 14px; font-weight: 600; color: #0F172A;
+}
+.chat-sessions-title-row .new-btn {
+  width: 26px; height: 26px; border-radius: 8px;
+  background: var(--ai-accent); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; line-height: 1;
+  transition: all 0.15s;
+}
+.chat-sessions-title-row .new-btn:hover { background: var(--ai-accent-deep); }
+.chat-sessions-list { flex: 1; overflow-y: auto; padding: 6px; }
+.chat-session-group {
+  font-size: 11px; font-weight: 600; color: #94A3B8;
+  padding: 10px 12px 4px; letter-spacing: 0.04em;
+}
+.chat-session-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  cursor: pointer; transition: all 0.15s;
+  margin-bottom: 2px;
+}
+.chat-session-item:hover { background: #F1F5F9; }
+.chat-session-item.active { background: var(--ai-accent-soft); }
+.chat-session-item .ico { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
+.chat-session-item .body { flex: 1; min-width: 0; }
+.chat-session-item .title {
+  font-size: 13px; font-weight: 500; color: #0F172A;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.chat-session-item.active .title { color: var(--ai-accent-deep); font-weight: 600; }
+.chat-session-item .sub {
+  font-size: 11px; color: #94A3B8; margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.chat-session-item .badge-new {
+  background: var(--ai-accent); color: white;
+  font-size: 10px; padding: 1px 6px; border-radius: 999px;
+  flex-shrink: 0;
+}
+.chat-session-item .pin { font-size: 12px; color: #F59E0B; flex-shrink: 0; }
+
+.chat-main-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.chat-main-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #E2E8F0;
+  background: linear-gradient(180deg, #F8FAFC 0%, white 100%);
+}
+.chat-main-head .title { font-size: 15px; font-weight: 600; color: #0F172A; }
+.chat-main-head .meta { font-size: 12px; color: #64748B; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.chat-main-head .actions { margin-left: auto; display: flex; gap: 4px; }
+.chat-main-body {
+  flex: 1; overflow-y: auto;
+  padding: 24px;
+  background: #F8FAFC;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.chat-main-foot {
+  border-top: 1px solid #E2E8F0;
+  background: white;
+}
+
+/* =========================================================
+   23. 报告中心（reports）
+   ========================================================= */
+.reports-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.tabs {
+  display: inline-flex; background: #F1F5F9;
+  padding: 4px; border-radius: 10px; gap: 2px;
+}
+.tab {
+  padding: 8px 14px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; color: #475569;
+  cursor: pointer; transition: all 0.15s;
+}
+.tab:hover { color: #0F172A; }
+.tab.active {
+  background: white; color: var(--ai-accent-deep);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  font-weight: 600;
+}
+.reports-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.report-thumb {
+  background: white; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 16px; cursor: pointer; transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.report-thumb:hover {
+  border-color: var(--ai-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15,23,42,0.08);
+}
+.report-thumb .ico-row { display: flex; align-items: center; gap: 10px; }
+.report-thumb .ico {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: white; flex-shrink: 0;
+}
+.report-thumb .ico.expense { background: var(--cat-expense); }
+.report-thumb .ico.task { background: var(--cat-task); }
+.report-thumb .ico.daily { background: var(--cat-daily); }
+.report-thumb .ico.diet { background: var(--cat-diet); }
+.report-thumb .ico.plan { background: var(--cat-plan); }
+.report-thumb .title { font-size: 14px; font-weight: 600; color: #0F172A; }
+.report-thumb .meta { font-size: 12px; color: #94A3B8; display: flex; align-items: center; gap: 6px; }
+.report-thumb .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.report-thumb .footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; border-top: 1px dashed #F1F5F9;
+  font-size: 11px; color: #94A3B8;
+}
+.report-thumb .footer .actions { display: flex; gap: 4px; }
+.report-thumb .footer .actions button { color: #94A3B8; padding: 4px; border-radius: 6px; }
+.report-thumb .footer .actions button:hover { color: #475569; background: #F1F5F9; }
+
+.template-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 12px; margin-bottom: 16px;
+}
+.template-card {
+  background: white; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 18px; cursor: pointer; transition: all 0.15s;
+}
+.template-card:hover { border-color: var(--ai-accent); box-shadow: 0 4px 12px var(--ai-glow); }
+.template-card .ico {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--ai-accent-soft); color: var(--ai-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 12px;
+}
+.template-card .title { font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 4px; }
+.template-card .sub { font-size: 12px; color: #64748B; line-height: 1.6; margin-bottom: 10px; }
+.template-card .meta { display: flex; gap: 6px; font-size: 11px; color: #94A3B8; }
+
+/* =========================================================
+   24. 洞察中心（insights）
+   ========================================================= */
+.insight-section-title {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 24px 0 12px;
+}
+.insight-section-title h4 {
+  font-size: 14px; font-weight: 600; color: #0F172A;
+  margin: 0; display: flex; align-items: center; gap: 8px;
+}
+.insight-section-title h4 .count {
+  font-size: 11px; font-weight: 500; color: #94A3B8;
+  background: #F1F5F9; padding: 2px 8px; border-radius: 999px;
+}
+.insight-card {
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  transition: all 0.15s;
+}
+.insight-card:hover { border-color: #CBD5E1; box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
+.insight-card[data-category="anomaly"] { border-left: 3px solid #F59E0B; }
+.insight-card[data-category="summary"] { border-left: 3px solid #94A3B8; }
+.insight-card[data-category="tip"] { border-left: 3px solid var(--ai-accent); }
+.insight-card[data-category="warning"] { border-left: 3px solid #EF4444; }
+.insight-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px; gap: 8px;
+}
+.insight-card-title {
+  font-size: 14px; font-weight: 600; color: #0F172A;
+  display: flex; align-items: center; gap: 8px;
+}
+.insight-card-title .ico { font-size: 18px; }
+.insight-card-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94A3B8; }
+.insight-card-body { font-size: 13px; color: #334155; line-height: 1.6; }
+.insight-card-body strong { color: var(--ai-accent-deep); font-weight: 600; }
+.insight-card-data {
+  background: #F8FAFC; border: 1px solid #F1F5F9;
+  border-radius: 8px; padding: 10px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px; color: #475569;
+  margin-top: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.insight-card-data .src { color: #94A3B8; }
+.insight-card-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.insight-card-actions button {
+  font-size: 12px; padding: 5px 12px; border-radius: 6px;
+  background: #F1F5F9; color: #475569;
+  transition: all 0.15s;
+}
+.insight-card-actions button:hover { background: #E2E8F0; }
+.insight-card-actions button.primary { background: var(--ai-accent); color: white; }
+.insight-card-actions button.primary:hover { background: var(--ai-accent-deep); }
+.insight-card-actions button.ai { color: var(--ai-accent); background: var(--ai-accent-soft); }
+.insight-card-actions button.ai:hover { background: #D6DFFB; }
+
+/* =========================================================
+   25. 收藏夹（favorites）
+   ========================================================= */
+.fav-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.fav-card {
+  background: white; border: 1px solid #E2E8F0; border-radius: 12px;
+  padding: 16px; cursor: pointer; transition: all 0.15s;
+  display: flex; flex-direction: column; gap: 8px;
+  position: relative;
+}
+.fav-card:hover { border-color: #F59E0B; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1); }
+.fav-card .fav-star {
+  position: absolute; top: 14px; right: 14px;
+  color: #F59E0B; font-size: 16px; cursor: pointer;
+}
+.fav-card .fav-type {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--ai-accent-deep);
+  background: var(--ai-accent-soft);
+  padding: 3px 8px; border-radius: 999px;
+  width: fit-content;
+}
+.fav-card .ico { font-size: 32px; line-height: 1; }
+.fav-card .title { font-size: 14px; font-weight: 600; color: #0F172A; }
+.fav-card .sub { font-size: 12px; color: #64748B; line-height: 1.5; flex: 1; }
+.fav-card .footer {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: #94A3B8;
+  padding-top: 8px; border-top: 1px dashed #F1F5F9;
+}
+
+/* =========================================================
+   26. 会话历史（chat-history）
+   ========================================================= */
+.session-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid #F1F5F9;
+  cursor: pointer; transition: all 0.15s;
+}
+.session-row:hover { background: var(--ai-accent-soft); }
+.session-row .ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--ai-accent-soft); color: var(--ai-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.session-row .body { flex: 1; min-width: 0; }
+.session-row .title { font-size: 14px; font-weight: 600; color: #0F172A; margin-bottom: 4px; }
+.session-row .sub {
+  font-size: 12px; color: #64748B;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.session-row .meta {
+  font-size: 11px; color: #94A3B8;
+  text-align: right; flex-shrink: 0;
+}
+.session-row .meta .msgs {
+  display: block; font-size: 12px; color: #475569;
+  font-weight: 600; margin-bottom: 2px;
+}
+
+/* =========================================================
+   27. 快捷操作结果页
+   ========================================================= */
+.quick-result {
+  background: white; border: 1px solid #E2E8F0;
+  border-radius: 16px; padding: 24px; margin-bottom: 16px;
+}
+.quick-result-head {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px; padding-bottom: 18px;
+  border-bottom: 1px solid #F1F5F9;
+}
+.quick-result-head .ico {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--ai-accent-soft); color: var(--ai-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+.quick-result-head .title { font-size: 18px; font-weight: 700; color: #0F172A; }
+.quick-result-head .sub { font-size: 12px; color: #64748B; margin-top: 2px; }
+.quick-result-head .actions { margin-left: auto; display: flex; gap: 8px; }
+.quick-result-section { margin-bottom: 20px; }
+.quick-result-section:last-child { margin-bottom: 0; }
+.quick-result-section .title {
+  font-size: 13px; font-weight: 600; color: var(--ai-accent-deep);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.quick-list { list-style: none; padding: 0; margin: 0; }
+.quick-list li {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 0; font-size: 13px; color: #334155;
+  border-bottom: 1px solid #F8FAFC; line-height: 1.6;
+}
+.quick-list li:last-child { border-bottom: none; }
+.quick-list li::before {
+  content: '•'; color: var(--ai-accent);
+  font-weight: 700; flex-shrink: 0;
+}
+.quick-stat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 18px;
+}
+.quick-stat {
+  background: #F8FAFC; border: 1px solid #F1F5F9;
+  border-radius: 10px; padding: 12px 14px;
+}
+.quick-stat-label { font-size: 11px; color: #94A3B8; margin-bottom: 4px; }
+.quick-stat-value { font-size: 18px; font-weight: 700; color: #0F172A; line-height: 1.2; }
+.quick-stat-trend { font-size: 11px; color: #10B981; margin-top: 4px; }
+.quick-stat-trend.down { color: #EF4444; }
+.quick-progress {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; background: #F8FAFC; border-radius: 10px;
+  margin-bottom: 10px;
+}
+.quick-progress .name { font-size: 13px; color: #334155; min-width: 100px; }
+.quick-progress .track {
+  flex: 1; height: 8px; background: white; border-radius: 999px;
+  overflow: hidden; border: 1px solid #E2E8F0;
+}
+.quick-progress .fill { height: 100%; border-radius: 999px; }
+.quick-progress .val { font-size: 12px; color: #475569; min-width: 64px; text-align: right; font-weight: 600; }
+
+/* =========================================================
+   28. 响应式补全
+   ========================================================= */
+@media (max-width: 1024px) {
+  .chat-layout { grid-template-columns: 240px 1fr; }
+  .reports-grid { grid-template-columns: repeat(2, 1fr); }
+  .fav-grid { grid-template-columns: repeat(2, 1fr); }
+  .quick-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .chat-layout { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .chat-sessions { max-height: 240px; margin-bottom: 12px; }
+  .reports-grid { grid-template-columns: 1fr; }
+  .fav-grid { grid-template-columns: 1fr; }
+  .template-grid { grid-template-columns: 1fr; }
+  .quick-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 </head>
 <body>
@@ -1318,6 +1767,11 @@ a:hover { text-decoration: underline; }
 <!-- 演示导航条（开发期可见，可切换 V1/V2/V4/V1-A/V1-C 等） -->
 <div class="demo-bar" id="demoBar">
   <span>🎬 视图切换</span>
+  <button data-view="chat" onclick="showView('chat')">💬 Chat</button>
+  <button data-view="reports" onclick="showView('reports')">📊 Reports</button>
+  <button data-view="insights" onclick="showView('insights')">🔍 Insights</button>
+  <button data-view="favorites" onclick="showView('favorites')">⭐ Fav</button>
+  <button data-view="chat-history" onclick="showView('chat-history')">🕘 ChatHis</button>
   <button data-view="v1" class="active" onclick="showView('v1')">V1</button>
   <button data-view="v1a" onclick="showView('v1a')">V1-A</button>
   <button data-view="v1c" onclick="showView('v1c')">V1-C</button>
@@ -1327,33 +1781,41 @@ a:hover { text-decoration: underline; }
   <button data-view="v2-fail" onclick="showView('v2-fail')">V2-fail</button>
   <button data-view="v2-partial" onclick="showView('v2-partial')">V2-partial</button>
   <button data-view="v4" onclick="showView('v4')">V4</button>
+  <button data-view="quick-diet" onclick="showView('quick-diet')">🥗 饮食</button>
+  <button data-view="quick-budget" onclick="showView('quick-budget')">💰 预算</button>
+  <button data-view="quick-task" onclick="showView('quick-task')">📋 任务</button>
 </div>
 
 <div class="app">
 
   <!-- ============== 顶栏 ============== -->
   <header class="top-nav">
-    <div class="top-nav-logo">
-      <div class="mark">L</div>
-      <span>Lifewise</span>
+    <div class="row gap-3">
+      <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="brand">
+        <div class="mark">L</div>
+        <span>Lifewise</span>
+      </div>
     </div>
-    <nav class="top-nav-modules" aria-label="主导航">
-      <button class="nav-item"><span class="ico">🏠</span><span>主页</span></button>
-      <button class="nav-item"><span class="ico">📋</span><span>任务</span></button>
-      <button class="nav-item"><span class="ico">📝</span><span>日记</span></button>
-      <button class="nav-item"><span class="ico">💰</span><span>账单</span></button>
-      <button class="nav-item"><span class="ico">🍱</span><span>饮食</span></button>
-      <button class="nav-item"><span class="ico">🎯</span><span>计划</span></button>
-      <button class="nav-item active"><span class="ico">🤖</span><span>AI</span></button>
+    <nav class="modules" aria-label="主导航">
+      <button class="module" data-module="task">📋 任务</button>
+      <button class="module" data-module="daily">📝 日记</button>
+      <button class="module" data-module="bill">💰 账单</button>
+      <button class="module" data-module="diet">🥗 饮食</button>
+      <button class="module" data-module="plan">🗓 计划</button>
+      <button class="module active" data-module="ai">🤖 AI <span class="dot"></span></button>
     </nav>
-    <div class="top-nav-right">
-      <span class="health-pill" id="openHealth">
-        <span class="health-dot"></span>
-        <span>AI 在线 · 2.3s</span>
-      </span>
-      <div class="user-chip">
-        <div class="user-avatar">于</div>
-        <span class="user-name">于博士</span>
+    <div class="row gap-2">
+      <button class="bell" id="bellBtn" aria-label="通知">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="count">3</span>
+      </button>
+      <div class="user">
+        <div class="avatar">静</div>
+        <span class="user-name">静怡</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
   </header>
@@ -1364,17 +1826,17 @@ a:hover { text-decoration: underline; }
     <!-- 侧栏 -->
     <aside class="side-nav">
       <div class="side-section">AI 助手</div>
-      <button class="side-item active" data-side="chat"><span class="ico">💬</span><span>智能对话</span><span class="count">12</span></button>
-      <button class="side-item" data-side="report"><span class="ico">📊</span><span>报告中心</span><span class="count">5</span></button>
-      <button class="side-item" data-side="insight"><span class="ico">🔍</span><span>数据洞察</span></button>
-      <button class="side-item" data-side="fav"><span class="ico">⭐</span><span>收藏夹</span><span class="count">3</span></button>
-      <button class="side-item" data-side="history" onclick="showView('v4')"><span class="ico">🕘</span><span>历史会话</span></button>
+      <button class="side-item active" data-side="chat" onclick="goSide('chat', this)"><span class="ico">💬</span><span>智能对话</span><span class="count">12</span></button>
+      <button class="side-item" data-side="report" onclick="goSide('reports', this)"><span class="ico">📊</span><span>报告中心</span><span class="count">18</span></button>
+      <button class="side-item" data-side="insight" onclick="goSide('insights', this)"><span class="ico">🔍</span><span>数据洞察</span><span class="count">24</span></button>
+      <button class="side-item" data-side="fav" onclick="goSide('favorites', this)"><span class="ico">⭐</span><span>收藏夹</span><span class="count">8</span></button>
+      <button class="side-item" data-side="history" onclick="goSide('chat-history', this)"><span class="ico">🕘</span><span>历史会话</span></button>
 
       <div class="side-section">快捷操作</div>
-      <button class="side-item"><span class="ico">📅</span><span>生成月报</span></button>
-      <button class="side-item"><span class="ico">🍱</span><span>饮食建议</span></button>
-      <button class="side-item"><span class="ico">💸</span><span>预算复盘</span></button>
-      <button class="side-item"><span class="ico">📋</span><span>任务诊断</span></button>
+      <button class="side-item" onclick="useTemplate('monthly')"><span class="ico">📅</span><span>生成月报</span></button>
+      <button class="side-item" onclick="goSide('quick-diet', this)"><span class="ico">🍱</span><span>饮食建议</span></button>
+      <button class="side-item" onclick="goSide('quick-budget', this)"><span class="ico">💸</span><span>预算复盘</span></button>
+      <button class="side-item" onclick="goSide('quick-task', this)"><span class="ico">📋</span><span>任务诊断</span></button>
 
       <div class="side-tip">
         <div class="tip-title">💡 小贴士</div>
@@ -2086,7 +2548,7 @@ a:hover { text-decoration: underline; }
                 <circle cx="60" cy="150" r="4" fill="#2D5F3F"/>
                 <circle cx="130" cy="120" r="4" fill="#2D5F3F"/>
                 <circle cx="200" cy="140" r="4" fill="#2D5F3F"/>
-                <circle cx="270" cy="80" r="4" fill="#3B5BFE" r="6"/>
+                <circle cx="270" cy="80" r="4" fill="#3B5BFE"/>
                 <circle cx="340" cy="100" r="4" fill="#2D5F3F"/>
                 <circle cx="410" cy="60" r="4" fill="#2D5F3F"/>
                 <text x="60" y="190" font-size="10" fill="#94A3B8" text-anchor="middle">1月</text>
@@ -2501,6 +2963,1090 @@ ORDER BY total DESC;</pre>
           </div>
         </div>
       </div>
+
+      <!-- ================================================================
+           Chat 智能对话主页（侧栏「智能对话」入口）
+           ================================================================ -->
+      <div data-view="chat" class="view-root hidden">
+        <div class="chat-layout">
+          <!-- 左：会话列表 -->
+          <aside class="chat-sessions">
+            <div class="chat-sessions-head">
+              <div class="chat-sessions-title-row">
+                <span>💬 会话列表</span>
+                <button class="new-btn" title="新对话" onclick="openNewChat()">+</button>
+              </div>
+              <div class="input-wrap" style="padding: 0;">
+                <span class="leading">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input class="input" placeholder="搜索会话…" />
+              </div>
+            </div>
+            <div class="chat-sessions-list">
+              <div class="chat-session-group">📌 已置顶</div>
+              <div class="chat-session-item active" data-session="p1" onclick="selectSession(this)">
+                <span class="ico">💬</span>
+                <div class="body">
+                  <div class="title">6 月消费复盘</div>
+                  <div class="sub">周末是不是花太多了？</div>
+                </div>
+                <span class="pin">📌</span>
+              </div>
+              <div class="chat-session-item" data-session="p2" onclick="selectSession(this)">
+                <span class="ico">🍱</span>
+                <div class="body">
+                  <div class="title">这周饮食均衡吗？</div>
+                  <div class="sub">最近好像吃太多外卖了</div>
+                </div>
+                <span class="pin">📌</span>
+              </div>
+
+              <div class="chat-session-group">📅 今天</div>
+              <div class="chat-session-item" data-session="t1" onclick="selectSession(this)">
+                <span class="ico">📋</span>
+                <div class="body">
+                  <div class="title">本周任务完成情况</div>
+                  <div class="sub">含 3 个高优先级</div>
+                </div>
+                <span class="badge-new">新</span>
+              </div>
+              <div class="chat-session-item" data-session="t2" onclick="selectSession(this)">
+                <span class="ico">😴</span>
+                <div class="body">
+                  <div class="title">我的睡眠质量</div>
+                  <div class="sub">本周平均 6.4 小时</div>
+                </div>
+              </div>
+
+              <div class="chat-session-group">📅 昨天</div>
+              <div class="chat-session-item" data-session="y1" onclick="selectSession(this)">
+                <span class="ico">📊</span>
+                <div class="body">
+                  <div class="title">3 月 vs 6 月对比</div>
+                  <div class="sub">跨月趋势</div>
+                </div>
+              </div>
+
+              <div class="chat-session-group">📅 本周更早</div>
+              <div class="chat-session-item" data-session="w1" onclick="selectSession(this)">
+                <span class="ico">📝</span>
+                <div class="body">
+                  <div class="title">本周日记亮点</div>
+                  <div class="sub">周二「重读《深度工作》」</div>
+                </div>
+              </div>
+              <div class="chat-session-item" data-session="w2" onclick="selectSession(this)">
+                <span class="ico">🍱</span>
+                <div class="body">
+                  <div class="title">减脂食谱推荐</div>
+                  <div class="sub">基于 1,700 kcal 目标</div>
+                </div>
+              </div>
+              <div class="chat-session-item" data-session="w3" onclick="selectSession(this)">
+                <span class="ico">🎯</span>
+                <div class="body">
+                  <div class="title">Q2 计划进度</div>
+                  <div class="sub">达标 4/5</div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- 右：聊天主区 -->
+          <main class="chat-main-card">
+            <div class="chat-main-head">
+              <div class="chat-head-avatar">💬</div>
+              <div style="flex: 1; min-width: 0;">
+                <div class="title">6 月消费复盘</div>
+                <div class="meta">
+                  <span class="popover-dot" style="background:#10B981;width:6px;height:6px;display:inline-block;border-radius:50%;"></span>
+                  <span>已建立索引 · 首 token 280ms</span>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="chat-icon-btn" title="分享" onclick="showToast('已复制会话链接')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                </button>
+                <button class="chat-icon-btn" title="收藏" onclick="showToast('⭐ 已收藏会话')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </button>
+                <button class="chat-icon-btn" title="设置">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="chat-main-body" id="chatMainBody">
+              <div class="chat-day-divider">— 今天 · 2026/07/30 —</div>
+              <div class="chat-bubble user">我 6 月超预算了吗？周末是不是花太多了？</div>
+              <div class="chat-bubble ai">
+                没有超预算，你 6 月实际支出 <strong>¥2,345</strong>，低于预算 <strong>¥2,700</strong> 约 12%。<br><br>
+                不过确实存在 <strong>周末消费偏高</strong> 的现象：周末日均 ¥158，是工作日 ¥68 的 <strong>2.3 倍</strong>，主要集中在周六晚餐饮和周日下午购物。如果把周末日均控制在 ¥100 以内，预计下月可再省 ¥350。
+                <div class="chat-bubble-meta">
+                  <button onclick="voteQa('up', this)">👍 6</button>
+                  <button onclick="voteQa('down', this)">👎 0</button>
+                  <button onclick="showDataSource(this)">📊 数据来源</button>
+                  <button onclick="showToast('🔄 已重新生成（演示）')">🔄 重新生成</button>
+                </div>
+              </div>
+              <div class="chat-bubble user">那如果我把周末预算压到 200，能省多少？</div>
+              <div class="chat-bubble ai">
+                很好算：<br><br>
+                · 当前周末日均 <strong>¥158</strong> × 8 天 = <strong>¥1,264</strong><br>
+                · 压到 ¥200 上限后：<strong>¥200 × 4 个周末 = ¥800</strong><br>
+                · 节省：<strong>¥464 / 月</strong>，折合年化 <strong>¥5,568</strong><br><br>
+                💡 建议把 ¥200 拆成：周六 120 + 周日 80，并用「记账」模块在触发时弹出提醒。
+                <div class="chat-bubble-meta">
+                  <button onclick="voteQa('up', this)">👍 11</button>
+                  <button onclick="voteQa('down', this)">👎 0</button>
+                  <button onclick="showDataSource(this)">📊 数据来源</button>
+                </div>
+              </div>
+
+              <div id="chatSuggestion" style="display:flex; flex-direction:column; gap:8px; align-self:flex-start; max-width:80%; margin-top:4px;">
+                <div style="font-size:11px;color:#64748B;margin-bottom:4px;padding-left:4px;">💡 你可能还想了解：</div>
+                <div class="chat-suggestion-card" onclick="askInChat('对比 3 月和 6 月的消费变化')">
+                  <span class="ico">📊</span>
+                  <div class="body">
+                    <div class="label">对比 3 月和 6 月的消费变化</div>
+                    <div class="sub">跨月趋势 · 2.4s 出结果</div>
+                  </div>
+                  <span style="color:#CBD5E1;">›</span>
+                </div>
+                <div class="chat-suggestion-card" onclick="askInChat('这周我的任务完成情况怎么样？')">
+                  <span class="ico">📋</span>
+                  <div class="body">
+                    <div class="label">这周我的任务完成情况</div>
+                    <div class="sub">7 天 · 含 3 个高优先级</div>
+                  </div>
+                  <span style="color:#CBD5E1;">›</span>
+                </div>
+                <div class="chat-suggestion-card" onclick="askInChat('给我推荐一份下周的减脂食谱')">
+                  <span class="ico">🍱</span>
+                  <div class="body">
+                    <div class="label">推荐一份下周的减脂食谱</div>
+                    <div class="sub">基于 1,700 kcal 目标</div>
+                  </div>
+                  <span style="color:#CBD5E1;">›</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-main-foot">
+              <div class="chat-quick-row">
+                <button class="quick-chip" onclick="useQuickChat(this)">💰 6 月消费明细</button>
+                <button class="quick-chip" onclick="useQuickChat(this)">📋 本周任务完成</button>
+                <button class="quick-chip" onclick="useQuickChat(this)">🍱 饮食是否均衡</button>
+                <button class="quick-chip" onclick="useQuickChat(this)">🎯 Q2 计划进度</button>
+                <button class="quick-chip" onclick="useQuickChat(this)">📝 这周日记亮点</button>
+                <button class="quick-chip" onclick="useQuickChat(this)">😴 我的睡眠质量</button>
+              </div>
+              <div class="chat-foot">
+                <div class="input-wrap ai">
+                  <span class="leading">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  </span>
+                  <input class="input has-trailing" type="text" id="chatMainInput" placeholder="问点什么？例如：我 6 月超预算了吗？" />
+                  <span class="trailing" title="附件（v1.1+）">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  </span>
+                </div>
+                <button class="send-btn ai" title="发送" onclick="sendChatMessage()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+              <div class="chat-helper-row">
+                <span class="left"><span>🤖</span> AI 解读已开启</span>
+                <span>⏎ 发送，⇧⏎ 换行</span>
+                <span class="right">
+                  <span class="counter" id="rateCounterMain">已用 3/10 次/分钟</span>
+                </span>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Reports 报告中心（侧栏「报告中心」入口）
+           ================================================================ -->
+      <div data-view="reports" class="view-root hidden">
+        <div class="section-title" style="margin-bottom: 16px;">
+          <h3>📊 报告中心</h3>
+          <span class="sub">基于 SQL 聚合 + Ollama 解读 · 共 18 份</span>
+          <div class="actions">
+            <button class="btn-secondary" onclick="showView('chat-history')">🕘 会话历史</button>
+            <button class="btn-primary ai" onclick="startGenerateReport()"><span>✨</span> 新建报告</button>
+          </div>
+        </div>
+
+        <div class="reports-toolbar">
+          <div class="tabs" id="reportsTabs">
+            <button class="tab active" data-tab="all" onclick="selectReportsTab(this)">📦 全部</button>
+            <button class="tab" data-tab="expense" onclick="selectReportsTab(this)">💰 消费</button>
+            <button class="tab" data-tab="task" onclick="selectReportsTab(this)">📋 任务</button>
+            <button class="tab" data-tab="daily" onclick="selectReportsTab(this)">📝 日报</button>
+            <button class="tab" data-tab="diet" onclick="selectReportsTab(this)">🍱 饮食</button>
+            <button class="tab" data-tab="plan" onclick="selectReportsTab(this)">🎯 计划</button>
+            <button class="tab" data-tab="fav" onclick="selectReportsTab(this)">⭐ 收藏</button>
+          </div>
+          <div class="input-wrap" style="flex:1; min-width: 200px; max-width: 320px; margin-left: auto;">
+            <span class="leading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input class="input" placeholder="搜索报告标题 / 标签…" />
+          </div>
+        </div>
+
+        <div class="reports-grid" id="reportsGrid">
+          <div class="report-thumb" onclick="openReport('r12')">
+            <div class="ico-row">
+              <div class="ico expense">💰</div>
+              <div style="flex:1; min-width: 0;">
+                <div class="title">消费报告 · 2026 年 6 月</div>
+                <div class="meta">2026/07/01 生成 · 8.4s</div>
+              </div>
+            </div>
+            <div class="tags">
+              <span class="badge success">12 条洞察</span>
+              <span class="badge">完整报告</span>
+            </div>
+            <div class="footer">
+              <span>6 月 1-30 日</span>
+              <div class="actions">
+                <button title="收藏" onclick="event.stopPropagation(); showToast('⭐ 已收藏')">⭐</button>
+                <button title="下载" onclick="event.stopPropagation(); showToast('📥 已下载')">📥</button>
+                <button title="分享" onclick="event.stopPropagation(); showToast('🔗 已复制链接')">🔗</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-thumb" onclick="openReport('r11')">
+            <div class="ico-row">
+              <div class="ico task">📋</div>
+              <div style="flex:1; min-width: 0;">
+                <div class="title">任务报告 · 2026 年 6 月</div>
+                <div class="meta">2026/07/01 生成 · 6.1s</div>
+              </div>
+            </div>
+            <div class="tags">
+              <span class="badge">完成率 78%</span>
+              <span class="badge warning">逾期 1</span>
+            </div>
+            <div class="footer">
+              <span>周复盘 × 4</span>
+              <div class="actions">
+                <button onclick="event.stopPropagation(); showToast('⭐ 已收藏')">⭐</button>
+                <button onclick="event.stopPropagation(); showToast('📥 已下载')">📥</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-thumb" onclick="openReport('r10')">
+            <div class="ico-row">
+              <div class="ico daily">📝</div>
+              <div style="flex:1; min-width: 0;">
+                <div class="title">日记复盘 · 2026 年 6 月</div>
+                <div class="meta">2026/07/01 生成 · 5.2s</div>
+              </div>
+            </div>
+            <div class="tags">
+              <span class="pill amber">含亮点</span>
+              <span class="badge">心情 4.2/5</span>
+            </div>
+            <div class="footer">
+              <span>5 篇 · 6,820 字</span>
+              <div class="actions">
+                <button onclick="event.stopPropagation(); showToast('⭐ 已收藏')">⭐</button>
+                <button onclick="event.stopPropagation(); showToast('📥 已下载')">📥</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-thumb" onclick="openReport('r9')">
+            <div class="ico-row">
+              <div class="ico diet">🍱</div>
+              <div style="flex:1; min-width: 0;">
+                <div class="title">饮食报告 · 2026 年 6 月</div>
+                <div class="meta">2026/07/01 生成 · 7.8s</div>
+              </div>
+            </div>
+            <div class="tags">
+              <span class="badge warning">蔬果不足</span>
+              <span class="badge">热量超标</span>
+            </div>
+            <div class="footer">
+              <span>日均 1,850 kcal</span>
+              <div class="actions">
+                <button onclick="event.stopPropagation(); showToast('⭐ 已收藏')">⭐</button>
+                <button onclick="event.stopPropagation(); showToast('📥 已下载')">📥</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-thumb" onclick="openReport('r8')">
+            <div class="ico-row">
+              <div class="ico plan">🎯</div>
+              <div style="flex:1; min-width: 0;">
+                <div class="title">计划进度 · 2026 Q2</div>
+                <div class="meta">2026/06/30 生成 · 4.5s</div>
+              </div>
+            </div>
+            <div class="tags">
+              <span class="badge success">达标 4/5</span>
+              <span class="badge">季度</span>
+            </div>
+            <div class="footer">
+              <span>5 个目标</span>
+              <div class="actions">
+                <button onclick="event.stopPropagation(); showToast('⭐ 已收藏')">⭐</button>
+                <button onclick="event.stopPropagation(); showToast('📥 已下载')">📥</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-thumb" onclick="openReport('r7')">
+            <div class="ico-row">
+              <div class="ico expense">💰</div>
+              <div style="flex:1; min-width: 0;">
+                <div class="title">消费报告 · 2026 年 5 月</div>
+                <div class="meta">2026/06/01 生成 · 7.9s</div>
+              </div>
+            </div>
+            <div class="tags">
+              <span class="badge success">10 条洞察</span>
+            </div>
+            <div class="footer">
+              <span>5 月 1-31 日</span>
+              <div class="actions">
+                <button onclick="event.stopPropagation(); showToast('⭐ 已收藏')">⭐</button>
+                <button onclick="event.stopPropagation(); showToast('📥 已下载')">📥</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin: 32px 0 14px;">
+          <h3>🧩 报告模板</h3>
+          <span class="sub">点击模板快速生成</span>
+        </div>
+        <div class="template-grid">
+          <div class="template-card" onclick="useTemplate('monthly')">
+            <div class="ico">📅</div>
+            <div class="title">月度复盘</div>
+            <div class="sub">汇总 5 个模块当月数据，输出趋势 + 异常 + 建议 + 下月目标。</div>
+            <div class="meta"><span>≈ 8-10s</span><span>·</span><span>消费 + 任务 + 饮食 + 日记</span></div>
+          </div>
+          <div class="template-card" onclick="useTemplate('quarterly')">
+            <div class="ico">🎯</div>
+            <div class="title">季度规划</div>
+            <div class="sub">对照 Q1/Q2 OKR，输出完成度 + 缺口 + 建议优先级。</div>
+            <div class="meta"><span>≈ 12s</span><span>·</span><span>计划 + 任务</span></div>
+          </div>
+          <div class="template-card" onclick="useTemplate('compare')">
+            <div class="ico">📊</div>
+            <div class="title">跨期对比</div>
+            <div class="sub">指定两个时间段，逐模块对比变化率与归因。</div>
+            <div class="meta"><span>≈ 10s</span><span>·</span><span>全模块</span></div>
+          </div>
+          <div class="template-card" onclick="useTemplate('custom')">
+            <div class="ico">🧪</div>
+            <div class="title">自定义报告</div>
+            <div class="sub">自由选择模块、时间段、提示词，AI 按需生成。</div>
+            <div class="meta"><span>≈ 6-15s</span><span>·</span><span>灵活</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Insights 数据洞察（侧栏「数据洞察」入口）
+           ================================================================ -->
+      <div data-view="insights" class="view-root hidden">
+        <div class="section-title" style="margin-bottom: 16px;">
+          <h3>🔍 数据洞察</h3>
+          <span class="sub">基于 5 模块数据聚合 · 本月共 24 条</span>
+          <div class="actions">
+            <button class="btn-secondary" onclick="showToast('订阅洞察（v1.1+）')">🔔 订阅推送</button>
+          </div>
+        </div>
+
+        <div class="reports-toolbar">
+          <div class="tabs" id="insightTabs">
+            <button class="tab active" data-ins-tab="all" onclick="selectInsightTab(this)">📦 全部</button>
+            <button class="tab" data-ins-tab="summary" onclick="selectInsightTab(this)">📊 摘要</button>
+            <button class="tab" data-ins-tab="anomaly" onclick="selectInsightTab(this)">⚠️ 异常</button>
+            <button class="tab" data-ins-tab="tip" onclick="selectInsightTab(this)">💡 建议</button>
+            <button class="tab" data-ins-tab="warning" onclick="selectInsightTab(this)">🚨 预警</button>
+          </div>
+          <div style="display:flex; gap: 6px; align-items: center; margin-left: auto; font-size: 12px; color: #64748B;">
+            <span>模块：</span>
+            <button class="filter-chip selected" data-ins-mod="all" onclick="selectInsightMod(this)">全部</button>
+            <button class="filter-chip" data-ins-mod="expense" onclick="selectInsightMod(this)">💰</button>
+            <button class="filter-chip" data-ins-mod="task" onclick="selectInsightMod(this)">📋</button>
+            <button class="filter-chip" data-ins-mod="daily" onclick="selectInsightMod(this)">📝</button>
+            <button class="filter-chip" data-ins-mod="diet" onclick="selectInsightMod(this)">🍱</button>
+            <button class="filter-chip" data-ins-mod="plan" onclick="selectInsightMod(this)">🎯</button>
+          </div>
+        </div>
+
+        <!-- 异常点 -->
+        <div class="insight-section-title">
+          <h4>⚠️ 异常点 <span class="count">5</span></h4>
+          <span style="font-size: 11px; color: #94A3B8;">数据偏离历史均值 1.5σ 以上</span>
+        </div>
+
+        <div class="insight-card" data-category="anomaly" data-module="expense">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">🔥</span> 周末消费是工作日 2.3 倍</div>
+            <div class="insight-card-meta"><span>💰 消费</span>·<span>2026/07/28</span></div>
+          </div>
+          <div class="insight-card-body">
+            6 月数据显示，<strong>周末日均 ¥158</strong>，工作日日均仅 <strong>¥68</strong>，比例达 <strong>2.3×</strong>，显著高于过去 3 个月的均值（1.7×）。主要集中在 <strong>周六晚餐饮</strong> 和 <strong>周日下午购物</strong>。
+          </div>
+          <div class="insight-card-data">
+            <span>SOURCE: expenses · 6 月 1-30 日 · 38 笔</span>
+            <span class="src">置信度 92%</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="startGenerateReport()">📊 生成完整报告</button>
+            <button class="ai" onclick="askInChat('详细说说周末消费异常')">💬 问 AI</button>
+            <button onclick="showToast('已标记为待跟进')">📌 标记跟进</button>
+            <button onclick="showToast('已忽略该洞察')">🚫 忽略</button>
+          </div>
+        </div>
+
+        <div class="insight-card" data-category="anomaly" data-module="diet">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">🥡</span> 外卖占比连续 3 周高于 35%</div>
+            <div class="insight-card-meta"><span>🍱 饮食</span>·<span>2026/07/27</span></div>
+          </div>
+          <div class="insight-card-body">
+            6 月外卖订单占总餐次的 <strong>38%</strong>，已超过健康阈值（25%）<strong>13 个百分点</strong>。其中周二、周四的午餐外卖占外卖总量的 64%，疑似工作日午餐外食。
+          </div>
+          <div class="insight-card-data">
+            <span>SOURCE: diet_logs · 87 餐 · 6 月</span>
+            <span class="src">置信度 88%</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="startGenerateReport()">📊 生成完整报告</button>
+            <button class="ai" onclick="askInChat('怎么降低外卖比例？')">💬 问 AI</button>
+            <button onclick="showToast('已标记为待跟进')">📌 标记跟进</button>
+          </div>
+        </div>
+
+        <div class="insight-card" data-category="warning" data-module="task">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">🚨</span> 高优先级任务「季度复盘文档」逾期 2 天</div>
+            <div class="insight-card-meta"><span>📋 任务</span>·<span>2026/07/29</span></div>
+          </div>
+          <div class="insight-card-body">
+            任务 <strong>「季度复盘文档」</strong> 原计划 7/27 完成，目前 <strong>逾期 2 天</strong>，影响 Q2 计划整体进度（从 88% 降至 80%）。建议今天内完成，或拆为 3 个子任务。
+          </div>
+          <div class="insight-card-data">
+            <span>SOURCE: tasks · 优先级 高 · 状态 进行中</span>
+            <span class="src">置信度 100%</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="showToast('已跳转任务模块')">📋 打开任务</button>
+            <button class="ai" onclick="askInChat('帮我拆解这个任务')">💬 问 AI</button>
+            <button onclick="showToast('已延后 1 天')">⏰ 延后 1 天</button>
+          </div>
+        </div>
+
+        <!-- 摘要 -->
+        <div class="insight-section-title">
+          <h4>📊 摘要 <span class="count">6</span></h4>
+          <span style="font-size: 11px; color: #94A3B8;">数据全貌速览</span>
+        </div>
+
+        <div class="insight-card" data-category="summary" data-module="expense">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">💰</span> 6 月总支出 ¥2,345，低于预算 12%</div>
+            <div class="insight-card-meta"><span>💰 消费</span>·<span>2026/07/01</span></div>
+          </div>
+          <div class="insight-card-body">
+            月度预算 <strong>¥2,700</strong>，实际支出 <strong>¥2,345</strong>，结余 <strong>¥355</strong>。笔数 8 笔，笔均 ¥293，相比 5 月（¥363）下降 19%。
+          </div>
+          <div class="insight-card-data">
+            <span>SOURCE: expenses · 6 月 · 8 笔</span>
+            <span class="src">置信度 100%</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="openReport('r12')">📊 查看报告</button>
+            <button class="ai" onclick="askInChat('为什么笔均下降了？')">💬 问 AI</button>
+          </div>
+        </div>
+
+        <div class="insight-card" data-category="summary" data-module="task">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">📋</span> 3 月任务完成率 78%，高于历史均值</div>
+            <div class="insight-card-meta"><span>📋 任务</span>·<span>2026/04/01</span></div>
+          </div>
+          <div class="insight-card-body">
+            3 月共创建 <strong>23 个任务</strong>，已完成 <strong>18 个</strong>，完成率 <strong>78%</strong>，高于过去 6 个月均值（67%）。其中高优先级任务完成率 <strong>92%</strong>，建议保持节奏。
+          </div>
+          <div class="insight-card-data">
+            <span>SOURCE: tasks · 3 月 · 23 个</span>
+            <span class="src">置信度 95%</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="openReport('r11')">📊 查看报告</button>
+            <button class="ai" onclick="askInChat('怎么保持这个完成率？')">💬 问 AI</button>
+          </div>
+        </div>
+
+        <!-- 建议 -->
+        <div class="insight-section-title">
+          <h4>💡 行动建议 <span class="count">4</span></h4>
+          <span style="font-size: 11px; color: #94A3B8;">基于异常点和摘要自动生成</span>
+        </div>
+
+        <div class="insight-card" data-category="tip" data-module="expense">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">💰</span> 控制外卖可省下 ¥260 / 月</div>
+            <div class="insight-card-meta"><span>💰 消费</span>·<span>估算</span></div>
+          </div>
+          <div class="insight-card-body">
+            若将外卖频次从 <strong>每周 5 次</strong> 压到 <strong>每周 2 次</strong>，按当前单笔均价 ¥42 计算，每月可节省 <strong>¥260</strong>。建议用日记模块记录午餐替代方案，2 周后复盘。
+          </div>
+          <div class="insight-card-data">
+            <span>ACTION: 每周外卖 ≤ 2 次</span>
+            <span class="src">预计收益 ¥260/月</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="showToast('已添加为周目标')">🎯 设为目标</button>
+            <button class="ai" onclick="askInChat('外卖替代方案有哪些？')">💬 问 AI</button>
+          </div>
+        </div>
+
+        <div class="insight-card" data-category="tip" data-module="diet">
+          <div class="insight-card-head">
+            <div class="insight-card-title"><span class="ico">🥬</span> 日均饮水量建议提升 200ml</div>
+            <div class="insight-card-meta"><span>🍱 饮食</span>·<span>建议</span></div>
+          </div>
+          <div class="insight-card-body">
+            6 月日均饮水 <strong>1,300ml</strong>，低于推荐值 <strong>1,500-2,000ml</strong>。建议：办公桌放 500ml 杯、设置 10/12/15/17 点提醒 4 次。
+          </div>
+          <div class="insight-card-data">
+            <span>ACTION: 每天 4 次提醒</span>
+            <span class="src">预计收益 +200ml/日</span>
+          </div>
+          <div class="insight-card-actions">
+            <button class="primary" onclick="showToast('已开启饮水提醒')">🔔 开启提醒</button>
+            <button class="ai" onclick="askInChat('饮水习惯怎么养成？')">💬 问 AI</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Favorites 收藏夹（侧栏「收藏夹」入口）
+           ================================================================ -->
+      <div data-view="favorites" class="view-root hidden">
+        <div class="section-title" style="margin-bottom: 16px;">
+          <h3>⭐ 收藏夹</h3>
+          <span class="sub">报告 / 对话 / 洞察 · 共 8 条</span>
+        </div>
+
+        <div class="reports-toolbar">
+          <div class="tabs" id="favTabs">
+            <button class="tab active" data-fav-tab="all" onclick="selectFavTab(this)">📦 全部</button>
+            <button class="tab" data-fav-tab="report" onclick="selectFavTab(this)">📊 报告</button>
+            <button class="tab" data-fav-tab="chat" onclick="selectFavTab(this)">💬 对话</button>
+            <button class="tab" data-fav-tab="insight" onclick="selectFavTab(this)">💡 洞察</button>
+          </div>
+          <div class="input-wrap" style="flex:1; min-width: 200px; max-width: 320px; margin-left: auto;">
+            <span class="leading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input class="input" placeholder="搜索收藏…" />
+          </div>
+        </div>
+
+        <div class="fav-grid">
+          <div class="fav-card" onclick="openReport('r12')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">📊 报告</span>
+            <div class="ico">💰</div>
+            <div class="title">消费报告 · 2026 年 6 月</div>
+            <div class="sub">总支出 ¥2,345，低于预算 12%。周末消费偏高，外卖占比 38%。</div>
+            <div class="footer">
+              <span>2026/07/01</span>
+              <span>12 条洞察</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="openReport('r10')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">📊 报告</span>
+            <div class="ico">📝</div>
+            <div class="title">日记复盘 · 2026 年 6 月</div>
+            <div class="sub">心情均值 4.2/5，含 3 个亮点：周二「重读《深度工作》」复盘尤其值得保留。</div>
+            <div class="footer">
+              <span>2026/07/01</span>
+              <span>3 个亮点</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="openReport('r7')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">📊 报告</span>
+            <div class="ico">💰</div>
+            <div class="title">消费报告 · 2026 年 5 月</div>
+            <div class="sub">总支出 ¥2,680，超预算 5%。外卖占比 32%。</div>
+            <div class="footer">
+              <span>2026/06/01</span>
+              <span>10 条洞察</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="showView('chat-history')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">💬 对话</span>
+            <div class="ico">💬</div>
+            <div class="title">6 月消费复盘</div>
+            <div class="sub">「周末是不是花太多了？」「压到 ¥200 能省多少？」</div>
+            <div class="footer">
+              <span>今天</span>
+              <span>4 条消息</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="showView('chat-history')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">💬 对话</span>
+            <div class="ico">🍱</div>
+            <div class="title">这周饮食均衡吗？</div>
+            <div class="sub">「最近好像吃太多外卖了」「膳食纤维偏低 28%」</div>
+            <div class="footer">
+              <span>今天</span>
+              <span>2 条消息</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="showView('insights')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">💡 洞察</span>
+            <div class="ico">🔥</div>
+            <div class="title">周末消费是工作日 2.3 倍</div>
+            <div class="sub">6 月数据 · 置信度 92% · 来源 expenses</div>
+            <div class="footer">
+              <span>2026/07/28</span>
+              <span>异常点</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="showView('insights')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">💡 洞察</span>
+            <div class="ico">🥡</div>
+            <div class="title">外卖占比连续 3 周高于 35%</div>
+            <div class="sub">6 月数据 · 置信度 88% · 来源 diet_logs</div>
+            <div class="footer">
+              <span>2026/07/27</span>
+              <span>异常点</span>
+            </div>
+          </div>
+
+          <div class="fav-card" onclick="showView('insights')">
+            <span class="fav-star" title="取消收藏" onclick="event.stopPropagation(); showToast('已取消收藏', 'warn')">★</span>
+            <span class="fav-type">💡 洞察</span>
+            <div class="ico">💡</div>
+            <div class="title">控制外卖可省下 ¥260 / 月</div>
+            <div class="sub">基于异常自动生成 · 预计收益 ¥260/月</div>
+            <div class="footer">
+              <span>2026/07/27</span>
+              <span>建议</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Chat-history 会话历史（侧栏「历史会话」入口，独立于 V4 报告历史）
+           ================================================================ -->
+      <div data-view="chat-history" class="view-root hidden">
+        <div class="history-page">
+          <div class="history-page-head">
+            <button class="back" onclick="showView('chat')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <div class="title">🕘 会话历史</div>
+            <span class="meta">共 18 条</span>
+            <button class="chat-icon-btn" title="批量操作" onclick="showToast('批量操作（演示）')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </button>
+          </div>
+
+          <div class="history-filter">
+            <div class="input-wrap" style="flex:1;">
+              <span class="leading">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <input class="input" id="sessionSearch" placeholder="搜索会话标题或内容…" oninput="filterSessions()" />
+            </div>
+            <span class="filter-chip selected" data-session-filter="all" onclick="selectSessionFilter(this, 'all')">📦 全部</span>
+            <span class="filter-chip" data-session-filter="pinned" onclick="selectSessionFilter(this, 'pinned')">📌 已置顶</span>
+            <span class="filter-chip" data-session-filter="fav" onclick="selectSessionFilter(this, 'fav')">⭐ 仅收藏</span>
+            <span class="filter-chip ai" data-session-filter="unread" onclick="selectSessionFilter(this, 'unread')">🔴 未读</span>
+          </div>
+
+          <div class="history-toolbar">
+            <span>共 <strong id="sessionCount">18</strong> 条会话 · 最近 <strong>2026/07/30</strong></span>
+            <select class="sort-select">
+              <option>按时间倒序</option>
+              <option>按时间正序</option>
+              <option>按消息数</option>
+            </select>
+            <select class="sort-select">
+              <option>近 30 天</option>
+              <option>近 7 天</option>
+              <option>近 90 天</option>
+              <option>全部时间</option>
+            </select>
+            <span class="right">
+              <button class="btn-ghost" onclick="showToast('已导出 CSV（演示）')">📤 导出</button>
+            </span>
+          </div>
+
+          <div class="history-list" id="sessionList">
+            <!-- JS 注入 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Quick-Diet 饮食建议（侧栏快捷操作「饮食建议」入口）
+           ================================================================ -->
+      <div data-view="quick-diet" class="view-root hidden">
+        <div class="report-header" style="margin-bottom: 16px;">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title"><span>🍱 饮食建议</span><span class="status-pill complete"><span class="dot"></span> 已生成</span></div>
+            <div class="meta">
+              <span>基于 6 月 87 餐数据 · Ollama 解读</span>
+              <span class="dot"></span>
+              <span>2026/07/30 10:24</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-secondary" onclick="showToast('已订阅每周提醒')">🔔 订阅</button>
+            <button class="btn-primary ai" onclick="startGenerateReport()"><span>🔄</span> 重新生成</button>
+          </div>
+        </div>
+
+        <div class="quick-result">
+          <div class="quick-result-head">
+            <div class="ico">🍱</div>
+            <div>
+              <div class="title">6 月饮食健康度评估</div>
+              <div class="sub">综合评分 68 / 100 · 处于「亚健康」区间，建议 2 周内调整</div>
+            </div>
+            <div class="actions">
+              <button class="btn-ghost" onclick="showToast('⭐ 已收藏')">⭐ 收藏</button>
+              <button class="btn-ghost" onclick="showToast('📥 已下载 PDF')">📥 下载</button>
+            </div>
+          </div>
+
+          <div class="quick-stat-grid">
+            <div class="quick-stat">
+              <div class="quick-stat-label">日均热量</div>
+              <div class="quick-stat-value">1,850 <span style="font-size:11px;color:#94A3B8;">kcal</span></div>
+              <div class="quick-stat-trend down">↑ 8% 建议 1,700</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">蔬果占比</div>
+              <div class="quick-stat-value">32%</div>
+              <div class="quick-stat-trend down">低于推荐 50%</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">外卖占比</div>
+              <div class="quick-stat-value">38%</div>
+              <div class="quick-stat-trend down">高于推荐 25%</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">膳食纤维</div>
+              <div class="quick-stat-value">18 <span style="font-size:11px;color:#94A3B8;">g/日</span></div>
+              <div class="quick-stat-trend down">低于推荐 25g</div>
+            </div>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">📌 主要问题</div>
+            <ul class="quick-list">
+              <li>周二、周四午餐外卖占比 64%，疑似工作日午餐外食依赖</li>
+              <li>碳水化合物偏高（240g / 日），主要来自米饭和面条</li>
+              <li>蛋白质 80g / 日基本达标，但来源单一（以鸡胸为主）</li>
+              <li>蔬果摄入集中在晚餐，午餐几乎为零</li>
+            </ul>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">🥗 营养素分布</div>
+            <div class="quick-progress">
+              <span class="name">碳水</span>
+              <div class="track"><div class="fill" style="width: 50%; background: #F59E0B;"></div></div>
+              <span class="val">50% (240g)</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">蛋白质</span>
+              <div class="track"><div class="fill" style="width: 25%; background: #3B82F6;"></div></div>
+              <span class="val">25% (80g)</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">脂肪</span>
+              <div class="track"><div class="fill" style="width: 25%; background: #EC4899;"></div></div>
+              <span class="val">25% (65g)</span>
+            </div>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">💡 调整建议（按优先级）</div>
+            <ul class="quick-list">
+              <li><strong>P0 · 本周开始</strong>：工作日午餐改为自带（每周一、三、五做便当），预计午餐外卖从 5 次/周降到 2 次/周</li>
+              <li><strong>P1 · 2 周内</strong>：每天保证 300g 蔬菜，午餐加一份凉拌/沙拉</li>
+              <li><strong>P2 · 本月内</strong>：把白米饭部分换成糙米或藜麦，碳水摄入下降 15%</li>
+              <li><strong>P3 · 长期</strong>：每周日做 1 次「下周食谱规划」，按 1,700 kcal 目标配餐</li>
+            </ul>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">📅 下周参考食谱（基于 1,700 kcal）</div>
+            <ul class="quick-list">
+              <li>周一：燕麦 50g + 鸡蛋 2 个 + 蓝莓 100g（早）/ 糙米饭 + 鸡胸 + 西兰花（午）/ 三文鱼 + 藜麦 + 芦笋（晚）</li>
+              <li>周三：全麦面包 + 牛油果 + 煎蛋（早）/ 牛肉拌饭 + 凉拌菠菜（午）/ 香煎鳕鱼 + 烤红薯 + 蘑菇（晚）</li>
+              <li>周五：酸奶 + 坚果 + 香蕉（早）/ 鸡胸沙拉 + 杂粮饭（午）/ 清蒸虾 + 西兰花 + 紫薯（晚）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Quick-Budget 预算复盘（侧栏快捷操作「预算复盘」入口）
+           ================================================================ -->
+      <div data-view="quick-budget" class="view-root hidden">
+        <div class="report-header" style="margin-bottom: 16px;">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title"><span>💰 预算复盘</span><span class="status-pill complete"><span class="dot"></span> 已生成</span></div>
+            <div class="meta">
+              <span>基于 6 月 vs 5 月数据对比</span>
+              <span class="dot"></span>
+              <span>2026/07/30 10:24</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-secondary" onclick="showToast('已调整 7 月预算')">⚙️ 调整预算</button>
+            <button class="btn-primary ai" onclick="startGenerateReport()"><span>🔄</span> 重新生成</button>
+          </div>
+        </div>
+
+        <div class="quick-result">
+          <div class="quick-result-head">
+            <div class="ico">💰</div>
+            <div>
+              <div class="title">6 月预算执行复盘</div>
+              <div class="sub">执行率 87% · 节省 ¥355 · 4/5 类别达标</div>
+            </div>
+            <div class="actions">
+              <button class="btn-ghost" onclick="showToast('⭐ 已收藏')">⭐ 收藏</button>
+              <button class="btn-ghost" onclick="showToast('📥 已导出 Excel')">📥 导出</button>
+            </div>
+          </div>
+
+          <div class="quick-stat-grid">
+            <div class="quick-stat">
+              <div class="quick-stat-label">月度预算</div>
+              <div class="quick-stat-value">¥2,700</div>
+              <div class="quick-stat-trend">基准</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">实际支出</div>
+              <div class="quick-stat-value">¥2,345</div>
+              <div class="quick-stat-trend">↓ 13%</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">结余</div>
+              <div class="quick-stat-value">¥355</div>
+              <div class="quick-stat-trend">↑ 4%</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">vs 5 月</div>
+              <div class="quick-stat-value">-¥335</div>
+              <div class="quick-stat-trend">↓ 12%</div>
+            </div>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">📊 分类执行情况</div>
+            <div class="quick-progress">
+              <span class="name">餐饮 (¥800)</span>
+              <div class="track"><div class="fill" style="width: 100%; background: #F59E0B;"></div></div>
+              <span class="val">¥891 ↑ 11%</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">交通 (¥600)</span>
+              <div class="track"><div class="fill" style="width: 98%; background: #10B981;"></div></div>
+              <span class="val">¥586 ↓ 2%</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">购物 (¥500)</span>
+              <div class="track"><div class="fill" style="width: 94%; background: #10B981;"></div></div>
+              <span class="val">¥469 ↓ 6%</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">娱乐 (¥500)</span>
+              <div class="track"><div class="fill" style="width: 80%; background: #10B981;"></div></div>
+              <span class="val">¥399 ↓ 20%</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">日用 (¥300)</span>
+              <div class="track"><div class="fill" style="width: 30%; background: #10B981;"></div></div>
+              <span class="val">¥89 ↓ 70%</span>
+            </div>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">⚠️ 超支分析</div>
+            <ul class="quick-list">
+              <li>餐饮超支 ¥91（11%），主要来自 <strong>外卖 38%</strong> 和 <strong>周末 2.3 倍</strong> 效应</li>
+              <li>其他 4 类全部低于预算，其中日用品结余最多（-70%），可考虑下月上调</li>
+            </ul>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">💡 7 月预算调整建议</div>
+            <ul class="quick-list">
+              <li><strong>餐饮</strong>：¥800 → ¥900（+12%，反映外卖真实水平）</li>
+              <li><strong>日用</strong>：¥300 → ¥150（-50%，消化 6 月囤货）</li>
+              <li><strong>新增周末软上限</strong>：¥200 / 周六 + ¥150 / 周日</li>
+              <li><strong>总预算不变</strong>：仍保持 ¥2,700，类别间内部调整</li>
+            </ul>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">📈 改进对比（vs 5 月）</div>
+            <ul class="quick-list">
+              <li>总支出从 ¥2,680 降到 ¥2,345（<strong>-12%</strong>）</li>
+              <li>笔均从 ¥363 降到 ¥293（<strong>-19%</strong>），单笔更克制</li>
+              <li>外卖订单上升 35%，但单价下降（更多 30 元以下的轻食）</li>
+              <li>工作日日均从 ¥82 降到 ¥68（<strong>-17%</strong>）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================
+           Quick-Task 任务诊断（侧栏快捷操作「任务诊断」入口）
+           ================================================================ -->
+      <div data-view="quick-task" class="view-root hidden">
+        <div class="report-header" style="margin-bottom: 16px;">
+          <button class="back" onclick="showView('v1')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <div class="info">
+            <div class="title"><span>📋 任务诊断</span><span class="status-pill complete"><span class="dot"></span> 已生成</span></div>
+            <div class="meta">
+              <span>基于过去 30 天 23 个任务</span>
+              <span class="dot"></span>
+              <span>2026/07/30 10:24</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-secondary" onclick="showToast('已开启任务提醒')">🔔 提醒</button>
+            <button class="btn-primary ai" onclick="startGenerateReport()"><span>🔄</span> 重新生成</button>
+          </div>
+        </div>
+
+        <div class="quick-result">
+          <div class="quick-result-head">
+            <div class="ico">📋</div>
+            <div>
+              <div class="title">6 月任务执行诊断</div>
+              <div class="sub">完成率 78% · 节奏健康 · 3 个瓶颈待优化</div>
+            </div>
+            <div class="actions">
+              <button class="btn-ghost" onclick="showToast('⭐ 已收藏')">⭐ 收藏</button>
+              <button class="btn-ghost" onclick="showToast('📥 已下载')">📥 下载</button>
+            </div>
+          </div>
+
+          <div class="quick-stat-grid">
+            <div class="quick-stat">
+              <div class="quick-stat-label">总任务数</div>
+              <div class="quick-stat-value">23</div>
+              <div class="quick-stat-trend">月环比 +5</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">完成率</div>
+              <div class="quick-stat-value">78%</div>
+              <div class="quick-stat-trend">↑ 11%</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">逾期任务</div>
+              <div class="quick-stat-value">2</div>
+              <div class="quick-stat-trend down">↑ 1</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-label">平均完成时间</div>
+              <div class="quick-stat-value">3.2 <span style="font-size:11px;color:#94A3B8;">天</span></div>
+              <div class="quick-stat-trend">↓ 0.8</div>
+            </div>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">📊 优先级完成情况</div>
+            <div class="quick-progress">
+              <span class="name">高 (8 个)</span>
+              <div class="track"><div class="fill" style="width: 92%; background: #EF4444;"></div></div>
+              <span class="val">7/8 完成</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">中 (10 个)</span>
+              <div class="track"><div class="fill" style="width: 80%; background: #F59E0B;"></div></div>
+              <span class="val">8/10 完成</span>
+            </div>
+            <div class="quick-progress">
+              <span class="name">低 (5 个)</span>
+              <div class="track"><div class="fill" style="width: 40%; background: #3B5BFE;"></div></div>
+              <span class="val">2/5 完成</span>
+            </div>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">🚧 当前瓶颈</div>
+            <ul class="quick-list">
+              <li><strong>瓶颈 1 · 文档类任务堆积</strong>：「季度复盘文档」逾期 2 天，单任务平均耗时 5 天，是整体均值的 1.5 倍。原因是缺乏中间检查点。</li>
+              <li><strong>瓶颈 2 · 低优先级任务长期未启动</strong>：3 个低优先级任务已搁置 14+ 天，建议删除或上调优先级。</li>
+              <li><strong>瓶颈 3 · 周三创建的任务完成率仅 50%</strong>：相比周一创建的 88%，疑似周三注意力分散。建议周二晚或周四早创建新任务。</li>
+            </ul>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">📈 节奏趋势</div>
+            <ul class="quick-list">
+              <li>W1（6/03-6/09）：创建 5 / 完成 6，节奏快</li>
+              <li>W2（6/10-6/16）：创建 7 / 完成 5，开始积压</li>
+              <li>W3（6/17-6/23）：创建 6 / 完成 4，积压最严重</li>
+              <li>W4（6/24-6/30）：创建 5 / 完成 8，月末冲刺</li>
+            </ul>
+          </div>
+
+          <div class="quick-result-section">
+            <div class="title">💡 优化建议</div>
+            <ul class="quick-list">
+              <li><strong>P0 · 立即</strong>：完成或拆分「季度复盘文档」为 3 个子任务，每完成一个勾掉</li>
+              <li><strong>P1 · 本周</strong>：清理 14 天以上的低优先级任务（删除 2 / 上调 1）</li>
+              <li><strong>P2 · 本月</strong>：把 W3 创建的 7 个任务改在 W2 / W4 创建，平滑节奏</li>
+              <li><strong>P3 · 长期</strong>：所有「文档类」任务强制要求先建子任务再开工</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </div>
@@ -2589,18 +4135,17 @@ function showToast(msg, type) {
 
 function showView(name) {
   document.querySelectorAll('.view-root').forEach(v => v.classList.add('hidden'));
-  const el = document.querySelector('[data-view="' + name + '"]');
+  const el = document.querySelector('main [data-view="' + name + '"]');
   if (el) el.classList.remove('hidden');
   // 演示导航条高亮
-  document.querySelectorAll('[data-view]').forEach(b => {
-    if (b.tagName === 'BUTTON') b.classList.remove('active');
-  });
   document.querySelectorAll('.demo-bar button').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector('.demo-bar button[data-view="' + name + '"]');
   if (btn) btn.classList.add('active');
   // 自动关闭 popover
   document.getElementById('healthPopover').classList.remove('open');
-  // 回到 V1 主屏时同步 health pill
+  // 进入会话历史时刷新列表
+  if (name === 'chat-history') renderSessions();
+  // 回到 V1 主屏时回到顶部
   if (name === 'v1') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -2620,27 +4165,14 @@ document.querySelectorAll('.nav-item').forEach(item => {
 });
 
 /* =========================================================
-   侧栏：切换 + 部分跳历史
+   侧栏：goSide 统一处理（含同步 active 态）
    ========================================================= */
-document.querySelectorAll('.side-item').forEach(item => {
-  item.addEventListener('click', () => {
-    const tag = item.getAttribute('data-side');
-    document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
-    item.classList.add('active');
-    if (tag === 'history') return; // 已在 onclick 跳转
-    if (tag === 'fav') {
-      showToast('收藏夹：3 条收藏的 AI 报告');
-    } else if (tag === 'insight') {
-      showToast('🔍 数据洞察列表');
-    } else if (tag === 'report') {
-      showView('v1');
-    } else if (tag === 'chat') {
-      openDrawerQA();
-    } else {
-      showToast(item.textContent.trim());
-    }
-  });
-});
+function goSide(view, el) {
+  document.querySelectorAll('.side-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  showView(view);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 /* =========================================================
    模块 / 时段 chip 选择（V1 输入框）
@@ -2827,9 +4359,26 @@ document.querySelectorAll('.snapshot-chip').forEach(c => {
 /* =========================================================
    V6 Q&A 模式（chat-card 浮于 drawer）
    ========================================================= */
+const RATE_LIMIT = 10;
+const RATE_WARN_AT = 8;
+const RATE_DECAY_MS = 6000;
 let rateUsed = 3;
+let _streamInterval = null;
 const CHAT_STATE = { thinking: false, history: [], llmEnabled: true };
-const chatBody = document.getElementById('drawerBody');
+
+/* 同步速率计数器 UI + 输入可用状态 */
+function syncRateUI() {
+  const rc = document.getElementById('rateCounter');
+  if (rc) {
+    rc.textContent = '已用 ' + rateUsed + '/' + RATE_LIMIT + ' 次/分钟';
+    rc.classList.toggle('warn', rateUsed >= RATE_WARN_AT);
+  }
+  const limited = rateUsed >= RATE_LIMIT;
+  const sendBtn = document.getElementById('sendBtn');
+  const qaInput = document.getElementById('qaInput');
+  if (sendBtn) sendBtn.disabled = limited;
+  if (qaInput) qaInput.disabled = limited;
+}
 
 function openDrawerQA() {
   const drawer = document.getElementById('drawer');
@@ -2940,6 +4489,8 @@ function openDrawerQA() {
   if (qaInput) qaInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessageDrawer(); }
   });
+  // 抽屉重绘后模板 counter 是静态文案，同步为真实 rateUsed 状态
+  syncRateUI();
   const llmToggle = document.getElementById('llmToggleDrawer');
   if (llmToggle) {
     llmToggle.addEventListener('click', () => {
@@ -3022,16 +4573,13 @@ function sendMessageDrawer() {
   if (!input) return;
   const text = input.value.trim();
   if (!text) return;
-  if (rateUsed >= 10) {
-    showToast('⚠️ 速率限制：已达 10 次/分钟');
+  if (rateUsed >= RATE_LIMIT) {
+    showToast('⚠️ 速率限制：已达 ' + RATE_LIMIT + ' 次/分钟');
+    syncRateUI();
     return;
   }
   rateUsed++;
-  const rc = document.getElementById('rateCounter');
-  if (rc) {
-    rc.textContent = '已用 ' + rateUsed + '/10 次/分钟';
-    if (rateUsed >= 8) rc.classList.add('warn');
-  }
+  syncRateUI();
   const qaBody = document.getElementById('qaBody');
   // 用户气泡
   const u = document.createElement('div');
@@ -3059,8 +4607,9 @@ function sendMessageDrawer() {
   if (fastMatch && CHAT_STATE.llmEnabled) {
     setTimeout(() => {
       clearInterval(dotTimer);
-      aiThinking.style.display = 'none';
-      thinkingText.textContent = '⚡ 快速匹配命中（<500ms）';
+      // 先写文案再隐藏，否则文案被隐藏动作吞掉
+      if (thinkingText) thinkingText.textContent = '⚡ 快速匹配命中（<500ms）';
+      if (aiThinking) aiThinking.style.display = 'none';
       const full = pickReply(text);
       streamText(qaBody, full);
     }, 200);
@@ -3088,6 +4637,11 @@ function sendMessageDrawer() {
 }
 
 function streamText(container, full) {
+  // 取消上一次未完成的流式输出，避免多路 interval 并发写入
+  if (_streamInterval) {
+    clearInterval(_streamInterval);
+    _streamInterval = null;
+  }
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble ai';
   bubble.innerHTML = '';
@@ -3101,9 +4655,11 @@ function streamText(container, full) {
     container.scrollTop = container.scrollHeight;
     if (i >= full.length) {
       clearInterval(t);
+      if (_streamInterval === t) _streamInterval = null;
       bubble.innerHTML = full + '<div class="chat-bubble-meta"><button onclick="voteQa(\'up\', this)">👍 0</button><button onclick="voteQa(\'down\', this)">👎 0</button><button onclick="showDataSource(this)">📊 数据来源</button><button onclick="showToast(\'已重新生成（演示）\')">🔄 重新生成</button></div>';
     }
   }, 30);
+  _streamInterval = t;
 }
 
 function voteQa(type, btn) {
@@ -3113,10 +4669,17 @@ function voteQa(type, btn) {
 
 function showDataSource(btn) {
   const meta = btn.parentElement;
-  if (meta.nextElementSibling && meta.nextElementSibling.classList.contains('data-source-block')) {
-    meta.nextElementSibling.remove();
+  if (!meta) return;
+  // 用状态标记 + 定向查询，避免 nextElementSibling 误判导致无法关闭
+  const existing = meta.parentElement
+    ? meta.parentElement.querySelector(':scope > .data-source-block')
+    : null;
+  if (meta.dataset.sourceOpen === '1' || existing) {
+    if (existing) existing.remove();
+    delete meta.dataset.sourceOpen;
     return;
   }
+  meta.dataset.sourceOpen = '1';
   const ds = document.createElement('details');
   ds.className = 'data-source-block';
   ds.style.marginTop = '8px';
@@ -3194,6 +4757,7 @@ if (healthPill) healthPill.addEventListener('click', (e) => { e.stopPropagation(
 if (healthBadgeHero) healthBadgeHero.addEventListener('click', (e) => { e.stopPropagation(); togglePopover(); });
 
 document.addEventListener('click', (e) => {
+  if (!popover) return;
   if (!popover.contains(e.target) && e.target !== healthPill && !(healthPill && healthPill.contains(e.target)) && e.target !== healthBadgeHero) {
     popover.classList.remove('open');
   }
@@ -3232,7 +4796,7 @@ document.addEventListener('click', (e) => {
    ========================================================= */
 function setHealth(state) {
   const cls = state === 'warn' ? 'warn' : state === 'danger' ? 'danger' : '';
-  healthPill.className = 'health-pill ' + cls;
+  if (healthPill) healthPill.className = 'health-pill ' + cls;
   const statusRow = document.getElementById('popoverStatusRow');
   const statusText = document.getElementById('popoverStatusText');
   if (statusRow) statusRow.className = 'popover-status ' + (state === 'warn' ? 'warn' : state === 'danger' ? 'danger' : '');
@@ -3383,6 +4947,14 @@ showView('v1');
 renderHistory();
 setHealth('');
 llmSwitch.checked = true;
+// 绑定 chat 主页 Enter 键
+const chatMainInputEl = document.getElementById('chatMainInput');
+if (chatMainInputEl) {
+  chatMainInputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+  });
+}
+syncChatMainRate();
 
 // 演示：当 V6 抽屉打开时锁滚动
 const origOverflow = document.body.style.overflow;
@@ -3390,6 +4962,223 @@ const drawerObserver = new MutationObserver(() => {
   document.body.style.overflow = document.getElementById('drawer').classList.contains('open') ? 'hidden' : origOverflow;
 });
 drawerObserver.observe(document.getElementById('drawer'), { attributes: true, attributeFilter: ['class'] });
+
+/* =========================================================
+   新增 8 个功能界面的交互
+   ========================================================= */
+
+/* --- 智能对话主页（chat） --- */
+function openNewChat() {
+  document.querySelectorAll('.chat-session-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('chatMainInput').value = '';
+  document.getElementById('chatMainInput').focus();
+  showToast('✨ 新对话已建立', 'success');
+}
+function selectSession(el) {
+  document.querySelectorAll('.chat-session-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  const title = el.querySelector('.title')?.textContent || '会话';
+  document.querySelector('.chat-main-head .title').textContent = title;
+}
+function useQuickChat(btn) {
+  const input = document.getElementById('chatMainInput');
+  if (input) { input.value = btn.textContent.trim(); input.focus(); }
+}
+function askInChat(text) {
+  const input = document.getElementById('chatMainInput');
+  if (input) { input.value = text; sendChatMessage(); }
+}
+function sendChatMessage() {
+  const input = document.getElementById('chatMainInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  if (rateUsed >= RATE_LIMIT) {
+    showToast('⚠️ 速率限制：已达 ' + RATE_LIMIT + ' 次/分钟', 'warn');
+    return;
+  }
+  rateUsed++;
+  syncRateUI();
+  const body = document.getElementById('chatMainBody');
+  const u = document.createElement('div');
+  u.className = 'chat-bubble user';
+  u.textContent = text;
+  body.appendChild(u);
+  input.value = '';
+  body.scrollTop = body.scrollHeight;
+  // 思考占位
+  const thinking = document.createElement('div');
+  thinking.className = 'chat-bubble ai';
+  thinking.innerHTML = '<span>正在分析你的提问</span><span class="streaming-cursor"></span>';
+  body.appendChild(thinking);
+  let dots = 0;
+  const dotTimer = setInterval(() => {
+    dots = (dots + 1) % 4;
+    thinking.innerHTML = '正在分析你的提问' + '·'.repeat(dots) + '<span class="streaming-cursor"></span>';
+  }, 400);
+  setTimeout(() => {
+    clearInterval(dotTimer);
+    thinking.remove();
+    streamChatText(body, pickReply(text));
+  }, 1200);
+}
+function streamChatText(container, full) {
+  if (_streamInterval) { clearInterval(_streamInterval); _streamInterval = null; }
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ai';
+  bubble.innerHTML = '';
+  container.appendChild(bubble);
+  let i = 0;
+  const step = 4;
+  const cursor = '<span class="streaming-cursor"></span>';
+  const t = setInterval(() => {
+    i = Math.min(full.length, i + step);
+    bubble.innerHTML = full.substring(0, i) + cursor;
+    container.scrollTop = container.scrollHeight;
+    if (i >= full.length) {
+      clearInterval(t);
+      if (_streamInterval === t) _streamInterval = null;
+      bubble.innerHTML = full + '<div class="chat-bubble-meta"><button onclick="voteQa(\'up\', this)">👍 0</button><button onclick="voteQa(\'down\', this)">👎 0</button><button onclick="showDataSource(this)">📊 数据来源</button><button onclick="showToast(\'已重新生成（演示）\')">🔄 重新生成</button></div>';
+    }
+  }, 30);
+  _streamInterval = t;
+}
+
+/* --- 报告中心（reports） --- */
+function selectReportsTab(chip) {
+  document.querySelectorAll('#reportsTabs .tab').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  showToast('筛选：' + chip.textContent.trim());
+}
+function openReport(id) {
+  showToast('📄 加载报告：' + id, 'success');
+  showView('v1d');
+}
+function useTemplate(key) {
+  const map = {
+    monthly: '生成 6 月复盘报告',
+    quarterly: '生成 Q2 计划进度报告',
+    compare: '生成 3 月 vs 6 月对比报告',
+    custom: '打开自定义报告'
+  };
+  showToast('📊 ' + (map[key] || key), 'success');
+  // 直接走生成流程
+  startGenerateReport();
+}
+
+/* --- 洞察中心（insights） --- */
+function selectInsightTab(chip) {
+  document.querySelectorAll('#insightTabs .tab').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const key = chip.getAttribute('data-ins-tab');
+  document.querySelectorAll('.insight-card').forEach(card => {
+    if (key === 'all') { card.style.display = ''; return; }
+    card.style.display = card.getAttribute('data-category') === key ? '' : 'none';
+  });
+}
+function selectInsightMod(chip) {
+  document.querySelectorAll('[data-ins-mod]').forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  const mod = chip.getAttribute('data-ins-mod');
+  document.querySelectorAll('.insight-card').forEach(card => {
+    if (mod === 'all') { card.style.display = ''; return; }
+    card.style.display = card.getAttribute('data-module') === mod ? '' : 'none';
+  });
+}
+
+/* --- 收藏夹（favorites） --- */
+function selectFavTab(chip) {
+  document.querySelectorAll('#favTabs .tab').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const key = chip.getAttribute('data-fav-tab');
+  const map = { all: '全部', report: '报告', chat: '对话', insight: '洞察' };
+  showToast('筛选：' + (map[key] || key));
+}
+
+/* --- 会话历史（chat-history） --- */
+const SESSION_DATA = [
+  { id: 's1', icon: '💬', title: '6 月消费复盘', sub: '「周末是不是花太多了？压到 ¥200 能省多少？」', date: '今天 10:24', msgs: 4, fav: true, pinned: true, unread: false },
+  { id: 's2', icon: '🍱', title: '这周饮食均衡吗？', sub: '「最近好像吃太多外卖了」「膳食纤维偏低 28%」', date: '今天 09:12', msgs: 2, fav: true, pinned: true, unread: false },
+  { id: 's3', icon: '📋', title: '本周任务完成情况', sub: '「这周我的任务完成情况怎么样？」', date: '今天 08:30', msgs: 1, fav: false, pinned: false, unread: true },
+  { id: 's4', icon: '😴', title: '我的睡眠质量', sub: '「我这周平均睡眠多久？」', date: '今天 08:00', msgs: 1, fav: false, pinned: false, unread: true },
+  { id: 's5', icon: '📊', title: '3 月 vs 6 月对比', sub: '「对比 3 月和 6 月的消费变化」', date: '昨天 22:15', msgs: 3, fav: false, pinned: false, unread: false },
+  { id: 's6', icon: '📝', title: '本周日记亮点', sub: '「这周我的日记有什么亮点？」', date: '昨天 20:30', msgs: 2, fav: false, pinned: false, unread: false },
+  { id: 's7', icon: '🍱', title: '减脂食谱推荐', sub: '「推荐一份下周的减脂食谱」', date: '昨天 19:00', msgs: 1, fav: false, pinned: false, unread: false },
+  { id: 's8', icon: '🎯', title: 'Q2 计划进度', sub: '「Q2 计划进度怎么样？」', date: '07/28 16:00', msgs: 2, fav: false, pinned: false, unread: false },
+  { id: 's9', icon: '💰', title: '外卖怎么省', sub: '「外卖太多怎么办？有什么替代方案？」', date: '07/28 12:30', msgs: 3, fav: false, pinned: false, unread: false },
+  { id: 's10', icon: '📋', title: '逾期任务怎么办', sub: '「季度复盘文档逾期 2 天，怎么补？」', date: '07/27 21:00', msgs: 2, fav: false, pinned: false, unread: false },
+  { id: 's11', icon: '💰', title: '5 月复盘', sub: '「5 月我花太多了吗？」', date: '07/15 14:00', msgs: 4, fav: false, pinned: false, unread: false },
+  { id: 's12', icon: '🍱', title: '早餐建议', sub: '「我早餐一般吃什么比较好？」', date: '07/10 08:00', msgs: 1, fav: false, pinned: false, unread: false },
+  { id: 's13', icon: '📝', title: '本月写作复盘', sub: '「6 月我写了多少日记？」', date: '07/01 23:00', msgs: 2, fav: false, pinned: false, unread: false },
+  { id: 's14', icon: '🎯', title: 'Q1 vs Q2', sub: '「对比 Q1 和 Q2 的目标完成度」', date: '06/30 22:00', msgs: 3, fav: false, pinned: false, unread: false },
+  { id: 's15', icon: '💰', title: '3 月消费', sub: '「3 月消费详情」', date: '06/01 15:00', msgs: 2, fav: false, pinned: false, unread: false },
+  { id: 's16', icon: '📋', title: '周计划怎么排', sub: '「帮我排一下下周的优先级」', date: '05/27 20:00', msgs: 4, fav: false, pinned: false, unread: false },
+  { id: 's17', icon: '🍱', title: '减脂目标', sub: '「我应该把目标设到多少？」', date: '05/15 10:00', msgs: 3, fav: false, pinned: false, unread: false },
+  { id: 's18', icon: '📝', title: '写作灵感', sub: '「我最近没什么可写的，给我点提示」', date: '05/01 21:00', msgs: 1, fav: false, pinned: false, unread: false },
+];
+let currentSessionFilter = 'all';
+function renderSessions() {
+  const list = document.getElementById('sessionList');
+  if (!list) return;
+  const search = (document.getElementById('sessionSearch')?.value || '').trim().toLowerCase();
+  const items = SESSION_DATA.filter(s => {
+    if (currentSessionFilter === 'pinned') return s.pinned;
+    if (currentSessionFilter === 'fav') return s.fav;
+    if (currentSessionFilter === 'unread') return s.unread;
+    if (search) {
+      const hay = (s.title + ' ' + s.sub).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+  const countEl = document.getElementById('sessionCount');
+  if (countEl) countEl.textContent = items.length;
+  if (items.length === 0) {
+    list.innerHTML = '<div class="history-empty"><div class="ico">💬</div><div>没有匹配的会话</div><div style="font-size:12px;margin-top:6px;">试试调整筛选条件</div></div>';
+    return;
+  }
+  list.innerHTML = items.map(s => `
+    <div class="session-row" onclick="resumeSession('${s.id}')">
+      <div class="ico">${s.icon}</div>
+      <div class="body">
+        <div class="title">${s.title}${s.pinned ? ' <span style="color:#F59E0B;font-size:11px;">📌</span>' : ''}${s.fav ? ' <span style="color:#F59E0B;font-size:11px;">⭐</span>' : ''}</div>
+        <div class="sub">${s.sub}</div>
+      </div>
+      <div class="meta">
+        <span class="msgs">${s.msgs} 条消息</span>
+        <span>${s.date}</span>
+      </div>
+    </div>
+  `).join('');
+}
+function selectSessionFilter(chip, key) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.filter-chip[data-session-filter]').forEach(c => c.classList.remove('ai'));
+  chip.classList.add('selected');
+  if (key === 'unread') chip.classList.add('ai');
+  currentSessionFilter = key;
+  renderSessions();
+}
+function filterSessions() { renderSessions(); }
+function resumeSession(id) {
+  showToast('💬 恢复会话：' + id, 'success');
+  showView('chat');
+}
+
+/* --- 同步主聊天的速率计数 --- */
+function syncChatMainRate() {
+  const rc = document.getElementById('rateCounterMain');
+  if (rc) {
+    rc.textContent = '已用 ' + rateUsed + '/' + RATE_LIMIT + ' 次/分钟';
+    rc.classList.toggle('warn', rateUsed >= RATE_WARN_AT);
+  }
+}
+// 拦截旧 syncRateUI，每次都同步主屏 counter
+const _origSync = syncRateUI;
+syncRateUI = function() {
+  _origSync();
+  syncChatMainRate();
+};
 
 /* =========================================================
    F1–F5 交互说明（演示文档，挂在底部折叠区）
@@ -3537,7 +5326,13 @@ drawerObserver.observe(document.getElementById('drawer'), { attributes: true, at
 // V6 Q&A 抽屉底部 input 右侧 counter：
 //   < 8 次/分钟 → 灰
 //   ≥ 8 次/分钟 → warn 黄
-//   ≥ 10 次/分钟 → 拒绝 + 30s 冷却
+//   ≥ 10 次/分钟 → 拒绝 + 禁用输入，随滑动窗口自动恢复
+// 滑动窗口衰减：每 RATE_DECAY_MS 释放 1 次配额（10 次 / 60s）
+setInterval(() => {
+  if (rateUsed <= 0) return;
+  rateUsed = Math.max(0, rateUsed - 1);
+  syncRateUI();
+}, RATE_DECAY_MS);
 
 /* =========================================================
    演示扩展：路由表达
@@ -3546,6 +5341,33 @@ drawerObserver.observe(document.getElementById('drawer'), { attributes: true, at
 // V4 二级页（路由：/ai/history）
 // V5 Popover / V6 Drawer → 组件状态（非路由）
 
+/* ============================================================
+   跨模块跳转（与 expense-ui / daily-ui 保持一致）
+   ============================================================ */
+const MODULE_PATHS = {
+  task: '../01-task-ui/new-01-task-ui.html',
+  daily: '../02-daily-ui/new-02-daily-ui.html',
+  bill: '../03-expense-ui/new-03-expense-ui.html',
+  diet: '../04-diet-ui/new-04-diet-ui.html',
+  plan: '../05-plan-ui/new-05-plan-ui.html',
+  ai: '../06-ai-ui/new-06-ai-ui.html',
+};
+function gotoModule(key) {
+  const p = MODULE_PATHS[key];
+  if (p) window.location.href = p;
+}
+
+/* ============================================================
+   TOP-NAV EVENT BINDING (aligned with 02-daily paradigm)
+   ============================================================ */
+document.querySelectorAll('.top-nav .module').forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll('.top-nav .module').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    const m = el.dataset.module;
+    if (m && m !== 'ai') gotoModule(m);
+  };
+});
 </script>
 
 </body>

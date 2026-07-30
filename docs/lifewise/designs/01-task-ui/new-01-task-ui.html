@@ -65,6 +65,17 @@
   --shadow-lg:0 12px 28px rgba(15,23,42,.12);
   --shadow-xl:0 24px 60px rgba(15,23,42,.16);
   --fs-display:24px; --fs-title:17px; --fs-body:15px; --fs-caption:13px; --fs-micro:11px;
+
+  /* === 与 02 (daily) 顶部导航栏范式对齐的别名 === */
+  --primary: var(--brand-500);
+  --primary-hover: var(--brand-600);
+  --primary-soft: var(--brand-100);
+  --primary-light: var(--brand-200);
+  --accent: var(--brand-400);
+  --bg-soft: var(--surface-3);
+  --ink-1: var(--text-1);
+  --ink-2: var(--text-2);
+  --ink-3: var(--text-3);
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%}
@@ -85,45 +96,23 @@ svg.ico-sm{width:14px;height:14px}
 svg.ico-lg{width:22px;height:22px}
 svg.ico-xl{width:28px;height:28px}
 
-/* ===== 顶部应用栏 ===== */
-.app-header{
-  position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;
-  height:56px;padding:0 20px;
-  background:rgba(255,255,255,.85);backdrop-filter:saturate(180%) blur(16px);
-  -webkit-backdrop-filter:saturate(180%) blur(16px);
-  border-bottom:1px solid rgba(226,232,240,.7);
+/* ===== 应用 Shell（与 02 daily 范式对齐） ===== */
+.app {
+  display: grid;
+  grid-template-rows: 64px 1fr;
+  grid-template-columns: 240px 1fr;
+  grid-template-areas: "top top" "side main";
+  min-height: 100vh;
+  max-width: 1440px;
+  margin: 0 auto;
 }
-.app-logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-1);font-size:15px}
-.app-logo .mark{
-  width:30px;height:30px;border-radius:9px;
-  background:linear-gradient(135deg,var(--brand-400),var(--brand-500));
-  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
-  box-shadow:0 4px 12px rgba(101,163,13,.25);
-}
-.app-title{font-size:15px;font-weight:600;margin-left:6px}
-.app-spacer{flex:1}
-.app-nav{display:flex;align-items:center;gap:8px}
-.icon-btn{
-  width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;
-  color:var(--text-2);transition:all .15s;position:relative;
-}
-.icon-btn:hover{background:var(--surface-3);color:var(--text-1)}
-.icon-btn .dot{
-  position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;
-  background:var(--danger);box-shadow:0 0 0 2px #fff;
-}
-.text-btn{
-  display:inline-flex;align-items:center;gap:4px;padding:8px 12px;border-radius:10px;
-  color:var(--brand-500);font-weight:500;font-size:13px;transition:all .15s;
-}
-.text-btn:hover{background:var(--brand-100)}
 
 /* ===== 布局 + 侧栏 ===== */
-.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 56px);max-width:1400px;margin:0 auto}
 .side-nav{
+  grid-area: side;
   background:rgba(255,255,255,.6);backdrop-filter:blur(12px);
   border-right:1px solid rgba(226,232,240,.6);
-  padding:20px 12px;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;
+  padding:20px 12px;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;
 }
 .side-nav-group{margin-bottom:16px}
 .side-nav-label{
@@ -143,7 +132,7 @@ svg.ico-xl{width:28px;height:28px}
   font-size:11px;font-weight:600;padding:2px 8px;border-radius:var(--r-full);
 }
 .side-nav-item.active .badge{background:#fff;color:var(--brand-600)}
-.main{padding:24px 32px 80px;min-width:0}
+.main{grid-area:main;padding:24px 32px 80px;min-width:0}
 
 /* ===== 视图容器 ===== */
 .view{display:none}
@@ -718,17 +707,13 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5;font-family:inher
 
 /* ===== 响应式 ===== */
 @media (max-width:1024px){
-  .layout{grid-template-columns:1fr;max-width:none}
+  .app{grid-template-columns:1fr;grid-template-areas:"top""main";}
   .side-nav{display:none}
   .main{padding:16px 20px 100px}
   .dashboard-3col{grid-template-columns:1fr}
   .kanban-wrap{grid-template-columns:repeat(2,minmax(260px,1fr))}
-  .app-header{padding:0 12px}
-  .app-logo .mark{width:28px;height:28px;font-size:13px}
-  .app-title{display:none}
 }
 @media (max-width:640px){
-  .app-nav .text-btn{display:none}
   .bottom-tab{display:block}
   .main{padding:14px 16px 110px}
   .stat-row{grid-template-columns:repeat(2,1fr)}
@@ -773,38 +758,119 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5;font-family:inher
 .center{text-align:center}
 .divider{height:1px;background:var(--border);margin:16px 0}
 .illustration-inline{display:flex;align-items:center;justify-content:center;color:var(--brand-600)}
+
+/* ====== Unify top-nav shell (from daily module) ====== */
+.top-nav {
+  grid-area: top;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.top-nav .row { display: flex; align-items: center; }
+.top-nav .row.gap-3 { gap: 12px; }
+.top-nav .row.gap-2 { gap: 8px; }
+.top-nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--ink-1); }
+.top-nav .brand .mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  color: white; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; box-shadow: 0 2px 6px rgba(101, 163, 13, 0.3);
+}
+.top-nav .modules { display: flex; gap: 4px; background: var(--bg-soft); padding: 4px; border-radius: 10px; flex: 0 0 auto; margin: 0 auto; }
+.top-nav .module {
+  padding: 8px 14px; font-size: 13px; font-weight: 500;
+  color: var(--ink-3); border-radius: 7px;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s; position: relative;
+}
+.top-nav .module:hover { color: var(--ink-1); }
+.top-nav .module.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-weight: 600; }
+.top-nav .module .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); display: none; }
+.top-nav .module.has-badge .dot { display: inline-block; }
+.top-nav .user { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.top-nav .user:hover { background: var(--bg-soft); }
+.top-nav .avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--primary-light) 100%);
+  color: var(--primary-hover);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px;
+}
+.top-nav .user-name { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.top-nav .bell {
+  position: relative; width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2); cursor: pointer; transition: all 0.15s;
+}
+.top-nav .bell:hover { background: var(--bg-soft); }
+.top-nav .bell .count {
+  position: absolute; top: 4px; right: 4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--danger); color: white;
+  font-size: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid white;
+}
+.top-nav .menu-toggle {
+  display: none;
+  width: 36px; height: 36px; border-radius: 8px;
+  align-items: center; justify-content: center;
+  color: var(--ink-2); cursor: pointer; transition: all 0.15s;
+}
+.top-nav .menu-toggle:hover { background: var(--bg-soft); }
+@media (max-width: 768px) {
+  .top-nav .modules { display: none; }
+  .top-nav .user-name { display: none; }
+  .top-nav .menu-toggle { display: flex; }
+}
 </style>
 </head>
 
 <body>
 
 <!-- ==========================================================
-     应用 Header
+     应用 Shell（与 02 daily 范式对齐）
      ========================================================== -->
-<header class="app-header">
-  <a href="#" class="app-logo" data-nav="dashboard">
-    <div class="mark">L</div>
-    <span class="app-title">Lifewise · 任务与习惯</span>
-  </a>
-  <div class="app-spacer"></div>
-  <nav class="app-nav">
-    <button class="icon-btn" data-nav="search" title="搜索">
-      <svg class="ico"><use href="#i-search"/></svg>
-    </button>
-    <button class="icon-btn" data-nav="notifications" title="通知">
-      <svg class="ico"><use href="#i-bell"/></svg>
-      <span class="dot" id="notifDot"></span>
-    </button>
-    <button class="icon-btn" data-nav="settings" title="设置">
-      <svg class="ico"><use href="#i-settings"/></svg>
-    </button>
-    <button class="icon-btn" data-nav="me" title="我">
-      <svg class="ico"><use href="#i-me"/></svg>
-    </button>
-  </nav>
-</header>
+<div class="app">
 
-<div class="layout">
+<!-- ==========================================================
+     顶部导航
+     ========================================================== -->
+<header class="top-nav">
+  <div class="row gap-3">
+    <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="brand">
+      <div class="mark">L</div>
+      <span>Lifewise</span>
+    </div>
+  </div>
+  <nav class="modules" aria-label="主导航">
+    <button class="module active" data-module="task" onclick="gotoModule('task')">📋 任务</button>
+    <button class="module" data-module="daily" onclick="gotoModule('daily')">📝 日记</button>
+    <button class="module" data-module="bill" onclick="gotoModule('bill')">💰 账单</button>
+    <button class="module" data-module="diet" onclick="gotoModule('diet')">🥗 饮食</button>
+    <button class="module" data-module="plan" onclick="gotoModule('plan')">🗓 计划</button>
+    <button class="module" data-module="ai" onclick="gotoModule('ai')">🤖 AI <span class="dot"></span></button>
+  </nav>
+  <div class="row gap-2">
+    <button class="bell" id="bellBtn" aria-label="通知">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="count">3</span>
+    </button>
+    <div class="user">
+      <div class="avatar">静</div>
+      <span class="user-name">静怡</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </div>
+</header>
 
   <aside class="side-nav">
     <div class="side-nav-group">
@@ -1035,7 +1101,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5;font-family:inher
           <svg class="ico"><use href="#i-arrow-left"/></svg>返回列表
         </button>
         <div class="view-header-actions">
-          <button class="btn btn-secondary" data-action="open-task-sheet">
+          <button class="btn btn-secondary" data-action="edit-task">
             <svg class="ico-sm"><use href="#i-edit"/></svg>编辑
           </button>
           <button class="btn btn-danger" data-action="delete-task">
@@ -1150,7 +1216,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5;font-family:inher
           <svg class="ico"><use href="#i-arrow-left"/></svg>返回习惯列表
         </button>
         <div class="view-header-actions">
-          <button class="btn btn-secondary" data-action="open-habit-sheet">
+          <button class="btn btn-secondary" data-action="edit-habit">
             <svg class="ico-sm"><use href="#i-edit"/></svg>编辑
           </button>
           <button class="btn btn-secondary" data-nav="backfill">
@@ -1497,7 +1563,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5;font-family:inher
 
   </main>
 
-</div>
+</div><!-- end .app -->
 
 <!-- FAB -->
 <div class="fab-group" id="fabGroup">
@@ -1770,7 +1836,7 @@ textarea.input{resize:vertical;min-height:80px;line-height:1.5;font-family:inher
    ============================================================ */
 const TODAY = new Date('2026-07-29T10:00:00+08:00');
 
-const TASKS = [
+let TASKS = [
   { id:'t_001', title:'回复 X 项目邮件', note:'把今天会议提到的几个点同步给客户', priority:'P0', labels:['工作','沟通'], status:'OPEN', dueAt:'2026-07-29T14:00:00+08:00', doneAt:null, createdAt:'2026-07-29T08:12:00+08:00',
     subtasks:[{id:'t_001_s1',title:'整理会议纪要',done:true},{id:'t_001_s2',title:'列出客户问题清单',done:false},{id:'t_001_s3',title:'起草回复邮件',done:false}]
   },
@@ -1856,10 +1922,18 @@ const visibleTasks = (tab) => {
   const end = new Date(start); end.setDate(end.getDate()+1);
   if (tab === 'today') return sortTasks(TASKS.filter(t => t.status==='OPEN' && t.dueAt && isToday(t.dueAt)));
   if (tab === 'week') {
-    const wStart = new Date(start); wStart.setDate(wStart.getDate()-1);
-    const wEnd = new Date(start); wEnd.setDate(wEnd.getDate()+7);
+    // 自然周：本周一 00:00 到下周一 00:00（周一为一周开始）
+    const dow = start.getDay(); // 0=Sun ... 6=Sat
+    const offsetToMon = (dow + 6) % 7;
+    const wStart = new Date(start); wStart.setDate(wStart.getDate() - offsetToMon);
+    const wEnd = new Date(wStart); wEnd.setDate(wEnd.getDate() + 7);
     return sortTasks(TASKS.filter(t => {
-      if (t.dueAt && new Date(t.dueAt) >= wStart && new Date(t.dueAt) <= wEnd) return true;
+      if (!t.dueAt) return false;
+      const d = new Date(t.dueAt);
+      if (d < wStart || d >= wEnd) return false;
+      // 本周内：未完成 OR 本周内完成的都算
+      if (t.status === 'OPEN') return true;
+      if (t.status === 'DONE' && t.doneAt && new Date(t.doneAt) >= wStart && new Date(t.doneAt) < wEnd) return true;
       return false;
     }));
   }
@@ -1991,6 +2065,17 @@ function renderKanban(container='kanbanBoard') {
         </div>
         <div class="kanban-cards">
           ${tasks.length ? tasks.map(kanbanCardHTML).join('') : '<div class="kanban-empty">拖拽任务到此</div>'}
+        </div>
+      </div>
+      <div class="kanban-col" data-kanban-col="${p}-done" data-status="DONE">
+        <div class="kanban-col-header">
+          <div class="kanban-col-title">
+            <span class="pdot" style="background:${priorityColor(p)};opacity:.5"></span>${p} · 已完成
+          </div>
+          <span class="kanban-col-count">${TASKS.filter(t => t.priority === p && t.status === 'DONE').length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${(()=>{ const dt = TASKS.filter(t => t.priority === p && t.status === 'DONE'); return dt.length ? dt.map(kanbanCardHTML).join('') : '<div class="kanban-empty">拖拽任务到此</div>'; })()}
         </div>
       </div>
     `;
@@ -2280,13 +2365,14 @@ function buildHabitCalendar(h) {
   const firstDate = new Date(TODAY); firstDate.setDate(firstDate.getDate() - days + 1);
   const startDow = firstDate.getDay();
   for (let i = 0; i < startDow; i++) html += '<div></div>';
+  const todayStr = fmtDate(TODAY);
   // 渲染 30 天
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(TODAY); date.setDate(date.getDate() - i);
     const dateStr = fmtDate(date);
-    const isFuture = i < 0;
+    const isFuture = dateStr > todayStr;
     const ci = (CHECKIN_HISTORY[h.id] || []).find(c => fmtDate(c.date) === dateStr);
-    const isTodayCell = dateStr === fmtDate(TODAY);
+    const isTodayCell = dateStr === todayStr;
     let cls = 'cal-day';
     if (isTodayCell) cls += ' today';
     if (isFuture) cls += ' future';
@@ -2362,7 +2448,7 @@ function renderHabitDetail(habitId) {
             ${ICON('calendar',22)}
             <div class="label">补卡</div>
           </div>
-          <div class="action-card" data-action="open-habit-sheet">
+          <div class="action-card" data-action="edit-habit">
             ${ICON('edit',22)}
             <div class="label">编辑</div>
           </div>
@@ -2482,6 +2568,7 @@ function renderSearchTags() {
     el.onclick = () => {
       $$('#searchTagRow .search-tag').forEach(x => x.classList.remove('active'));
       el.classList.add('active');
+      activeSearchTag = el.dataset.tag || '';
       doSearch();
     };
   });
@@ -2603,21 +2690,107 @@ function bindActions() {
 }
 
 let pendingConfirm = null;
+let editingTaskId = null;
+let editingHabitId = null;
+
+/* 重置任务 sheet 到"新建"状态 */
+function resetTaskSheet() {
+  editingTaskId = null;
+  $('#taskSheetTitle').textContent = '新建任务';
+  $('#taskTitleInput').value = '';
+  $('#taskNoteInput').value = '';
+  $$('#priorityGrid .priority-option').forEach(o => o.classList.remove('sel'));
+  $('#priorityGrid .priority-option.p3').classList.add('sel');
+  $$('.date-chip').forEach(o => o.classList.remove('sel'));
+  const def = $('.date-chip[data-due="today"]'); if (def) def.classList.add('sel');
+  $$('#labelChips .label-chip').forEach(c => c.remove());
+  editingLabels.length = 0; renderLabelChips();
+  $('#subtaskEditor').innerHTML = '';
+  editingSubtasks.length = 0; updateSubtaskBtnState();
+  $('#taskTitleError').classList.remove('show');
+  $('#taskTitleWrap').classList.remove('error');
+}
+
+/* 用现有任务填入 sheet（编辑态） */
+function fillTaskSheet(task) {
+  editingTaskId = task.id;
+  $('#taskSheetTitle').textContent = '编辑任务';
+  $('#taskTitleInput').value = task.title || '';
+  $('#taskNoteInput').value = task.note || '';
+  $$('#priorityGrid .priority-option').forEach(o => o.classList.toggle('sel', o.dataset.priority === task.priority));
+  $$('.date-chip').forEach(o => o.classList.remove('sel'));
+  if (task.dueAt) {
+    const dDate = fmtDate(task.dueAt);
+    const tDate = fmtDate(TODAY);
+    if (dDate === tDate) {
+      const c = $('.date-chip[data-due="today"]'); if (c) c.classList.add('sel');
+    } else {
+      const c = $('.date-chip[data-due="custom"]');
+      if (c) { c.classList.add('sel'); c.dataset.due = dDate; c.innerHTML = '<svg class="ico-sm"><use href="#i-calendar"/></svg>' + dDate; }
+    }
+  } else {
+    const c = $('.date-chip[data-due="custom"]'); if (c) c.classList.add('sel');
+  }
+  editingLabels.length = 0;
+  (task.labels || []).forEach(l => editingLabels.push(l));
+  renderLabelChips();
+  editingSubtasks.length = 0;
+  (task.subtasks || []).forEach(s => editingSubtasks.push({ id: s.id || ('s_' + Date.now() + '_' + Math.random().toString(36).slice(2,6)), title: s.title, done: !!s.done }));
+  renderSubtaskEditor();
+  $('#taskTitleError').classList.remove('show');
+  $('#taskTitleWrap').classList.remove('error');
+}
+
+/* 重置习惯 sheet 到"新建"状态 */
+function resetHabitSheet() {
+  editingHabitId = null;
+  $('#habitSheetTitle').textContent = '新建习惯';
+  $('#habitTitleInput').value = '';
+  $$('#habitIconGrid .priority-option').forEach(o => o.classList.remove('sel'));
+  const defIcon = $('#habitIconGrid .priority-option[data-icon="📖"]'); if (defIcon) defIcon.classList.add('sel');
+  $$('.tabs .tab[data-freq]').forEach(o => o.classList.remove('active'));
+  const defFreq = $('.tabs .tab[data-freq="DAILY"]'); if (defFreq) defFreq.classList.add('active');
+  if ($('#habitTargetInput')) $('#habitTargetInput').value = 3;
+  if ($('#habitReminderInput')) $('#habitReminderInput').value = '21:00';
+  $('#habitTitleError').classList.remove('show');
+  $('#habitTitleWrap').classList.remove('error');
+}
+
+/* 用现有习惯填入 sheet（编辑态） */
+function fillHabitSheet(habit) {
+  editingHabitId = habit.id;
+  $('#habitSheetTitle').textContent = '编辑习惯';
+  $('#habitTitleInput').value = habit.title || '';
+  $$('#habitIconGrid .priority-option').forEach(o => o.classList.toggle('sel', o.dataset.icon === habit.icon));
+  $$('.tabs .tab[data-freq]').forEach(o => o.classList.toggle('active', o.dataset.freq === habit.frequency));
+  if ($('#habitTargetInput')) $('#habitTargetInput').value = habit.targetPerPeriod || 3;
+  if ($('#habitReminderInput')) $('#habitReminderInput').value = habit.reminder || '21:00';
+  $('#habitTitleError').classList.remove('show');
+  $('#habitTitleWrap').classList.remove('error');
+}
+
 function handleAction(action, el) {
   if (action === 'open-task-sheet') {
-    $('#taskSheetTitle').textContent = '新建任务';
-    $('#taskTitleInput').value = '';
-    $('#taskNoteInput').value = '';
-    $$('#priorityGrid .priority-option').forEach(o => o.classList.remove('sel'));
-    $('#priorityGrid .priority-option.p3').classList.add('sel');
-    $('#taskTitleError').classList.remove('show');
-    $('#taskTitleWrap').classList.remove('error');
+    resetTaskSheet();
+    openSheet('#taskSheet');
+  } else if (action === 'edit-task') {
+    if (currentTaskId) {
+      const t = TASKS.find(x => x.id === currentTaskId);
+      if (t) fillTaskSheet(t);
+    } else {
+      resetTaskSheet();
+    }
     openSheet('#taskSheet');
   } else if (action === 'open-habit-sheet') {
-    $('#habitSheetTitle').textContent = '新建习惯';
-    $('#habitTitleInput').value = '';
-    $('#habitTitleError').classList.remove('show');
-    $('#habitTitleWrap').classList.remove('error');
+    resetHabitSheet();
+    openSheet('#habitSheet');
+  } else if (action === 'edit-habit') {
+    if (currentHabitId) {
+      const h = HABITS.find(x => x.id === currentHabitId);
+      if (h) fillHabitSheet(h);
+    } else {
+      resetHabitSheet();
+    }
     openSheet('#habitSheet');
   } else if (action === 'close-sheet') {
     closeAllSheets();
@@ -2652,7 +2825,7 @@ function openSheet(sel) {
 function closeAllSheets() {
   $$('.sheet-mask').forEach(m => {
     m.classList.remove('show');
-    setTimeout(() => m.style.display = 'none', 250);
+    setTimeout(() => { if (!m.classList.contains('show')) m.style.display = 'none'; }, 250);
   });
 }
 
@@ -2670,12 +2843,13 @@ function bindTaskClicks() {
     if (b.__obound) return; b.__obound = true;
     b.addEventListener('click', e => {
       e.stopPropagation();
-      $('#taskSheetTitle').textContent = '编辑任务';
-      const t = TASKS.find(x => x.id === b.dataset.openTask);
-      if (t) {
-        $('#taskTitleInput').value = t.title;
-        $('#taskNoteInput').value = t.note || '';
-        $$('#priorityGrid .priority-option').forEach(o => o.classList.toggle('sel', o.dataset.priority === t.priority));
+      const id = b.dataset.openTask;
+      if (id) {
+        const t = TASKS.find(x => x.id === id);
+        if (t) fillTaskSheet(t);
+        else resetTaskSheet();
+      } else {
+        resetTaskSheet();
       }
       openSheet('#taskSheet');
     });
@@ -2806,6 +2980,85 @@ function bindTrashActions() {
 /* ============================================================
    任务/习惯 Sheet 保存
    ============================================================ */
+/* 编辑态临时数据 */
+let editingLabels = [];
+let editingSubtasks = [];
+
+function renderLabelChips() {
+  const host = $('#labelChips');
+  if (!host) return;
+  // 清掉既有 chip
+  $$('#labelChips .label-chip').forEach(c => c.remove());
+  editingLabels.forEach((lbl, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'label-chip';
+    chip.innerHTML = `${escapeHTML(lbl)} <svg class="ico-sm rm-label" data-idx="${idx}" style="cursor:pointer"><use href="#i-close"/></svg>`;
+    host.insertBefore(chip, $('#labelInput'));
+  });
+  const inp = $('#labelInput');
+  if (inp) {
+    inp.disabled = editingLabels.length >= 5;
+    inp.placeholder = inp.disabled ? '已达 5 个上限' : '输入后按回车...';
+  }
+}
+
+function renderSubtaskEditor() {
+  const host = $('#subtaskEditor');
+  if (!host) return;
+  host.innerHTML = editingSubtasks.map((s, idx) => `
+    <div class="subtask">
+      <div class="subtask-check ${s.done?'done':''}" data-st-toggle="${idx}"></div>
+      <div class="subtask-title">${escapeHTML(s.title)}</div>
+      <button class="icon-btn" data-st-rm="${idx}" title="删除">
+        <svg class="ico-sm"><use href="#i-close"/></svg>
+      </button>
+    </div>
+  `).join('');
+  $$('#subtaskEditor [data-st-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.stToggle, 10);
+      editingSubtasks[idx].done = !editingSubtasks[idx].done;
+      renderSubtaskEditor();
+    });
+  });
+  $$('#subtaskEditor [data-st-rm]').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.stRm, 10);
+      editingSubtasks.splice(idx, 1);
+      renderSubtaskEditor();
+    });
+  });
+}
+
+function updateSubtaskBtnState() {
+  const btn = $('#addSubtaskBtn');
+  if (btn) btn.disabled = editingSubtasks.length >= 7;
+}
+
+/* 把 date-chip 的 data-due 值转换成 ISO 字符串或 null */
+function resolveDueAt() {
+  const sel = $('.date-chip.sel');
+  if (!sel) return null;
+  const v = sel.dataset.due;
+  if (!v || v === 'none') return null;
+  if (v === 'today')  { const d = new Date(TODAY); d.setHours(18,0,0,0); return d.toISOString(); }
+  if (v === 'tomorrow') { const d = new Date(TODAY); d.setDate(d.getDate()+1); d.setHours(18,0,0,0); return d.toISOString(); }
+  if (v === 'weekend') {
+    const d = new Date(TODAY);
+    const day = d.getDay();
+    const offset = (6 - day + 7) % 7 || 7;
+    d.setDate(d.getDate() + (offset === 0 ? 0 : offset));
+    d.setHours(18,0,0,0);
+    return d.toISOString();
+  }
+  // 自定义：YYYY-MM-DD（来自 dataset.due）
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const d = new Date(v + 'T18:00:00+08:00');
+    return d.toISOString();
+  }
+  return null;
+}
+
 function initSheetLogic() {
   $('#taskSaveBtn').addEventListener('click', () => {
     const title = $('#taskTitleInput').value.trim();
@@ -2816,19 +3069,43 @@ function initSheetLogic() {
       toast('请输入任务标题', 'warn');
       return;
     }
-    const newTask = {
-      id: 't_new_' + Date.now(),
-      title, priority: selP ? selP.dataset.priority : 'P3',
-      labels: [], status:'OPEN', dueAt:null, doneAt:null,
-      createdAt: new Date().toISOString(), subtasks:[]
-    };
-    TASKS.push(newTask);
-    closeAllSheets();
-    toast('已保存 ✓', 'success', () => {
-      TASKS = TASKS.filter(t => t.id !== newTask.id);
+    const priority = selP ? selP.dataset.priority : 'P3';
+    const dueAt = resolveDueAt();
+    const note = $('#taskNoteInput').value.trim();
+    const labels = [...editingLabels];
+    const subtasks = editingSubtasks.map((s, i) => ({
+      id: s.id || ('t_' + (editingTaskId || 'new') + '_s' + Date.now() + '_' + i),
+      title: s.title, done: !!s.done
+    }));
+
+    if (editingTaskId) {
+      const idx = TASKS.findIndex(t => t.id === editingTaskId);
+      if (idx >= 0) {
+        TASKS[idx] = Object.assign({}, TASKS[idx], { title, priority, dueAt, note, labels, subtasks });
+        closeAllSheets();
+        toast('已更新任务 ✓', 'success', () => {
+          // 撤销略简化：刷新界面即可
+          refreshAll();
+        });
+        editingTaskId = null;
+        refreshAll();
+      } else {
+        // 找不到则当作新建
+        TASKS.push({ id:'t_new_'+Date.now(), title, priority, labels, status:'OPEN', dueAt, doneAt:null, createdAt:new Date().toISOString(), subtasks, note });
+        closeAllSheets();
+        toast('已保存 ✓', 'success');
+        refreshAll();
+      }
+    } else {
+      const newTask = { id:'t_new_'+Date.now(), title, priority, labels, status:'OPEN', dueAt, doneAt:null, createdAt:new Date().toISOString(), subtasks, note };
+      TASKS.push(newTask);
+      closeAllSheets();
+      toast('已保存 ✓', 'success', () => {
+        TASKS = TASKS.filter(t => t.id !== newTask.id);
+        refreshAll();
+      });
       refreshAll();
-    });
-    refreshAll();
+    }
   });
 
   $('#taskTitleInput').addEventListener('input', () => {
@@ -2847,8 +3124,74 @@ function initSheetLogic() {
     el.addEventListener('click', () => {
       $$('.date-chip').forEach(o => o.classList.remove('sel'));
       el.classList.add('sel');
+      const v = el.dataset.due;
+      if (v === 'custom') {
+        // 弹出 native 选择器
+        const inp = document.createElement('input');
+        inp.type = 'date';
+        inp.style.position = 'fixed';
+        inp.style.opacity = '0';
+        inp.style.pointerEvents = 'none';
+        const base = new Date(TODAY); base.setDate(base.getDate() + 1);
+        inp.value = fmtDate(base);
+        document.body.appendChild(inp);
+        const onPick = () => {
+          const val = inp.value;
+          if (val) {
+            el.dataset.due = val;
+            el.innerHTML = '<svg class="ico-sm"><use href="#i-calendar"/></svg>' + val;
+            el.classList.add('sel');
+          }
+          inp.removeEventListener('change', onPick);
+          document.body.removeChild(inp);
+        };
+        inp.addEventListener('change', onPick);
+        inp.showPicker ? inp.showPicker() : inp.click();
+      }
     });
   });
+
+  // 标签输入
+  const labelInput = $('#labelInput');
+  if (labelInput) {
+    labelInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = labelInput.value.trim();
+        if (!v) return;
+        if (editingLabels.length >= 5) { toast('最多 5 个标签', 'warn'); return; }
+        if (editingLabels.includes(v)) { toast('重复标签', 'warn'); labelInput.value = ''; return; }
+        editingLabels.push(v);
+        labelInput.value = '';
+        renderLabelChips();
+      }
+    });
+    // 委托删除事件
+    $('#labelChips').addEventListener('click', e => {
+      const rm = e.target.closest('.rm-label');
+      if (!rm) return;
+      const idx = parseInt(rm.dataset.idx, 10);
+      if (!isNaN(idx)) {
+        editingLabels.splice(idx, 1);
+        renderLabelChips();
+      }
+    });
+    renderLabelChips();
+  }
+
+  // 子任务添加
+  const addBtn = $('#addSubtaskBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const title = prompt('子任务标题');
+      if (!title || !title.trim()) return;
+      if (editingSubtasks.length >= 7) { toast('最多 7 个子任务', 'warn'); return; }
+      editingSubtasks.push({ id:'s_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), title: title.trim(), done: false });
+      renderSubtaskEditor();
+      updateSubtaskBtnState();
+    });
+    updateSubtaskBtnState();
+  }
 
   $('#habitSaveBtn').addEventListener('click', () => {
     const title = $('#habitTitleInput').value.trim();
@@ -2858,9 +3201,26 @@ function initSheetLogic() {
       toast('请输入习惯名称', 'warn');
       return;
     }
+    const selIcon = $('#habitIconGrid .priority-option.sel');
+    const icon = selIcon ? selIcon.dataset.icon : '📖';
+    const freqTab = $$('.tabs .tab[data-freq]').find(t => t.classList.contains('active'));
+    const frequency = freqTab ? freqTab.dataset.freq : 'DAILY';
+    const target = parseInt($('#habitTargetInput').value, 10) || 3;
+    const reminder = $('#habitReminderInput').value || '';
+    if (editingHabitId) {
+      const idx = HABITS.findIndex(h => h.id === editingHabitId);
+      if (idx >= 0) {
+        HABITS[idx] = Object.assign({}, HABITS[idx], { title, icon, frequency, targetPerPeriod:target, reminder });
+        closeAllSheets();
+        toast('已更新习惯 ✓', 'success');
+        editingHabitId = null;
+        refreshAll();
+        return;
+      }
+    }
     const newHabit = {
       id: 'h_new_' + Date.now(),
-      title, icon:'📖', frequency:'DAILY', targetPerPeriod:1,
+      title, icon, frequency, targetPerPeriod: target, reminder,
       streak:0, current:0
     };
     HABITS.push(newHabit);
@@ -2924,14 +3284,6 @@ function initSheetLogic() {
 
   // Search input
   $('#searchInput').addEventListener('input', doSearch);
-  $$('#searchTagRow .search-tag').forEach(el => {
-    el.addEventListener('click', () => {
-      activeSearchTag = el.dataset.tag;
-      $$('#searchTagRow .search-tag').forEach(x => x.classList.remove('active'));
-      el.classList.add('active');
-      doSearch();
-    });
-  });
 
   // Task tabs
   $$('#taskTabs .tab').forEach(el => {
@@ -2973,6 +3325,16 @@ function initSheetLogic() {
       if (e.target === m) closeAllSheets();
     });
   });
+
+  // Hamburger menu (mobile)
+  const menuToggle = $('.menu-toggle');
+  if (menuToggle) {
+    menuToggle.addEventListener('click', e => {
+      e.preventDefault();
+      const nav = $('.side-nav');
+      if (nav) nav.classList.toggle('open');
+    });
+  }
 }
 
 /* ============================================================
@@ -2987,6 +3349,7 @@ function refreshAll() {
   renderDashHabits();
   renderDashNotif();
   renderNotifications();
+  if ($('#view-trash') && $('#view-trash').classList.contains('active')) renderTrash();
   if ($('#view-task-detail').classList.contains('active') && currentTaskId) {
     renderTaskDetail(currentTaskId);
   }
@@ -3043,6 +3406,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+/* ============================================================
+   跨模块跳转（与 expense-ui / daily-ui 保持一致）
+   ============================================================ */
+const MODULE_PATHS = {
+  task: '../01-task-ui/new-01-task-ui.html',
+  daily: '../02-daily-ui/new-02-daily-ui.html',
+  bill: '../03-expense-ui/new-03-expense-ui.html',
+  diet: '../04-diet-ui/new-04-diet-ui.html',
+  plan: '../05-plan-ui/new-05-plan-ui.html',
+  ai: '../06-ai-ui/new-06-ai-ui.html',
+};
+function gotoModule(key) {
+  const p = MODULE_PATHS[key];
+  if (p) window.location.href = p;
+}
 </script>
 
 </body>
