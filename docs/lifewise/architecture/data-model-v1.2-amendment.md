@@ -5,7 +5,18 @@
 > 修订日期：2026-07-26
 > 修订人：架构组
 > 修订依据：三套文档对照分析（`check` 分支）
-> 配套 Flyway 脚本：`V21__*.sql` ~ `V25__*.sql`
+> 配套 Flyway 脚本：`V21__*.sql` ~ `V25__*.sql`（本文档权威范围）+ `V26~V29__*.sql`（plan-data-flyway.md 扩展）
+> - **V21~V25**：本文档定义（同步 DDL — 表创建 / 列变更 / CHECK 扩展 / CHECK 收紧）
+> - **V26~V29**：以 [`plan-data-flyway.md`](../planning/plan-data-flyway.md) §3 为权威（跨模块 + observability 元数据 + 回填）
+>   - V26 = `operation_logs`（plan-shared-infra）
+>   - V27 = `outbox_dead_letter`（plan-shared-integration）
+>   - V28 = `chat_messages → conversations` 异步回填（**原本文档 V26 顺延**）
+>   - V29 = `scheduled_jobs` + `backup_manifests`（plan-observability-backup）
+> - **V30/V31**：以 [`plan-data-flyway.md`](../planning/plan-data-flyway.md) §3.32 / §3.33 为权威（v1.2 收口新增）
+>   - V30 = `outbox_events` 加列（event_version / correlation_id / causation_id）
+>   - V31 = `ai_jobs.status` CHECK 扩展（DONE_NO_LLM / DONE_PARTIAL）
+
+> **修订说明**：本文档原草案使用 `V24_1 / V24_2 / V25_1 ~ V25_4` 子版本号，但 Flyway **不支持** `V24_1` 这类带下划线子版本号（会被解析为全新版本 `V241`），落地时统一合并到主版本号（V24 / V25 / V26）。
 
 ### 0.0 主键策略（v1.2 显式声明）
 
@@ -53,13 +64,13 @@ CREATE TABLE export_requests (
     -- 租户与归属
     user_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
-    -- 导出源模块
+    -- 导出源模块（X2 决策 B：扩 6 模块；task/plan 由 V34 迁移扩展，v1.0 首版仅 4 模块上线，V34 在 v1.0.1 增量升级）
     module          TEXT NOT NULL
-                    CHECK (module IN ('daily_report','expense','meal','ai_report')),
+                    CHECK (module IN ('task','daily_report','expense','meal','plan','ai')),
 
-    -- 导出格式
+    -- 导出格式（X2 决策 B：扩 5 格式；json 由 V34 迁移扩展）
     format          TEXT NOT NULL
-                    CHECK (format IN ('csv','markdown','zip','pdf')),
+                    CHECK (format IN ('csv','json','markdown','zip','pdf')),
 
     -- 筛选参数（日期范围 / 分类 / 心情区间 等自由结构）
     filters         JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -119,11 +130,11 @@ CREATE TABLE export_requests (
 );
 
 COMMENT ON TABLE  export_requests IS
-    '导出请求：多模块（daily_report/expense/meal/ai_report）多格式（csv/markdown/zip/pdf）异步导出作业入口（BR-31~34）';
+    '导出请求：多模块（task/daily_report/expense/meal/plan/ai，X2 决策 B）多格式（csv/json/markdown/zip/pdf）异步导出作业入口（BR-31~34）';
 COMMENT ON COLUMN export_requests.id              IS '主键';
 COMMENT ON COLUMN export_requests.user_id         IS '请求用户；多租户隔离';
-COMMENT ON COLUMN export_requests.module          IS '导出源模块：daily_report | expense | meal | ai_report';
-COMMENT ON COLUMN export_requests.format          IS '导出格式：csv | markdown | zip | pdf';
+COMMENT ON COLUMN export_requests.module          IS '导出源模块：task | daily_report | expense | meal | plan | ai';
+COMMENT ON COLUMN export_requests.format          IS '导出格式：csv | json | markdown | zip | pdf（v1.0 投产 csv/json/markdown，zip/pdf 预留 v1.1+）';
 COMMENT ON COLUMN export_requests.filters         IS '筛选参数 JSONB：日期范围 / 分类 / 心情区间 等';
 COMMENT ON COLUMN export_requests.status          IS '状态机：PENDING→PROCESSING→DONE/FAILED/CANCELLED';
 COMMENT ON COLUMN export_requests.progress        IS '进度 0~100；EXPORT_ARTIFACT 写入时累加';
@@ -380,11 +391,11 @@ ALTER TABLE outbox_events
 
 ### 2.1 新增 `notification_requests`
 
-**Flyway**：`V24_1__create_notification_requests.sql`
+**Flyway**：`V24__create_notification_requests.sql`（与 `notification_deliveries` 同脚本）
 
 ```sql
 -- ============================================================
--- V24_1__create_notification_requests.sql
+-- V24__create_notification_requests.sql
 -- 通知请求表：源域事务提交后写入，与 notification.requested 事件双写
 -- 修订编号：P1-NOTIFY-01
 -- 关联业务架构：§3.1 NOTIFICATION_REQUEST / §6.8 流程 8
@@ -501,11 +512,11 @@ CREATE INDEX idx_notification_requests_user_status
 
 ### 2.2 新增 `notification_deliveries`
 
-**Flyway**：`V24_2__create_notification_deliveries.sql`
+**Flyway**：`V24__create_notification_deliveries.sql`（与 `notification_requests` 同 V24 脚本内）
 
 ```sql
 -- ============================================================
--- V24_2__create_notification_deliveries.sql
+-- V24__create_notification_deliveries.sql
 -- 通知投递尝试：每次 channel 投递一条记录，支持重试与渠道降级
 -- 修订编号：P1-NOTIFY-02
 -- 关联业务架构：§3.1 NOTIFICATION_DELIVERY / §6.8 流程 8
@@ -589,15 +600,15 @@ CREATE INDEX idx_notification_deliveries_status_started
 
 ---
 
-### 2.3 新增 `conversations` + `chat_messages` 演进
+### 2.3 新增 `conversations` + `chat_messages` 演进 + `ai_summaries` 加固
 
 #### 2.3.1 新增 `conversations` 表
 
-**Flyway**：`V25_1__create_conversations.sql`
+**Flyway**：`V25__create_conversations.sql`（与 chat_messages 加列 + ai_summaries 加固 同 V25 脚本）
 
 ```sql
 -- ============================================================
--- V25_1__create_conversations.sql
+-- V25__create_conversations.sql
 -- AI 对话会话表：一会话多消息（chat_messages）
 -- 修订编号：P1-CONV-01
 -- 关联业务架构：§3.1 CONVERSATION / §5.4 Conversation 域
@@ -658,11 +669,11 @@ CREATE INDEX idx_conversations_user_created
 
 #### 2.3.2 `chat_messages` 加 `conversation_id` 外键
 
-**Flyway**：`V25_2__alter_chat_messages_add_conversation.sql`
+**Flyway**：`V25__alter_chat_messages_add_conversation.sql`（与 V25 同脚本）
 
 ```sql
 -- ============================================================
--- V25_2__alter_chat_messages_add_conversation.sql
+-- V25__alter_chat_messages_add_conversation.sql
 -- chat_messages 加 conversation_id 外键，关联 conversations
 -- 修订编号：P1-CONV-02
 -- 兼容性：nullable + ON DELETE SET NULL，存量消息不强制迁移
@@ -673,7 +684,7 @@ ALTER TABLE chat_messages
         REFERENCES conversations(id) ON DELETE SET NULL;
 
 -- 历史消息回填：每个 user 取最早的 chat_messages 归到一个"默认会话"
--- 由 V25_3__backfill_chat_conversations.sql 异步处理（避免长事务）
+-- 由 V28__backfill_chat_conversations.sql 异步处理（避免长事务；V 编号以 plan-data-flyway.md 为权威）
 -- 索引在回填完成后建（partial index: conversation_id IS NOT NULL）
 
 CREATE INDEX idx_chat_messages_conversation_created
@@ -681,13 +692,14 @@ CREATE INDEX idx_chat_messages_conversation_created
     WHERE conversation_id IS NOT NULL;
 ```
 
-**Flyway**：`V25_3__backfill_chat_conversations.sql`（异步回填脚本）
+**Flyway**：`V28__backfill_chat_conversations.sql`（**异步回填脚本，独立 V28 版本**——避免与 V25 DDL 同事务长事务阻塞；V 编号以 plan-data-flyway.md 为权威）
 
 ```sql
 -- ============================================================
--- V25_3__backfill_chat_conversations.sql
+-- V28__backfill_chat_conversations.sql
 -- 历史 chat_messages 回填到 conversations
 -- 策略：每个 user 按月度聚合（与 chat_messages 按月分区对齐）
+-- 注意：本脚本为异步回填，独立 V28 版本，与 V25 DDL 分离
 -- ============================================================
 
 -- Step 1：建临时映射表（事务结束自动 DROP，避免长期残留）
@@ -749,12 +761,13 @@ WHERE cm.conversation_id IS NULL
 | **BR-21.b** | **AI 写入 `ai_summaries` 时必须同时写 `model_version`（如 `ollama:deepseek:8b`）与 `generated_at`；不得为空或占位** | AI 作业完成 | CHECK 约束：`length(model_version) BETWEEN 1 AND 100`；`generated_at IS NOT NULL` |
 | **BR-21.c** | **用户编辑摘要后（`user_edited=TRUE`），AI 不得自动覆盖**；必须由用户手动触发重新生成 | 用户编辑 / AI 重新生成 | 应用层：`UPDATE ai_summaries SET summary_md=?, model_version=?, generated_at=NOW(), user_edited=FALSE WHERE daily_report_id=? AND user_edited=TRUE` 必须先确认（弹窗） |
 
-#### 配套 DDL 加固（V25_4__tighten_ai_summaries.sql）
+#### 配套 DDL 加固（V25__tighten_ai_summaries.sql）
 
 ```sql
 -- ============================================================
--- V25_4__tighten_ai_summaries.sql
+-- V25__tighten_ai_summaries.sql
 -- 强化 ai_summaries 字段约束，落地 BR-21.b
+-- （与 conversations + chat_messages 加列 同 V25 脚本）
 -- ============================================================
 
 ALTER TABLE ai_summaries
@@ -781,19 +794,19 @@ CREATE INDEX idx_ai_summaries_user_generated
 | 新增表 | `export_artifacts` | P0-EXPORT-02 | EXPORT 模块、对象存储适配层 | V22 |
 | CHECK 扩展 | `outbox_events.event_type` | P0-EVT-01 | 所有消费 `outbox_events` 的 Worker | V23 |
 | 事件补录 | `export.completed` / `export.failed` / `notification.requested` | P0-EVT-02 | UI、EXPORT、NOTIFY | — |
-| 新增表 | `notification_requests` | P1-NOTIFY-01 | NOTIFY 模块、5 源域、所有 Push 触发点 | V24_1 |
-| 新增表 | `notification_deliveries` | P1-NOTIFY-02 | NOTIFY 模块、监控 / SLA 报表 | V24_2 |
-| 新增表 | `conversations` | P1-CONV-01 | AI 模块、UI 会话侧边栏 | V25_1 |
-| 表结构修改 | `chat_messages`（加 `conversation_id`） | P1-CONV-02 | AI 模块；存量数据异步回填 | V25_2 |
-| 数据回填 | `chat_messages → conversations` | P1-CONV-03 | 一次性历史数据迁移 | V25_3 |
-| CHECK 收紧 | `ai_summaries`（NOT NULL / 长度） | P1-BR-21 | AI 模块、ReportGenerator | V25_4 |
+| 新增表 | `notification_requests` | P1-NOTIFY-01 | NOTIFY 模块、5 源域、所有 Push 触发点 | V24 |
+| 新增表 | `notification_deliveries` | P1-NOTIFY-02 | NOTIFY 模块、监控 / SLA 报表 | V24 |
+| 新增表 | `conversations` | P1-CONV-01 | AI 模块、UI 会话侧边栏 | V25 |
+| 表结构修改 | `chat_messages`（加 `conversation_id`） | P1-CONV-02 | AI 模块；存量数据异步回填 | V25 |
+| 数据回填 | `chat_messages → conversations` | P1-CONV-03 | 一次性历史数据迁移 | V28 |
+| CHECK 收紧 | `ai_summaries`（NOT NULL / 长度） | P1-BR-21 | AI 模块、ReportGenerator | V25 |
 | 业务规则追加 | BR-21.a / 21.b / 21.c | P1-BR-21 | AI 写入路径、用户编辑流程 | — |
 
 ### 3.2 BR 变更清单
 
 | 编号 | 类型 | 描述 | 落地位置 |
 |---|---|---|---|
-| BR-21 | 修改 | `ai_summaries` 字段约束 + 新增 21.a / 21.b / 21.c 三条写入边界 | §2.4 + V25_4 |
+| BR-21 | 修改 | `ai_summaries` 字段约束 + 新增 21.a / 21.b / 21.c 三条写入边界 | §2.4 + V25 |
 | BR-31 | 新增 | `export_requests` DONE 终态时间完整性 | §1.1 |
 | BR-32 | 新增 | `export_requests` FAILED/CANCELLED 终态时间必填 | §1.1 |
 | BR-33 | 新增 | `export_requests.attempts <= max_attempts` | §1.1 |
@@ -833,17 +846,17 @@ CREATE INDEX idx_ai_summaries_user_generated
 |---|---|---|---|
 | 阶段 1（P0） | V21 + V22 + V23 | 无 | 中（新增表 + CHECK 收紧） |
 | 阶段 2（P1-EXPORT 配套） | 导出 Worker 改造、`ExportDataProvider` 实现 | V21/V22 | 中 |
-| 阶段 3（P1-NOTIFY） | V24_1 + V24_2 | V23（事件枚举） | 中 |
-| 阶段 4（P1-CONV） | V25_1 + V25_2 + V25_3（异步回填） | 无 | 中（回填需控制并发） |
-| 阶段 5（P1-BR-21） | V25_4 | 无 | 低（仅 CHECK 收紧） |
+| 阶段 3（P1-NOTIFY） | V24 | V23（事件枚举） | 中 |
+| 阶段 4（P1-CONV） | V25（含 DDL）+ V28（异步回填） | 无 | 中（回填需控制并发） |
+| 阶段 5（P1-BR-21） | V25（CHECK 收紧，与 CONV DDL 同脚本） | 无 | 低（仅 CHECK 收紧） |
 
 ### 3.5 验证清单（写库前必跑）
 
-- [ ] V21/V22/V24_1/V24_2/V25_1 在空库执行无错误
+- [ ] V21/V22/V24/V25 在空库执行无错误
 - [ ] V23 扩展 CHECK 后现有 outbox 数据不违反新约束（应自动满足）
-- [ ] V25_2 加 `conversation_id` 列不阻塞 chat_messages 写入
-- [ ] V25_3 回填脚本在生产数据量（百万级 chat_messages）下 < 30 分钟
-- [ ] V25_4 收紧 ai_summaries 字段前，存量 `model_version`/`generated_at` 无 NULL
+- [ ] V25 加 `conversation_id` 列不阻塞 chat_messages 写入
+- [ ] V28 回填脚本在生产数据量（百万级 chat_messages）下 < 30 分钟
+- [ ] V25 收紧 ai_summaries 字段前，存量 `model_version`/`generated_at` 无 NULL
 - [ ] 状态机 CHECK 触发边界用例：所有 `DONE`/`FAILED`/`DELIVERED`/`SUCCESS` 终态必须满足时间字段完整性
 - [ ] `export_requests` 与 `export_artifacts` 1:N 关系在 ON DELETE CASCADE 下正确级联
 
