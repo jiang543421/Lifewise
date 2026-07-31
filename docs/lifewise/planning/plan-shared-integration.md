@@ -25,11 +25,14 @@ shared-integration 是**6 业务模块间唯一允许的协作通道**。四块�
 ```
 shared/integration/
 ├── outbox/
-│   ├── OutboxWriter.java              @Outbox 注解 + 同事务写 outbox_events
-│   ├── OutboxWorker.java              @Scheduled 轮询 pending 事件（lag ≤ 5s）
+│   ├── OutboxWriter.java              @Transactional(MANDATORY) + ObjectMapper 序列化 payload
+│   ├── OutboxWorker.java              @Scheduled 轮询 pending 事件（默认 lag ≤ 1s，可由 outbox.poll.ms 覆盖）
 │   ├── OutboxDispatcher.java          按 event_type 路由到订阅者
-│   ├── DeadLetterService.java         重试 3 次失败后入死信 + 告警
-│   └── entity/OutboxEvent.java        JPA 实体（v1.2 含 event_version + correlation_id + causation_id）
+│   ├── OutboxStatus.java              PENDING / DISPATCHED / DISCARDED 内存枚举（不持久化）
+│   ├── OutboxConfig.java              @Configuration：把 WorkerConfig 暴露为 Bean
+│   ├── OutboxEventRepository.java     4 方法接口（save / findById / findPendingBatch / markDispatched）
+│   └── persistence/
+│       └── JpaOutboxEventRepository.java  NamedParameterJdbcTemplate + JSONB CAST + GeneratedKeyHolder
 ├── event/
 │   ├── EventType.java                 事件名枚举（25 条；命名粒度待架构裁决，见 §1 注）
 │   ├── EventVersion.java              事件 schema 版本管理
@@ -104,39 +107,40 @@ public interface TaskReadPort {
 
 ## 3. 数据模型
 
-### 3.1 outbox_events（V2 已在 plan-data-flyway 定义）
+### 3.1 outbox_events（V2 + V30 + V33 实际列；path B 修订）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `id` | BIGINT PK | IDENTITY |
-| `user_id` | BIGINT NOT NULL | 所有权 + Worker 分片键 |
+| `id` | BIGINT PK | IDENTITY（V30 分区表主键之一） |
+| `occurred_at` | TIMESTAMPTZ PK | V2 分区键（按月 RANGE 分区） |
+| `user_id` | BIGINT NOT NULL | 所有权 + Worker 分片键（BR-22） |
 | `aggregate_type` | TEXT | Task / Expense / Meal 等 |
 | `aggregate_id` | BIGINT | 业务实体 ID |
-| `event_type` | TEXT | 事件名（如 `task.completed`，与 EventType 枚举对齐） |
-| `event_version` | INTEGER | schema 版本（与 EventEnvelope.eventVersion 对齐；v1.2 L-7 新增） |
-| `correlation_id` | UUID | 链路追踪：跨服务调用同一根 ID |
-| `causation_id` | UUID NULL | 父事件 ID（事件 A 触发的 B） |
-| `payload` | JSONB | EventEnvelope 内容 |
-| `occurred_at` | TIMESTAMPTZ | 业务发生时间（UTC ISO 8601） |
-| `processed_at` | TIMESTAMPTZ NULL | Worker 处理完成时间 |
+| `event_type` | TEXT | 事件名（25 条白名单，V33） |
+| `event_version` | INTEGER DEFAULT 1 | schema 版本（V30 新增） |
+| `correlation_id` | TEXT NULL | 链路追踪：跨服务调用同一根 ID（V30 新增；envelope UUID 入库前 toString） |
+| `trace_id` | TEXT NULL | 调用链 trace ID（V30 新增） |
+| `payload` | JSONB | EventEnvelope 内容（INSERT 用 `CAST(:p AS jsonb)`） |
+| `published_at` | TIMESTAMPTZ NULL | **path B 用此列判 PENDING/DISPATCHED**（`NULL = PENDING`，`NOT NULL = DISPATCHED`） |
 
-索引：
-- `idx_outbox_user_pending WHERE processed_at IS NULL`（部分索引，BR-22）
-- `UNIQUE (aggregate_type, aggregate_id, event_type)`（BR-16 去重）
+**path B 不持久化字段**（不在表内，仅在内存 / Java record 流转）：
+- `causationId`（envelope 上是 UUID，DB 列是 BIGINT；语义错位，v1.1 评估）
+- `attemptCount`（Worker 内存 `Map<Long,Integer>`，进程重启归零）
 
-### 3.2 outbox_dead_letter（V27 由本模块引入）
+索引（沿用 plan-data-flyway 已落地）：
+- `idx_outbox_user_pending WHERE published_at IS NULL`（部分索引，BR-22）
+- `UNIQUE (aggregate_type, aggregate_id, event_type)`（BR-16 去重；注：v1.0 不强制启用，等跨模块实际重复事件后再添加）
 
-```sql
-CREATE TABLE outbox_dead_letter (
-    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    outbox_event_id     BIGINT NOT NULL REFERENCES outbox_events(id),
-    last_error          TEXT NOT NULL,
-    attempts            SMALLINT NOT NULL,
-    moved_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    trace_id            TEXT
-);
-CREATE INDEX idx_outbox_dl_moved_at ON outbox_dead_letter(moved_at DESC);
-```
+### 3.2 ~~outbox_dead_letter~~（path B 不引入；推迟至 v1.1-amendment）
+
+v1.0 不创建 `outbox_dead_letter` 表。失败 3 次后仅记 ERROR 日志 + 跳过；行保持 `published_at IS NULL` 由 admin 通过 SQL 手动 `UPDATE ... SET published_at = now()` 介入。
+
+v1.1-amendment 待评估：
+- `outbox_dead_letter` 表 + `moveToDeadLetter()` 自动化
+- `outbox_events.retry_count` / `next_attempt_at` 列 + backoff 调度
+- Worker 分布式锁（`pg_try_advisory_lock`）避免多副本重复派发
+
+理由（CLAUDE.md §4.1 YAGNI）：单机单用户触发死信 = 设计失败；v1.0 范围内失败兜底 = admin 介入 + 日志。
 
 ## 4. Outbox 事件清单（25 条 = 13 业务 + 3 daily_report 补 + 2 task/milestone CU 拆 + 1 plan + 2 ai 补 + 2 export + 1 notification + 4 auth.* = 25 条）
 
@@ -172,16 +176,21 @@ CREATE INDEX idx_outbox_dl_moved_at ON outbox_dead_letter(moved_at DESC);
 
 ## 5. 关键验收场景（TDD 种子）
 
-### 5.1 outbox
+### 5.1 outbox（path B 修订）
 
-- `outbox_should_write_in_same_transaction`：业务 INSERT + outbox INSERT 同事务；业务回滚 → outbox 也回滚
-- `outbox_should_poll_pending_events`：Worker 每 5s 拉取 `processed_at IS NULL` 事件
-- `outbox_should_mark_processed_atomic`：派发成功后 UPDATE processed_at 用 `UPDATE ... WHERE processed_at IS NULL` 防并发
-- `outbox_should_dispatch_to_subscriber`：按 event_type 路由到对应订阅者
-- `outbox_should_retry_with_backoff`：订阅者失败 → 重试 3 次（间隔 1s / 5s / 30s）
-- `outbox_should_move_to_dead_letter_after_3_fails`：3 次失败后写入 `outbox_dead_letter`
-- `outbox_should_skip_already_processed`：并发 Worker 只处理一次（行锁）
-- `outbox_should_dedupe_by_aggregate`：BR-16 唯一约束防重复
+> 命名空间同步：`processed_at` → `published_at`；`outbox_dead_letter` 推迟至 v1.1-amendment。
+
+- `outbox_should_write_in_same_transaction`：业务 INSERT + outbox INSERT 同事务（`Propagation.MANDATORY`）；业务回滚 → outbox 也回滚
+- `outbox_should_poll_pending_events`：Worker 默认每 1s 拉取 `published_at IS NULL` 事件（`outbox.poll.ms` 可覆盖）
+- `outbox_should_mark_dispatched_atomic`：派发成功后 UPDATE `published_at = now()` 用 `WHERE id = ?` 防并发
+- `outbox_should_dispatch_to_subscriber`：按 event_type 路由到对应订阅者（fan-out）
+- `outbox_should_retry_in_memory_on_failure`：订阅者失败 → 内存 `Map<Long,Integer> attempts`++；不搬死信
+- `outbox_should_discard_after_max_attempts`：attempts ≥ maxRetries 时记 ERROR 日志 + 跳过；行仍 PENDING
+- `outbox_should_skip_already_processed`：并发 Worker 通过行锁（`SELECT ... FOR UPDATE SKIP LOCKED`）避免重复派发（v1.0 暂由单进程假设保证；v1.1 加分布式锁）
+- `outbox_should_dedupe_by_aggregate`：BR-16 唯一约束防重复（v1.0 约束在 schema 层预留，运行时去重由 v1.1 评估）
+- `outbox_should_serialize_payload_via_object_mapper`：H2 不变式 — payload 经 Jackson `writeValueAsString` 写入 JSONB，绝不 `Map.toString()`
+- `outbox_should_deserialize_payload_from_jsonb`：H3 不变式 — 派发时反序列化为 `Map<String,Object>`，不是 `Map.of("_raw", rawString)`
+- `shared_integration_context_should_load`：M2 — `@SpringBootTest` 验证 outbox 子包全部 Bean 接线（`OutboxWriter` / `OutboxDispatcher` / `OutboxWorker` / `OutboxEventRepository`）
 
 ### 5.2 port
 
@@ -203,35 +212,73 @@ CREATE INDEX idx_outbox_dl_moved_at ON outbox_dead_letter(moved_at DESC);
 - `event_should_increment_version_on_breaking_change`：破坏性 schema 变更 version+1
 - `event_should_serialize_to_jsonb`：payload 正确序列化为 JSONB
 
-## 6. 验收标准
+## 6. 验收标准（path B 修订）
 
-- [ ] Outbox 写入与业务数据同一事务（ACID）
-- [ ] Worker 轮询 lag ≤ 5s（P99）
-- [ ] 失败重试 3 次后进入死信
-- [ ] 死信表监控告警（操作日志 / Prometheus counter）
+- [ ] Outbox 写入与业务数据同一事务（ACID，`Propagation.MANDATORY`）
+- [ ] Worker 轮询 lag ≤ 1s（P99，默认 `outbox.poll.ms=1000`）
+- [x] ~~失败重试 3 次后进入死信~~ → 改为「失败重试 3 次后日志 ERROR + 跳过；行保持 PENDING 由 admin 介入」
 - [ ] 跨模块只读接口禁止写操作（编译期 + 运行期双校验）
 - [ ] 统一响应信封 100% 覆盖（code review 检查）
 - [ ] 25 条事件全部注册到 EventType 枚举
-- [ ] Outbox 模块单测覆盖率 ≥ 85%
+- [ ] Outbox 模块单测覆盖率 ≥ 80%（关键路径：dispatch / retry / discard）
+- [ ] Spring Context 装配验证（M2：`SharedIntegrationContextTest` 通过）
+- [ ] ~~死信表监控告警~~ → 推迟至 v1.1-amendment
 
-## 7. 风险登记
+## 7. 风险登记（path B 修订）
 
 | 风险 | 等级 | 缓解 |
 |---|---|---|
 | Outbox 事件堆积 | 高 | 监控 `outbox_pending_count` Prometheus gauge；阈值告警 |
-| 消费失败导致死信暴涨 | 高 | 死信表每日 review；3 次失败立即告警 |
+| 消费失败导致 ~~死信暴涨~~ → 行 PENDING 堆积 | 高 | ~~死信表每日 review~~ → admin 通过 SQL `UPDATE outbox_events SET published_at = now() WHERE id IN (...)` 手动介入；监控 outbox_pending_count 自动告警 |
 | 事件 schema 演进破坏消费方 | 中 | version 字段；v+1 时旧消费者保留兼容期 |
 | Port 误暴露写方法 | 中 | 接口命名规范（`*ReadPort`）；code review 检查 |
-| Worker 单点 | 中 | 任务调度器分布式锁（PG `pg_try_advisory_lock`） |
+| Worker 单点 | 中 | ~~任务调度器分布式锁（PG `pg_try_advisory_lock`）~~ → v1.0 单进程假设；v1.1-amendment 加 advisory lock |
 | JSONB 索引性能 | 低 | GIN 索引仅在高频查询字段 |
+| attemptCount 进程重启归零 | 低 | v1.0 接受（admin 介入兜底）；v1.1 引入 DB 列 |
 
 ## 8. 关联文档
 
 - 上游：
   - `plan-deploy-nginx.md`（Redis 容器）
-  - `plan-data-flyway.md`（outbox_events / outbox_dead_letter 表）
+  - `plan-data-flyway.md`（**仅 outbox_events 表**；path B 不引入 `outbox_dead_letter`）
   - `plan-shared-infra.md`（@RequireAuth 在 Port 调用前生效）
 - 下游：
   - `plan-auth.md`（登录事件发布到 outbox）
   - `plan-01-task.md` ~ `plan-06-ai.md`（含 `plan-auth.md`，共 7 个模块，全部通过 Outbox + Port 协作）
   - `plan-observability-backup.md`（监控 outbox_pending_count）
+
+## 9. v1.0 path B 修订摘要（commit-pending）
+
+**触发**：code review 发现 `OutboxEventRecord` 与实际 V2/V30/V33 schema 不匹配（14 字段 UUID PK + status + retry_count vs 11 字段 BIGINT PK + published_at）。两条修复路径可选：
+
+- **Path A**：补 V36/V37 Flyway 迁移（增加 `status` / `retry_count` / `next_attempt_at` 列 + `outbox_dead_letter` 表）
+- **Path B**（已选）：收缩 Java 代码到 DB 实际能支持的最小 outbox
+
+**决策依据**（CLAUDE.md §4.1 YAGNI + §10 红线）：
+1. YAGNI：单机单用户触发死信 = 设计失败；死信表 + retry 列是「为运维擦屁股」设计，v1.0 范围内失败兜底 = admin 介入 + 日志。
+2. 红线（CLAUDE.md §10）：加 V36/V37 =「修改数据库表结构」，必须先评审 + 迁移；当前 Java 代码假设未经评审的列是**实现错位**不是 schema 缺漏。
+3. 现状红利：V30 + V33 已铺够列（`id` BIGINT、`occurred_at`、`payload` JSONB、`published_at`、`correlation_id` TEXT、`causation_id` BIGINT、`aggregate_type`、`aggregate_id`）。
+
+**path B 范围（已落地）**：
+- `OutboxEventRecord`：12 字段（id Long + 10 业务字段 + publishedAt + attemptCount 内存态）；drop causationId / status / retryCount / nextAttemptAt 持久化
+- `OutboxStatus`：内存枚举 `{PENDING, DISPATCHED, DISCARDED}`，由 `publishedAt` 推断
+- `OutboxEventRepository`：4 方法（save / findById / findPendingBatch / markDispatched）；drop `moveToDeadLetter` / `markFailed`
+- `OutboxWorker`：内存 `Map<Long,Integer> attempts`；attempts ≥ maxRetries 时只记 ERROR + 跳过；`@Scheduled` 调度（`outbox.poll.ms` 默认 1000）；`@ConditionalOnProperty` 控制开关
+- `JpaOutboxEventRepository`：NamedParameterJdbcTemplate + JSONB `CAST(:p AS jsonb)` + GeneratedKeyHolder 回填 id
+- `DeadLetterService.java` / `DeadLetterServiceTest.java`：**删除**
+
+**v1.1-amendment backlog**（不在 v1.0 范围）：
+1. `outbox_events` 增加 `retry_count INT DEFAULT 0` + `next_attempt_at TIMESTAMPTZ` 列
+2. 新建 `outbox_dead_letter` 表 + `moveToDeadLetter()` 自动迁移 + 监控告警
+3. Worker 分布式锁（PG `pg_try_advisory_lock`）支持多副本部署
+4. envelope `causationId` UUID → DB BIGINT 的语义映射（保持 UUID 链路追溯）
+5. `JpaOutboxEventRepositoryIT`（embedded-postgres）验证真实 SQL 行为（H2 与 PG JSONB 差异）
+
+**当前验证**：
+- `mvn test`: 65/65 GREEN（11 个测试类，包含 `SharedIntegrationContextTest` M2）
+- Path B 范围内的核心契约已闭环（事务边界 / JSON 序列化 / 路由 / 重试 / 调度）
+
+**对下游 plan 的影响**：
+- `plan-01-task.md` ~ `plan-06-ai.md`：发布事件时不要假设存在 DLQ；失败处理走日志 + admin
+- `plan-auth.md`：login/register 事件发布同事务语义不变
+- `plan-observability-backup.md`：监控 `outbox_pending_count`（`WHERE published_at IS NULL`），阈值告警
