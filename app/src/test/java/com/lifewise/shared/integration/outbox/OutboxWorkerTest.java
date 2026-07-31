@@ -2,7 +2,6 @@ package com.lifewise.shared.integration.outbox;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -13,7 +12,6 @@ import com.lifewise.shared.integration.event.EventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,13 +20,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * OutboxWorker 单测（plan-shared-integration §5.1）。
+ * OutboxWorker 单测（plan-shared-integration §5.1 path B）。
  *
- * <p>覆盖：
+ * <p>v1.0 path B 覆盖：
  * <ul>
- *   <li>{@code outbox_worker_should_pick_pending_events} — 拉取 PENDING 批次</li>
- *   <li>{@code outbox_should_retry_on_failure} — 失败时增加 retry_count 并排 next_attempt_at</li>
- *   <li>{@code outbox_worker_should_be_idempotent} — 无 pending 时空跑</li>
+ *   <li>拉取 PENDING 批次并逐条 dispatch，成功 → markDispatched</li>
+ *   <li>dispatch 抛异常时不 markDispatched；内存 attempts++</li>
+ *   <li>attempts >= maxRetries → log ERROR + 跳过；不搬死信（path B 无 DLQ）</li>
+ *   <li>无 pending 时空跑（不调 dispatcher、不写 DB）</li>
+ *   <li>批量大小可由 WorkerConfig 控制</li>
+ *   <li>单条失败不影响后续事件处理</li>
  * </ul>
  */
 @DisplayName("OutboxWorker 轮询 + 派发")
@@ -37,21 +38,19 @@ class OutboxWorkerTest {
 
     @Mock OutboxEventRepository repository;
     @Mock OutboxDispatcher dispatcher;
-    @Mock DeadLetterService deadLetterService;
 
     private OutboxWorker worker;
 
     @BeforeEach
     void setUp() {
-        worker = new OutboxWorker(repository, dispatcher, deadLetterService,
-                new OutboxWorker.WorkerConfig(50, 3));
+        worker = OutboxWorker.withDefaultConfig(repository, dispatcher);
     }
 
     @Test
     @DisplayName("拉取 PENDING 批次并逐条 dispatch")
     void should_pick_pending_and_dispatch() {
-        OutboxEventRecord r1 = pending(EventType.TASK_COMPLETED);
-        OutboxEventRecord r2 = pending(EventType.TASK_CREATED);
+        OutboxEventRecord r1 = pending(EventType.TASK_COMPLETED, 1L);
+        OutboxEventRecord r2 = pending(EventType.TASK_CREATED, 2L);
         when(repository.findPendingBatch(50)).thenReturn(List.of(r1, r2));
 
         int processed = worker.runOnce();
@@ -59,22 +58,38 @@ class OutboxWorkerTest {
         assertThat(processed).isEqualTo(2);
         verify(dispatcher).dispatch(r1);
         verify(dispatcher).dispatch(r2);
-        verify(repository).markDispatched(r1.eventId());
-        verify(repository).markDispatched(r2.eventId());
+        verify(repository).markDispatched(1L);
+        verify(repository).markDispatched(2L);
     }
 
     @Test
-    @DisplayName("dispatch 抛异常时 → 增加 retry_count + 重排 next_attempt_at，不标记 dispatched")
-    void should_retry_on_failure() {
-        OutboxEventRecord r = pending(EventType.TASK_COMPLETED);
+    @DisplayName("dispatch 抛异常时 → 不 markDispatched，内存 attempts++（不搬死信）")
+    void should_retry_in_memory_on_failure() {
+        OutboxEventRecord r = pending(EventType.TASK_COMPLETED, 1L);
         when(repository.findPendingBatch(50)).thenReturn(List.of(r));
         doThrow(new RuntimeException("downstream down")).when(dispatcher).dispatch(r);
 
         worker.runOnce();
 
         verify(repository, never()).markDispatched(any());
-        verify(repository).markFailed(eq(r.eventId()), eq(1), any(OffsetDateTime.class));
-        verify(deadLetterService, never()).moveToDeadLetter(any());
+        assertThat(worker.attemptsSnapshot()).containsEntry(1L, 1);
+    }
+
+    @Test
+    @DisplayName("attempts >= maxRetries 时只 log ERROR + 跳过；行仍 PENDING")
+    void should_discard_after_max_attempts() {
+        // 先预热：3 次失败让 attempts 涨到 3
+        OutboxEventRecord r = pending(EventType.TASK_COMPLETED, 1L);
+        when(repository.findPendingBatch(50)).thenReturn(List.of(r));
+        doThrow(new RuntimeException("boom")).when(dispatcher).dispatch(r);
+
+        for (int i = 0; i < 3; i++) {
+            worker.runOnce();
+        }
+
+        assertThat(worker.attemptsSnapshot()).containsEntry(1L, 3);
+        // 不搬死信（path B 无 DLQ）
+        verify(repository, never()).markDispatched(any());
     }
 
     @Test
@@ -87,13 +102,12 @@ class OutboxWorkerTest {
         assertThat(processed).isZero();
         verify(dispatcher, never()).dispatch(any());
         verify(repository, never()).markDispatched(any());
-        verify(repository, never()).markFailed(any(), anyInt(), any());
     }
 
     @Test
     @DisplayName("批量大小可由 WorkerConfig 控制（默认 50，测试中设为 10）")
     void should_respect_poll_batch_size() {
-        OutboxWorker customWorker = new OutboxWorker(repository, dispatcher, deadLetterService,
+        OutboxWorker customWorker = new OutboxWorker(repository, dispatcher,
                 new OutboxWorker.WorkerConfig(10, 3));
         when(repository.findPendingBatch(10)).thenReturn(List.of());
 
@@ -105,9 +119,9 @@ class OutboxWorkerTest {
     @Test
     @DisplayName("dispatcher 抛异常后 worker 继续处理后续事件（不因单条失败而中断）")
     void should_continue_after_individual_failure() {
-        OutboxEventRecord r1 = pending(EventType.TASK_COMPLETED);
-        OutboxEventRecord r2 = pending(EventType.TASK_CREATED);
-        OutboxEventRecord r3 = pending(EventType.HABIT_LOGGED);
+        OutboxEventRecord r1 = pending(EventType.TASK_COMPLETED, 1L);
+        OutboxEventRecord r2 = pending(EventType.TASK_CREATED, 2L);
+        OutboxEventRecord r3 = pending(EventType.HABIT_LOGGED, 3L);
         when(repository.findPendingBatch(50)).thenReturn(List.of(r1, r2, r3));
         lenient().doThrow(new RuntimeException("boom"))
                 .when(dispatcher).dispatch(r2);
@@ -117,33 +131,27 @@ class OutboxWorkerTest {
         verify(dispatcher).dispatch(r1);
         verify(dispatcher).dispatch(r2);
         verify(dispatcher).dispatch(r3);
-        verify(repository).markDispatched(r1.eventId());
-        verify(repository).markFailed(eq(r2.eventId()), eq(1), any(OffsetDateTime.class));
-        verify(repository).markDispatched(r3.eventId());
+        verify(repository).markDispatched(1L);
+        verify(repository, never()).markDispatched(2L);
+        verify(repository).markDispatched(3L);
+        assertThat(worker.attemptsSnapshot()).containsEntry(2L, 1);
     }
 
     // ---- helpers ----
 
-    private static OutboxEventRecord pending(EventType type) {
+    private static OutboxEventRecord pending(EventType type, Long id) {
         return new OutboxEventRecord(
-                UUID.randomUUID(),
+                id,
                 type.eventType(),
                 1,
                 OffsetDateTime.now(ZoneOffset.UTC),
                 1L,
                 type.eventType().split("\\.")[0],
                 99L,
-                UUID.randomUUID(),
                 null,
                 "trace",
                 "{}",
-                OutboxStatus.PENDING,
-                0,
-                OffsetDateTime.now(ZoneOffset.UTC));
-    }
-
-    /** Mockito eq shorthand. */
-    private static <T> T eq(T value) {
-        return org.mockito.ArgumentMatchers.eq(value);
+                null,
+                0);
     }
 }

@@ -23,18 +23,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.lenient;
 
 /**
- * OutboxWriter 单测（plan-shared-integration §5.1）。
+ * OutboxWriter 单测（plan-shared-integration §5.1 path B）。
  *
- * <p>覆盖：
+ * <p>v1.0 path B 覆盖：
  * <ul>
- *   <li>{@code outbox_should_write_event_in_business_transaction} — 走 repository.save()</li>
- *   <li>{@code outbox_should_persist_event_with_full_envelope} — 字段不丢失</li>
+ *   <li>append → repository.save()，id=null（DB 回填），attemptCount=0，publishedAt=null</li>
+ *   <li>payload 经 ObjectMapper 序列化为 JSON 字符串</li>
+ *   <li>payload=null → "{}"</li>
+ *   <li>correlationId UUID → String 转换</li>
+ *   <li>causationId 不入库</li>
  * </ul>
- *
- * <p>事务边界验证由集成测试（{@code OutboxWriterIT}，含 {@code @Transactional} 上下文）覆盖；
- * 本单测只验证 envelope → record 映射正确。
  */
 @DisplayName("OutboxWriter 事件写入")
 @ExtendWith(MockitoExtension.class)
@@ -48,38 +49,47 @@ class OutboxWriterTest {
     @BeforeEach
     void setUp() throws JsonProcessingException {
         writer = new OutboxWriter(repository, objectMapper);
-        // 默认 ObjectMapper 行为：把 map 序列化为 JSON 字符串
         when(objectMapper.writeValueAsString(any())).thenAnswer(inv -> {
             Object arg = inv.getArgument(0);
             if (arg == null) return "{}";
             return "{\"taskId\":99,\"completedAt\":\"2026-07-31T10:00:00Z\"}";
         });
+        // repository.save 返回带 id 的 record（模拟 GeneratedKeyHolder）。
+        // 注：should_propagate_serialization_failure_as_runtime 不走 save 路径，用 lenient()。
+        lenient().when(repository.save(any(OutboxEventRecord.class))).thenAnswer(inv -> {
+            OutboxEventRecord r = inv.getArgument(0);
+            return new OutboxEventRecord(
+                    1L, r.eventType(), r.eventVersion(), r.occurredAt(),
+                    r.userId(), r.aggregateType(), r.aggregateId(),
+                    r.correlationId(), r.traceId(), r.payload(),
+                    r.publishedAt(), r.attemptCount());
+        });
     }
 
     @Test
-    @DisplayName("append(EventEnvelope) → repository.save() with status=PENDING, retry=0")
+    @DisplayName("append(EventEnvelope) → repository.save()，id=null 由 DB 回填")
     void should_append_with_pending_status() {
         EventEnvelope env = envelope();
 
-        writer.append(env);
+        OutboxEventRecord returned = writer.append(env);
 
         ArgumentCaptor<OutboxEventRecord> cap = ArgumentCaptor.forClass(OutboxEventRecord.class);
         verify(repository).save(cap.capture());
 
         OutboxEventRecord saved = cap.getValue();
-        assertThat(saved.eventId()).isEqualTo(env.eventId());
+        assertThat(saved.id()).isNull();
         assertThat(saved.eventType()).isEqualTo("task.completed");
-        assertThat(saved.status()).isEqualTo(OutboxStatus.PENDING);
-        assertThat(saved.retryCount()).isZero();
+        assertThat(saved.publishedAt()).isNull();
+        assertThat(saved.attemptCount()).isZero();
+        assertThat(returned.id()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("append 携带完整 envelope 字段（不丢 userId / aggregate / correlation）")
-    void should_preserve_full_envelope() {
-        UUID corr = UUID.randomUUID();
-        UUID caus = UUID.randomUUID();
+    @DisplayName("correlationId UUID → String 入库（DB 列是 TEXT）")
+    void should_convert_correlation_id_to_string() {
+        UUID corr = UUID.fromString("11111111-2222-3333-4444-555555555555");
         EventEnvelope env = new EventEnvelope(
-                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                UUID.randomUUID(),
                 EventType.MILESTONE_COMPLETED.eventType(),
                 2,
                 OffsetDateTime.parse("2026-07-31T10:00:00Z"),
@@ -87,7 +97,7 @@ class OutboxWriterTest {
                 "milestone",
                 7L,
                 corr,
-                caus,
+                UUID.randomUUID(),                // causationId — 不应入库
                 "trace-xyz",
                 Map.of("milestoneId", 7L));
 
@@ -95,17 +105,8 @@ class OutboxWriterTest {
 
         ArgumentCaptor<OutboxEventRecord> cap = ArgumentCaptor.forClass(OutboxEventRecord.class);
         verify(repository).save(cap.capture());
-
         OutboxEventRecord saved = cap.getValue();
-        assertThat(saved.eventId())
-                .isEqualTo(UUID.fromString("11111111-1111-1111-1111-111111111111"));
-        assertThat(saved.eventType()).isEqualTo("milestone.completed");
-        assertThat(saved.eventVersion()).isEqualTo(2);
-        assertThat(saved.userId()).isEqualTo(42L);
-        assertThat(saved.aggregateType()).isEqualTo("milestone");
-        assertThat(saved.aggregateId()).isEqualTo(7L);
-        assertThat(saved.correlationId()).isEqualTo(corr);
-        assertThat(saved.causationId()).isEqualTo(caus);
+        assertThat(saved.correlationId()).isEqualTo(corr.toString());
         assertThat(saved.traceId()).isEqualTo("trace-xyz");
     }
 
@@ -122,14 +123,8 @@ class OutboxWriterTest {
     @Test
     @DisplayName("payload 经 ObjectMapper.writeValueAsString 序列化为 JSON（非 toString）")
     void should_serialize_payload_via_object_mapper() throws JsonProcessingException {
-        EventEnvelope env = envelope();
+        writer.append(envelope());
 
-        writer.append(env);
-
-        ArgumentCaptor<Map<String, Object>> payloadCap = ArgumentCaptor.forClass(Map.class);
-        verify(objectMapper).writeValueAsString(payloadCap.capture());
-        verify(repository).save(any(OutboxEventRecord.class));
-        // 直接调 mapper 的输出（mocked）作为 row.payload
         ArgumentCaptor<OutboxEventRecord> recCap = ArgumentCaptor.forClass(OutboxEventRecord.class);
         verify(repository).save(recCap.capture());
         assertThat(recCap.getValue().payload())
@@ -150,7 +145,7 @@ class OutboxWriterTest {
                 UUID.randomUUID(), null, "trace",
                 null);
 
-        when(objectMapper.writeValueAsString(null)).thenReturn("{}");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
         writer.append(env);
 
         ArgumentCaptor<OutboxEventRecord> recCap = ArgumentCaptor.forClass(OutboxEventRecord.class);

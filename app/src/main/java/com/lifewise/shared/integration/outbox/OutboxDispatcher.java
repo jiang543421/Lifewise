@@ -9,6 +9,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
@@ -20,11 +21,16 @@ import org.springframework.stereotype.Component;
  *   <li>校验 eventType 在 {@link EventType} 白名单内（防御性）</li>
  *   <li>查找所有订阅该 eventType 的 {@link EventConsumer}</li>
  *   <li>fan-out 调用所有匹配 consumer</li>
- *   <li>任一 consumer 抛异常 → 整体抛给 Worker 处理（重试 / 死信）</li>
+ *   <li>任一 consumer 抛异常 → 整体抛给 Worker 处理（重试）</li>
  * </ul>
  *
- * <p>{@link OutboxEventRecord#payload()} 为 JSON 字符串（PG JSONB 列），
- * 通过 Jackson 反序列化为 {@code Map<String,Object>} 后注入 envelope。
+ * <p>v1.0 path B：
+ * <ul>
+ *   <li>{@link OutboxEventRecord#id()} (Long) → envelope.eventId (UUID) 在派发时新生成。
+ *       envelope 上的 UUID 仅作 in-flight 标识，业务唯一追溯走 {@code aggregateType/aggregateId} +
+ *       {@code correlationId}。</li>
+ *   <li>payload (JSON 字符串) 经 Jackson 反序列化为 {@code Map<String,Object>} 后注入 envelope</li>
+ * </ul>
  */
 @Component
 public class OutboxDispatcher {
@@ -83,19 +89,22 @@ public class OutboxDispatcher {
 
     /**
      * OutboxEventRecord → EventEnvelope；payload (JSON 字符串) 经 Jackson 反序列化为 Map。
+     * envelope.eventId 在派发时新生成（DB BIGINT id 与 envelope UUID 是不同语义层）。
+     * envelope.correlationId/causationId 在 record → envelope 边界还原为 UUID（若可解析）。
      */
     private EventEnvelope toEnvelope(OutboxEventRecord r) {
         Map<String, Object> payload = deserializePayload(r);
+        UUID correlationId = parseUuidOrNull(r.correlationId());
         return new EventEnvelope(
-                r.eventId(),
+                UUID.randomUUID(),
                 r.eventType(),
                 r.eventVersion(),
                 r.occurredAt(),
                 r.userId(),
                 r.aggregateType(),
                 r.aggregateId(),
-                r.correlationId(),
-                r.causationId(),
+                correlationId,
+                null,                                  // causationId 不入库
                 r.traceId(),
                 payload);
     }
@@ -109,8 +118,19 @@ public class OutboxDispatcher {
             return objectMapper.readValue(raw, MAP_TYPE);
         } catch (Exception ex) {
             throw new RuntimeException(
-                    "Failed to deserialize outbox payload eventId=" + r.eventId()
+                    "Failed to deserialize outbox payload id=" + r.id()
                             + " eventType=" + r.eventType(), ex);
+        }
+    }
+
+    private static UUID parseUuidOrNull(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(s);
+        } catch (IllegalArgumentException ex) {
+            return null;
         }
     }
 

@@ -80,6 +80,15 @@
             <scope>test</scope>
         </dependency>
         <!--
+          H2 内存数据库：SharedIntegrationContextTest 验证 Spring Context 装配时使用，
+          避免依赖真实 PostgreSQL。仅 test scope。
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
           zonky/embedded-postgres：本机无 Docker daemon 时的 CI 替代方案
           （生产仍走 docker-compose db — PG 15-alpine — 见 docker-compose.yml）。
           通过 JVM 子进程启动真实 PG 15 二进制；分区 / JSONB / CHECK 全支持。

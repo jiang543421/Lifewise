@@ -3,8 +3,7 @@ package com.lifewise.shared.integration.outbox;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lifewise.shared.integration.event.EventEnvelope;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,12 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
  * {@link #append(EventEnvelope)}，使 outbox 行与业务表同事务提交。
  * 事务回滚 → outbox 也回滚，保证 at-least-once + 业务一致性。
  *
- * <p>约束：
+ * <p>v1.0 path B：
  * <ul>
- *   <li>envelope.eventId 由调用方生成（UUID v4）</li>
- *   <li>status 强制 {@link OutboxStatus#PENDING}</li>
- *   <li>retryCount=0；nextAttemptAt=now(UTC)</li>
- *   <li>payload 经 Jackson {@link ObjectMapper} 序列化为合法 JSON（PG JSONB 列要求）</li>
+ *   <li>envelope.eventId (UUID) 不入库（DB PK 是 BIGINT，由 repository 回填）</li>
+ *   <li>envelope.correlationId (UUID) 转为 String 入库（DB 列是 TEXT）</li>
+ *   <li>envelope.causationId (UUID) 不入库（DB 列是 BIGINT，与 envelope UUID 语义错位）</li>
+ *   <li>payload 经 Jackson 序列化为 JSON 字符串（H2 修订）</li>
  * </ul>
  *
  * <p>{@code Propagation.MANDATORY} 强制要求调用方已开启事务；无事务时直接抛
@@ -29,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 public class OutboxWriter {
+
+    private static final String EMPTY_JSON = "{}";
 
     private final OutboxEventRepository repository;
     private final ObjectMapper objectMapper;
@@ -46,23 +47,21 @@ public class OutboxWriter {
      * @throws RuntimeException payload 序列化失败时
      */
     @Transactional(propagation = Propagation.MANDATORY)
-    public void append(EventEnvelope env) {
-        OutboxEventRecord record = new OutboxEventRecord(
-                env.eventId(),
+    public OutboxEventRecord append(EventEnvelope env) {
+        OutboxEventRecord draft = new OutboxEventRecord(
+                null,                            // id — DB 生成
                 env.eventType(),
                 env.eventVersion(),
                 env.occurredAt(),
                 env.userId(),
                 env.aggregateType(),
                 env.aggregateId(),
-                env.correlationId(),
-                env.causationId(),
+                env.correlationId() == null ? null : env.correlationId().toString(),
                 env.traceId(),
                 serializePayload(env),
-                OutboxStatus.PENDING,
-                0,
-                OffsetDateTime.now(ZoneOffset.UTC));
-        repository.save(record);
+                null,                            // publishedAt — INSERT 时为 NULL（PENDING）
+                0);                              // attemptCount — 内存态，初始 0
+        return repository.save(draft);
     }
 
     /**
@@ -71,7 +70,7 @@ public class OutboxWriter {
      */
     private String serializePayload(EventEnvelope env) {
         try {
-            return objectMapper.writeValueAsString(env.payload());
+            return objectMapper.writeValueAsString(env.payload() == null ? Map.of() : env.payload());
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(
                     "Failed to serialize outbox payload for eventType=" + env.eventType(), ex);
