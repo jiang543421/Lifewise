@@ -1,5 +1,7 @@
 package com.lifewise.shared.integration.outbox;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lifewise.shared.integration.event.EventEnvelope;
 import com.lifewise.shared.integration.event.EventType;
 import java.util.ArrayList;
@@ -20,9 +22,15 @@ import org.springframework.stereotype.Component;
  *   <li>fan-out 调用所有匹配 consumer</li>
  *   <li>任一 consumer 抛异常 → 整体抛给 Worker 处理（重试 / 死信）</li>
  * </ul>
+ *
+ * <p>{@link OutboxEventRecord#payload()} 为 JSON 字符串（PG JSONB 列），
+ * 通过 Jackson 反序列化为 {@code Map<String,Object>} 后注入 envelope。
  */
 @Component
 public class OutboxDispatcher {
+
+    private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
+    private static final String EMPTY_JSON = "{}";
 
     /** PG outbox_events.event_type CHECK 白名单的 Java 侧镜像。 */
     private static final Set<String> KNOWN_EVENT_TYPES =
@@ -31,12 +39,14 @@ public class OutboxDispatcher {
                     .collect(Collectors.toUnmodifiableSet());
 
     private final Map<String, List<EventConsumer>> consumerIndex;
+    private final ObjectMapper objectMapper;
 
-    public OutboxDispatcher(List<EventConsumer> consumers) {
+    public OutboxDispatcher(List<EventConsumer> consumers, ObjectMapper objectMapper) {
         this.consumerIndex = consumers.stream()
                 .collect(Collectors.groupingBy(
                         EventConsumer::eventType,
                         Collectors.toUnmodifiableList()));
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -71,9 +81,11 @@ public class OutboxDispatcher {
         }
     }
 
-    private static EventEnvelope toEnvelope(OutboxEventRecord r) {
-        // payload 字符串本期 toString 还原；实现模块接入 ObjectMapper 反序列化
-        Map<String, Object> payload = Map.of("_raw", r.payload());
+    /**
+     * OutboxEventRecord → EventEnvelope；payload (JSON 字符串) 经 Jackson 反序列化为 Map。
+     */
+    private EventEnvelope toEnvelope(OutboxEventRecord r) {
+        Map<String, Object> payload = deserializePayload(r);
         return new EventEnvelope(
                 r.eventId(),
                 r.eventType(),
@@ -86,6 +98,20 @@ public class OutboxDispatcher {
                 r.causationId(),
                 r.traceId(),
                 payload);
+    }
+
+    private Map<String, Object> deserializePayload(OutboxEventRecord r) {
+        String raw = r.payload();
+        if (raw == null || raw.isBlank() || EMPTY_JSON.equals(raw)) {
+            return Map.of();
+        }
+        try {
+            return objectMapper.readValue(raw, MAP_TYPE);
+        } catch (Exception ex) {
+            throw new RuntimeException(
+                    "Failed to deserialize outbox payload eventId=" + r.eventId()
+                            + " eventType=" + r.eventType(), ex);
+        }
     }
 
     /** 测试用：暴露 consumer 索引。 */
