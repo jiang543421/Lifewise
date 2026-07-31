@@ -50,3 +50,6 @@ Thumbs.db
 # --- 文档临时产物 ---
 docs-task*.png
 docs-task-tmp/
+
+# --- Agent / Worktree 工作目录（CLAUDE.md §3.2 禁止 IDE/临时类目录入仓）---
+.claude/worktrees/
