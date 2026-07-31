@@ -1,0 +1,52 @@
+# ============================================================
+# Lifewise .gitignore — 严格遵循 CLAUDE.md §5.4 与 §7.1
+# ============================================================
+
+# --- 密钥与环境（绝对不入库）---
+.env
+.env.*
+!.env.example
+
+# --- TLS 证书 ---
+nginx/certs/
+*.pem
+*.key
+*.crt
+
+# --- 数据卷与备份产物（与 docker volume 同名）---
+pgdata/
+redisdata/
+ollamadata/
+pgbackups/
+
+# --- 应用产物与日志 ---
+app/logs/
+app/config/HEALTHCHECK_READY
+*.log
+logs/
+
+# --- 构建产物 ---
+target/
+build/
+dist/
+node_modules/
+.gradle/
+.mvn/
+
+# --- IDE / 编辑器 ---
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# --- 临时文件 ---
+*.tmp
+*.bak
+*.orig
+.DS_Store
+Thumbs.db
+
+# --- 文档临时产物 ---
+docs-task*.png
+docs-task-tmp/

@@ -1,0 +1,278 @@
+# ============================================================
+# docker-compose.yml — Lifewise 步骤1A 最小开发环境
+#
+# 范围（与用户决策对齐）：
+#   - 1A 阶段只编排 db / cache / ai / app 四个容器（nginx 与 backup 留到后续阶段）
+#   - 网络：lifewise-internal（internal: true，db/cache/ai 不出宿主机）
+#           lifewise-edge    （nginx 唯一对外暴露；本步骤暂未启用，1B 启用）
+#   - 端口：5432 / 6379 / 11434 / 8080 仅暴露给 internal 网络，
+#           浏览器无法直连（nginx 在 1B 加入）
+#   - 密钥：从 .env 注入，禁止硬编码
+#   - 健康检查：与 technical-architecture §4.2 / §4.3 / §4.4 严格对齐
+#
+# 严格遵循：
+#   - CLAUDE.md §2.3（Docker Compose 单机部署）
+#   - CLAUDE.md §7.1（密钥管理）
+#   - plan-deploy-nginx.md §1 / §5（容器清单 / 卷）
+#   - technical-architecture.md §1.2 / §1.3 / §4.2-4.5
+#
+# 不引入：
+#   - nginx（1B）
+#   - backup 容器（plan-observability-backup 接管）
+# ============================================================
+
+name: lifewise
+
+services:
+  # --------------------------------------------------------
+  # db — PostgreSQL 15-alpine
+  # 来源：technical-architecture §4.2
+  # --------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: lifewise-db
+    restart: unless-stopped
+    networks:
+      - lifewise-internal
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lifewise}
+      POSTGRES_USER: ${POSTGRES_USER:-lifewise}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "effective_cache_size=768MB"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "log_min_duration_statement=1000"
+      - "-c"
+      - "log_lock_waits=on"
+      - "-c"
+      - "autovacuum_analyze_scale_factor=0.05"
+      - "-c"
+      - "timezone=UTC"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lifewise} -d ${POSTGRES_DB:-lifewise}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # --------------------------------------------------------
+  # cache — Redis 7-alpine
+  # 来源：technical-architecture §4.3
+  # --------------------------------------------------------
+  cache:
+    image: redis:7-alpine
+    container_name: lifewise-cache
+    restart: unless-stopped
+    networks:
+      - lifewise-internal
+    command:
+      - "redis-server"
+      - "--maxmemory=200mb"
+      - "--maxmemory-policy=allkeys-lru"
+      - "--appendonly=yes"
+      - "--appendfsync=everysec"
+      - "--save=900 1"
+      - "--lua-time-limit=5000"
+      - "--requirepass=${REDIS_PASSWORD}"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # --------------------------------------------------------
+  # ai — Ollama（deepseek:8b）
+  # 来源：technical-architecture §4.4
+  # 启动时自动 ollama pull deepseek:8b（约 5GB；已存在则跳过）
+  # --------------------------------------------------------
+  ai:
+    image: ollama/ollama:latest
+    container_name: lifewise-ai
+    restart: unless-stopped
+    networks:
+      - lifewise-internal
+    environment:
+      OLLAMA_KEEP_ALIVE: "5m"
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ollamadata:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 5s
+      retries: 2
+      start_period: 30s
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama serve &
+       until curl -sf http://localhost:11434/api/tags > /dev/null; do sleep 1; done
+       ollama pull ${OLLAMA_MODEL:-deepseek:8b} || true
+       wait"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+
+  # --------------------------------------------------------
+  # app — Spring Boot 3.3 模块化单体（占位）
+  # 1A 阶段：仅声明镜像 + 网络 + 健康检查脚本
+  # 实际 Docker 镜像由后续 plan-shared-infra / 业务模块构建
+  # --------------------------------------------------------
+  app:
+    image: eclipse-temurin:21-jre
+    container_name: lifewise-app
+    restart: unless-stopped
+    networks:
+      - lifewise-internal
+      - lifewise-edge
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-compose}
+      TZ: ${TZ:-Asia/Shanghai}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-lifewise}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-lifewise}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: cache
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ai:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-deepseek:8b}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-PT15M}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-P30D}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@lifewise.local}
+    volumes:
+      - ./app/config:/app/config:ro
+      - ./app/logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/config/HEALTHCHECK_READY || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      ai:
+        condition: service_started
+
+  # --------------------------------------------------------
+  # nginx — 反向代理 / TLS / HSTS / CSP / 限流
+  # 来源：technical-architecture §2.2 + plan-deploy-nginx §3
+  # 注意：当前 1A 阶段 app 占位未暴露 HTTPS；nginx 在 app 真实接入时启用
+  # --------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: lifewise-nginx
+    restart: unless-stopped
+    networks:
+      - lifewise-internal
+      - lifewise-edge
+    ports:
+      # 浏览器唯一入口；db/cache/ai 不暴露
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      app:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # --------------------------------------------------------
+  # backup — 每日 pg_dump + 7 天滚动
+  # 来源：technical-architecture §4.5 + §5.3
+  # --------------------------------------------------------
+  backup:
+    image: prodrigestivill/postgres-backup-local
+    container_name: lifewise-backup
+    restart: unless-stopped
+    networks:
+      - lifewise-internal
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-lifewise}
+      POSTGRES_USER: ${POSTGRES_USER:-lifewise}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: "7"
+      BACKUP_KEEP_MINS: "10080"
+      BACKUP_COMPRESS: "gzip"
+      BACKUP_FILE_SUFFIX: lifewise
+      HEALTHCHECK_PORT: "8080"
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - pgbackups:/backups
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  # 内网：仅容器间互访，禁止出宿主机
+  lifewise-internal:
+    driver: bridge
+    internal: true
+  # 边界网：nginx ↔ Browser；1B 启用
+  lifewise-edge:
+    driver: bridge
+
+volumes:
+  pgdata:
+    name: lifewise-pgdata
+  redisdata:
+    name: lifewise-redisdata
+  ollamadata:
+    name: lifewise-ollamadata
+  pgbackups:
+    name: lifewise-pgbackups
+  nginx_logs:
+    name: lifewise-nginx-logs
