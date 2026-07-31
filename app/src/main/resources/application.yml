@@ -1,0 +1,40 @@
+# ============================================================
+# application.yml — Lifewise MVP 默认配置
+# 来源：technical-architecture.md §3.9（profile 设计）
+# 范围（plan-data-flyway）：仅本地/local 验证 Flyway 迁移。
+# 实际部署 profile（compose）由后续 plan-shared-infra / plan-deploy-nginx 注入。
+# ============================================================
+
+spring:
+  application:
+    name: lifewise
+
+  datasource:
+    # 测试由 FlywayMigrationIT 通过 Testcontainers 注入；本配置仅 IDE 启动占位
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/lifewise}
+    username: ${SPRING_DATASOURCE_USERNAME:lifewise}
+    password: ${SPRING_DATASOURCE_PASSWORD:lifewise}
+
+  jpa:
+    # MVP 由 Flyway 维护 schema；JPA 仅 validate（不自动 DDL）
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+    # 禁用 Flyway 在测试容器场景下寻找 outOfOrder 兼容行为（plan §10 风险登记：高阻塞启动 → CI 必须先跑通）
+    validate-on-migrate: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.flywaydb: INFO
+    org.hibernate.SQL: WARN
