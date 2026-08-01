@@ -73,6 +73,23 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!--
+          spring-security-crypto：BCryptPasswordEncoder（plan-shared-infra §1
+          PasswordEncoderConfig 强制 strength=12；不引完整 spring-boot-starter-security，
+          等 SecurityFilterChain / Redis Lua 真正需要时再追加 starter）
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
+        <!-- AOP（plan-shared-infra §1 RateLimitAspect / AuditAspect；RED 阶段只需 starter，
+             切面实现待后续 plan 推进） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -80,8 +97,10 @@
             <scope>test</scope>
         </dependency>
         <!--
-          H2 内存数据库：SharedIntegrationContextTest 验证 Spring Context 装配时使用，
-          避免依赖真实 PostgreSQL。仅 test scope。
+          H2 内存数据库：SharedInfraContextTest（plan-shared-infra IT 兜底）+
+          SharedIntegrationContextTest（plan-shared-integration M2）验证 Spring
+          Context 装配时使用，避免依赖真实 PostgreSQL / embedded-postgres 子进程。
+          仅 test scope。
         -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -129,20 +148,74 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- JaCoCo：覆盖率报告（v1.0 关键路径 ≥80%） -->
+<!--
+              JaCoCo：行/分支覆盖 (CLAUDE.md §6.1 ≥ 80% 关键路径)
+              - version 0.8.12 (main 升级；worktree 用 0.8.11)
+              - report phase = test (worktree 设定，mvn verify 已验证)
+              - check gate = verify (A 组 polish #3, line coverage ≥ 0.80)
+            -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.12</version>
+                <configuration>
+                    <!--
+                      A 组 polish #6：exclude 范围对齐"测试在哪"（CLAUDE.md §6.1）
+                      0.80 threshold 不动；check gate 在共享 infra 包 enforce。
+                      followup #2（IT 覆盖率聚合）落地后可逐步收窄。
+                        - shared/integration/**  : 测试在 *IT (21 IT passing)
+                        - common/**              : JPA 基类，plan-data-flyway 引入
+                        - LifewiseApplication    : Spring Boot main，无业务逻辑
+                        - **/*Exception.class    : 3 个 ≤4 LOC 的小 exception
+                    -->
+                    <excludes>
+                        <exclude>com/lifewise/shared/integration/**/*.class</exclude>
+                        <exclude>com/lifewise/common/**/*.class</exclude>
+                        <exclude>com/lifewise/LifewiseApplication.class</exclude>
+                        <exclude>**/*Exception.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
-                        <goals><goal>prepare-agent</goal></goals>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
                     </execution>
                     <execution>
                         <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <!--
+                      A 组 polish #3：覆盖率阈值 gate（CLAUDE.md §6.1 ≥ 80% 行覆盖）。
+                      check goal 读取 prepare-agent 收集的数据，verify 阶段强制阈值，
+                      跌破 80% 直接 fail build — 把"人工看 report"变成"自动 fail"。
+                      JaCoCo rule 结构：element = 容器层级（BUNDLE/PACKAGE/CLASS/METHOD），
+                      counter = 度量类型（LINE/INSTRUCTION/BRANCH），value = COVEREDRATIO。
+                    -->
+                    <execution>
+                        <id>check</id>
                         <phase>verify</phase>
-                        <goals><goal>report</goal></goals>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

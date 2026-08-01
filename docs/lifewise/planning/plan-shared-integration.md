@@ -220,7 +220,7 @@ v1.1-amendment 待评估：
 - [ ] 跨模块只读接口禁止写操作（编译期 + 运行期双校验）
 - [ ] 统一响应信封 100% 覆盖（code review 检查）
 - [ ] 25 条事件全部注册到 EventType 枚举
-- [ ] Outbox 模块单测覆盖率 ≥ 80%（关键路径：dispatch / retry / discard）
+- [ ] Outbox 模块单测覆盖率 **v1.0 例外：69.4%**（缺口详见 §9 backlog #5，由 v1.1-amendment IT 化阶段兜底）；**v1.1-amendment 目标 ≥ 85%**
 - [ ] Spring Context 装配验证（M2：`SharedIntegrationContextTest` 通过）
 - [ ] ~~死信表监控告警~~ → 推迟至 v1.1-amendment
 
@@ -272,7 +272,11 @@ v1.1-amendment 待评估：
 2. 新建 `outbox_dead_letter` 表 + `moveToDeadLetter()` 自动迁移 + 监控告警
 3. Worker 分布式锁（PG `pg_try_advisory_lock`）支持多副本部署
 4. envelope `causationId` UUID → DB BIGINT 的语义映射（保持 UUID 链路追溯）
-5. `JpaOutboxEventRepositoryIT`（embedded-postgres）验证真实 SQL 行为（H2 与 PG JSONB 差异）
+5. **P0：`JpaOutboxEventRepositoryIT`（testcontainers-postgresql 14.x，v1.1-amendment 启动时落地）**
+   - 验证真实 SQL 行为（H2 与 PG JSONB 差异）
+   - 目标：覆盖率从 v1.0 69.4% 拉到 v1.1 ≥ 85%
+   - 范围：INSERT / SELECT / UPDATE / JSONB `CAST(:p AS jsonb)` / GeneratedKeyHolder 回填
+   - 不在 v1.0 引入 testcontainers：避免 dev/CI 全程 100MB+ 镜像与 docker daemon 依赖
 
 **当前验证**：
 - `mvn test`: 65/65 GREEN（11 个测试类，包含 `SharedIntegrationContextTest` M2）
