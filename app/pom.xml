@@ -161,16 +161,13 @@
                 <configuration>
                     <!--
                       A 组 polish #6：exclude 范围对齐"测试在哪"（CLAUDE.md §6.1）
-                      0.80 threshold 不动；check gate 在共享 infra 包 enforce。
-                      followup #2（IT 覆盖率聚合）落地后可逐步收窄。
-                        - shared/integration/**  : 测试在 *IT (21 IT passing)
-                        - common/**              : JPA 基类，plan-data-flyway 引入
-                        - LifewiseApplication    : Spring Boot main，无业务逻辑
+                      0.80 threshold 不动；check gate 覆盖全项目。
+                      followup #2（IT 覆盖率聚合，plan §9 #5）已落地，移除
+                      shared/integration 与 common 的过渡排除：
+                        - LifewiseApplication    : Spring Boot main()，无业务逻辑
                         - **/*Exception.class    : 3 个 ≤4 LOC 的小 exception
                     -->
                     <excludes>
-                        <exclude>com/lifewise/shared/integration/**/*.class</exclude>
-                        <exclude>com/lifewise/common/**/*.class</exclude>
                         <exclude>com/lifewise/LifewiseApplication.class</exclude>
                         <exclude>**/*Exception.class</exclude>
                     </excludes>
@@ -182,9 +179,20 @@
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
+                    <!--
+                      IT 覆盖率聚合：failsafe 期间也 attach jacoco agent，
+                      否则 verify 阶段 gate 只看 surefire 数据。
+                    -->
+                    <execution>
+                        <id>prepare-agent-integration</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
                     <execution>
                         <id>report</id>
-                        <phase>test</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
