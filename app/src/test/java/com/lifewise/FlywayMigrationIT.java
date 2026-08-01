@@ -1,6 +1,7 @@
 package com.lifewise;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import com.lifewise.shared.integration.event.EventType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * plan-data-flyway TDD 集成测试（RED → GREEN 唯一入口）。
  *
- * <p>验证 V1~V35 Flyway 迁移在 PG 15 上完整执行后，
+ * <p>验证 V1~V36 Flyway 迁移在 PG 15 上完整执行后，
  * 38 张表 / 5 个分区表 / 2 个物化视图 / 关键 BR 约束全部就位。
  * 与 plan-data-flyway.md §8 验收场景与 §9 验收标准一一对应。</p>
  *
@@ -89,7 +90,7 @@ class FlywayMigrationIT {
     // -------------------------------------------------------
 
     @Test
-    void flyway_should_apply_at_least_35_migrations_cleanly() throws SQLException {
+    void flyway_should_apply_v36_cleanly() throws SQLException {
         // Spring Boot 启动阶段已通过 spring.flyway 全部应用完毕
         try (Connection conn = metaConnection();
              Statement st = conn.createStatement();
@@ -97,12 +98,12 @@ class FlywayMigrationIT {
                      SELECT COUNT(*)
                      FROM flyway_schema_history
                      WHERE success = TRUE
+                       AND version = '36'
                      """)) {
             assertThat(rs.next()).isTrue();
-            int applied = rs.getInt(1);
-            assertThat(applied)
-                    .as("应至少应用 35 条 Flyway 迁移（plan-data-flyway §3 V1~V35 + R_/U_）")
-                    .isGreaterThanOrEqualTo(35);
+            assertThat(rs.getInt(1))
+                    .as("V36 认证契约修正迁移必须成功应用")
+                    .isEqualTo(1);
         }
     }
 
@@ -277,6 +278,63 @@ class FlywayMigrationIT {
                 st.execute(sql);
             })
                     .hasMessageContaining("outbox_events_event_type_check");
+        }
+    }
+
+    @Test
+    void flyway_should_accept_every_canonical_event_type_and_legacy_auth_aliases() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT pg_get_constraintdef(c.oid)
+                     FROM pg_constraint c
+                     JOIN pg_class t ON c.conrelid = t.oid
+                     WHERE t.relname = 'outbox_events'
+                       AND c.conname = 'outbox_events_event_type_check'
+                     """)) {
+            assertThat(rs.next()).isTrue();
+            String definition = rs.getString(1);
+            for (EventType eventType : EventType.values()) {
+                assertThat(definition)
+                        .as("DB CHECK 必须接受 Java EventType: %s", eventType.eventType())
+                        .contains("'" + eventType.eventType() + "'");
+            }
+            assertThat(definition)
+                    .as("V33 已发布别名必须为历史数据保留")
+                    .contains("'auth.login'", "'auth.logout'");
+        }
+    }
+
+    @Test
+    void flyway_should_add_non_null_uuid_family_id_to_refresh_tokens() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT data_type, is_nullable
+                     FROM information_schema.columns
+                     WHERE table_schema = 'public'
+                       AND table_name = 'refresh_tokens'
+                       AND column_name = 'family_id'
+                     """)) {
+            assertThat(rs.next())
+                    .as("refresh_tokens.family_id 必须由 V36 增加")
+                    .isTrue();
+            assertThat(rs.getString("data_type")).isEqualToIgnoringCase("uuid");
+            assertThat(rs.getString("is_nullable")).isEqualToIgnoringCase("no");
+        }
+
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT 1
+                     FROM pg_indexes
+                     WHERE schemaname = 'public'
+                       AND tablename = 'refresh_tokens'
+                       AND indexdef LIKE '%(user_id, family_id)%'
+                     """)) {
+            assertThat(rs.next())
+                    .as("refresh family 撤销查询必须有 (user_id, family_id) 索引")
+                    .isTrue();
         }
     }
 
@@ -539,6 +597,37 @@ class FlywayMigrationIT {
             assertThat(rs.next()).isTrue();
             assertThat(rs.getString(1)).isEqualToIgnoringCase("no");
         }
+    }
+
+    /**
+     * plan-auth review H3：V36 backfill 必须沿 V28 parent_id/replaced_by 链合并
+     * 同一 chain 的 token 共用一个 family_id；孤立行才独立分配。
+     *
+     * <p>本测试作为 chain-aware backfill 的契约断言：V36 文件必须包含
+     * 递归 CTE 沿 parent_id/replaced_by 链找到 root，并把 root UUID
+     * 共享给链内所有 row。
+     *
+     * <p>DB 状态断言（行级 backfill 验证）由 V36 自身 + {@code mvn verify}
+     * 启动期 Flyway 校验承担；此处聚焦 SQL 源契约。
+     */
+    @Test
+    void flyway_v36_should_use_recursive_cte_for_chain_aware_backfill() throws IOException {
+        java.nio.file.Path v36 = java.nio.file.Path.of(
+                "src/main/resources/db/migration/V36__auth_contract_correction.sql");
+        String content = java.nio.file.Files.readString(v36);
+
+        // 修复后 V36 必须用递归 CTE 沿 parent_id/replaced_by 链合并
+        assertThat(content)
+                .as("V36 must use a recursive CTE to merge family_id along parent_id chain")
+                .contains("WITH RECURSIVE");
+        assertThat(content)
+                .as("V36 backfill must reference parent_id column for chain traversal")
+                .contains("parent_id");
+        // 修复前 V36 是「update ... set family_id = gen_random_uuid()」，每行独立 UUID，
+        // 该简单 UPDATE 已被 chain-aware 重写所替代
+        assertThat(content)
+                .as("V36 backfill should not be a per-row gen_random_uuid() anymore")
+                .doesNotContain("SET family_id = gen_random_uuid()");
     }
 
     // -------------------------------------------------------

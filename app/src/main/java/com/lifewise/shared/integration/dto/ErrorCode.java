@@ -56,5 +56,14 @@ public enum ErrorCode {
     EXPORT_ARTIFACT_EXPIRED,
 
     // ---- Outbox ----
-    OUTBOX_DISPATCH_FAILED
+    OUTBOX_DISPATCH_FAILED,
+
+    // ---- Auth (plan-auth §2.1 鉴权闭环 8 端点错误码) ----
+    EMAIL_EXISTS,
+    WEAK_PASSWORD,
+    INVALID_CREDENTIALS,
+    USER_LOCKED,
+    TOKEN_INVALID,
+    TOKEN_REUSED,
+    TOKEN_EXPIRED
 }

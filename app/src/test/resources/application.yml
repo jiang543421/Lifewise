@@ -1,0 +1,11 @@
+# ============================================================
+# application.yml — test profile 补充配置
+# 用于：plan-auth review C1 修复后的 JwtTokenProvider 启动期校验
+# （生产 application.yml 无默认值；测试环境提供 >= 32 字节的占位 secret）
+# ============================================================
+
+# 测试专用 JWT secret（36 bytes plaintext "test-secret-0123456789abcdef-test-12"）
+# 严禁用于任何生产/部署环境
+auth:
+  jwt:
+    secret-base64: dGVzdC1zZWNyZXQtMDEyMzQ1Njc4OWFiY2RlZi10ZXN0LTEy
