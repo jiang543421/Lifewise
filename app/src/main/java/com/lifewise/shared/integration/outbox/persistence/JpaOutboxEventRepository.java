@@ -53,8 +53,8 @@ public class JpaOutboxEventRepository implements OutboxEventRepository {
                 occurred_at, user_id, aggregate_type, aggregate_id,
                 correlation_id, trace_id, payload, event_type, event_version, published_at
             ) VALUES (
-                :occurredAt, :userId, :aggregateType, :aggregateId,
-                :correlationId, :traceId, CAST(:payload AS jsonb), :eventType, :eventVersion, :publishedAt
+                :occurred_at, :user_id, :aggregate_type, :aggregate_id,
+                :correlation_id, :trace_id, CAST(:payload AS jsonb), :event_type, :event_version, :published_at
             )
             """;
 
