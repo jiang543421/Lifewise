@@ -59,6 +59,11 @@ public abstract class BaseEntity {
         return id;
     }
 
+    /** 测试 / 工厂注入 ID 用；不开放给 service 层。 */
+    public void setIdInternal(Long id) {
+        this.id = id;
+    }
+
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
