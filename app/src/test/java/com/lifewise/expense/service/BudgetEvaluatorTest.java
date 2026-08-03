@@ -272,4 +272,168 @@ class BudgetEvaluatorTest {
         verify(outboxWriter, never()).append(any());
         verify(expenseRepository, never()).sumInRangeByCategoryCents(anyLong(), any(), any(), anyLong());
     }
+
+    // ---------- commit #7（plan-03 review MEDIUM）：sentThresholds LRU 淘汰 ----------
+
+    /**
+     * 构造一个 maxSize 可调的 BudgetEvaluator（注入测试用 4-arg 构造器）。
+     * 注意：现有 12 个测试用 3-arg 公共构造器（默认 maxSize=1024），不受 LRU 替换影响。
+     */
+    private BudgetEvaluator newEvaluatorWithMaxSize(int maxSize) {
+        Clock clock = Clock.fixed(FIXED_NOW.toInstant(), ZoneOffset.UTC);
+        return new BudgetEvaluator(budgetRepository, expenseRepository, outboxWriter,
+                clock, maxSize);
+    }
+
+    @Test
+    void sentThresholds_grows_bounded_by_maxSize() {
+        // maxSize=3, 4 个不同 budgetId 各自触发 80% → map 应 ≤ 3
+        BudgetEvaluator bounded = newEvaluatorWithMaxSize(3);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L))
+            .thenReturn(List.of(categoryBudget(1L, 11L, 10000L, true, null)));
+        when(expenseRepository.sumInRangeByCategoryCents(
+                eq(7L), eq(LocalDate.of(2026, 8, 1)), eq(LocalDate.of(2026, 8, 31)), eq(11L)))
+            .thenReturn(8500L);  // 85% 触发 80%
+
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // k1:2026-8:0.8
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // k1 dedup → 0 outbox
+
+        // 重新 mock 不同 budgetId
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L))
+            .thenReturn(List.of(categoryBudget(2L, 11L, 10000L, true, null)));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // k2:2026-8:0.8
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L))
+            .thenReturn(List.of(categoryBudget(3L, 11L, 10000L, true, null)));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // k3:2026-8:0.8
+
+        assertThat(bounded.sentThresholdsSize()).isEqualTo(3);  // map size = maxSize
+
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L))
+            .thenReturn(List.of(categoryBudget(4L, 11L, 10000L, true, null)));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // k4 → evict k1 (LRU)
+
+        // 内存有界：仍 ≤ 3
+        assertThat(bounded.sentThresholdsSize()).isLessThanOrEqualTo(3);
+    }
+
+    @Test
+    void sentThresholds_evicts_least_recently_accessed() {
+        // 真 LRU 验证：accessOrder=true 让访问也算 access。
+        // 写 k1,k2,k3（size=3）→ 访问 k1（移到 MRU）→ 写 k4（淘汰 k2，LRU end）→ 评估 b2（k2 已淘汰，应重发）
+        BudgetEvaluator bounded = newEvaluatorWithMaxSize(3);
+
+        // 步骤 1: 写 k1
+        Budget b1 = categoryBudget(1L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b1));
+        when(expenseRepository.sumInRangeByCategoryCents(
+                eq(7L), eq(LocalDate.of(2026, 8, 1)), eq(LocalDate.of(2026, 8, 31)), eq(11L)))
+            .thenReturn(8500L);
+        bounded.evaluate(7L, 11L, FIXED_NOW);
+        assertThat(bounded.sentThresholdsSize()).isEqualTo(1);
+
+        // 步骤 2: 写 k2
+        Budget b2 = categoryBudget(2L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b2));
+        bounded.evaluate(7L, 11L, FIXED_NOW);
+        assertThat(bounded.sentThresholdsSize()).isEqualTo(2);
+
+        // 步骤 3: 写 k3
+        Budget b3 = categoryBudget(3L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b3));
+        bounded.evaluate(7L, 11L, FIXED_NOW);
+        assertThat(bounded.sentThresholdsSize()).isEqualTo(3);
+
+        // 步骤 4: 重新访问 k1（containsKey 触发 access，k1 → MRU）
+        // map LRU→MRU 顺序: [k2, k3, k1]
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b1));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // k1 dedup, no emit
+        // 累计 3 emit
+        verify(outboxWriter, times(3)).append(any());
+
+        // 步骤 5: 写 k4 → evict k2（LRU end），累计 4 emit
+        Budget b4 = categoryBudget(4L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b4));
+        bounded.evaluate(7L, 11L, FIXED_NOW);
+        verify(outboxWriter, times(4)).append(any());
+
+        // 步骤 6: 评估 b2 → k2 已淘汰，应重发 → 累计 5 emit
+        // 真 LRU 关键断言：b2 被淘汰（而非 b1）。如果是 FIFO（accessOrder=false），
+        // b1 是最早插入的会被淘汰，b2 重评估时仍在 map，emit 仍是 4。
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b2));
+        bounded.evaluate(7L, 11L, FIXED_NOW);
+        verify(outboxWriter, times(5)).append(any());
+    }
+
+    @Test
+    void sentThresholds_is_thread_safe_under_concurrent_writes() {
+        // 8 线程并发 evaluate 同一 budget（dedupe 应保证只 emit 1 次）；无 NPE/CME
+        BudgetEvaluator bounded = newEvaluatorWithMaxSize(1024);
+        Budget b1 = categoryBudget(1L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b1));
+        when(expenseRepository.sumInRangeByCategoryCents(
+                eq(7L), eq(LocalDate.of(2026, 8, 1)), eq(LocalDate.of(2026, 8, 31)), eq(11L)))
+            .thenReturn(8500L);
+
+        int threads = 8;
+        java.util.concurrent.ExecutorService pool =
+                java.util.concurrent.Executors.newFixedThreadPool(threads);
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch done =
+                new java.util.concurrent.CountDownLatch(threads);
+        for (int i = 0; i < threads; i++) {
+            pool.submit(() -> {
+                try {
+                    start.await();
+                    bounded.evaluate(7L, 11L, FIXED_NOW);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    done.countDown();
+                }
+            });
+        }
+        start.countDown();
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            done.await(5, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        pool.shutdownNow();
+
+        // dedupe 应保证只 emit 1 次（8 线程并发 evaluate 同一 budget）
+        verify(outboxWriter, times(1)).append(any());
+        assertThat(bounded.sentThresholdsSize()).isEqualTo(1);
+    }
+
+    @Test
+    void sentThresholds_after_eviction_dedupe_still_works() {
+        // maxSize=2；写 k1, k2, k3（k1 被淘汰）→ 评估 b1（k1 已不在 map，dedupe 不生效，重发）
+        // 验证：LRU 淘汰不会让"已淘汰的旧 key 永久阻塞新写入"，dedupe 仅在 in-map 期间有效。
+        BudgetEvaluator bounded = newEvaluatorWithMaxSize(2);
+        when(expenseRepository.sumInRangeByCategoryCents(
+                eq(7L), eq(LocalDate.of(2026, 8, 1)), eq(LocalDate.of(2026, 8, 31)), eq(11L)))
+            .thenReturn(8500L);
+
+        Budget b1 = categoryBudget(1L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b1));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // emit k1
+
+        Budget b2 = categoryBudget(2L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b2));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // emit k2; map size = 2
+
+        Budget b3 = categoryBudget(3L, 11L, 10000L, true, null);
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b3));
+        bounded.evaluate(7L, 11L, FIXED_NOW);  // emit k3; evicts k1 (LRU); map size = 2
+
+        // 重新评估 b1 → k1 已淘汰，应重发（不是 dedup'd）
+        when(budgetRepository.findActiveForEvaluation(7L, 2026, 8, 11L)).thenReturn(List.of(b1));
+        bounded.evaluate(7L, 11L, FIXED_NOW);
+
+        // 累计 emit: k1, k2, k3, k1(re) = 4 次
+        verify(outboxWriter, times(4)).append(any());
+        // map size 仍 ≤ maxSize=2
+        assertThat(bounded.sentThresholdsSize()).isLessThanOrEqualTo(2);
+    }
 }

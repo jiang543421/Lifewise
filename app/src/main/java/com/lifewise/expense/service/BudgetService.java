@@ -10,6 +10,8 @@ import com.lifewise.expense.repository.BudgetRepository;
 import com.lifewise.expense.repository.CategoryRepository;
 import com.lifewise.expense.service.exception.BudgetAlreadyExistsException;
 import com.lifewise.expense.service.exception.BudgetNotFoundException;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>BR-10：唯一性由 DB UNIQUE + 应用层补码双保险。
  * H-5：mute 日期必须落在当前 period 内，由 {@link Budget#mute(LocalDate)} 守护。
+ *
+ * <p><b>commit #7（plan-03 review MEDIUM）</b>：mute 同时校验「不在过去」，
+ * 避免用户传入过去日期导致静音无效但不报错。Clock 由 Spring 容器注入
+ * （复用 {@code AuthConfig#authClock}）。
  */
 @Service
 public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
+    private final Clock clock;
 
     public BudgetService(BudgetRepository budgetRepository,
-                          CategoryRepository categoryRepository) {
+                          CategoryRepository categoryRepository,
+                          Clock clock) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -76,6 +85,16 @@ public class BudgetService {
     @Transactional
     public BudgetView mute(Long userId, Long budgetId, BudgetMuteRequest req) {
         Budget budget = loadOwned(userId, budgetId);
+        // plan-03 review MEDIUM：mute 日期必须在"今天"之后，避免无效静音过去日期。
+        // Budget.mute() 只校验 period 内，未校验"非过去"。两者职责分离：
+        // Budget.mute 守护 DB CHECK（period 内），service 守护业务语义（非过去）。
+        if (req.until() != null) {
+            LocalDate today = LocalDate.now(clock);
+            if (req.until().isBefore(today)) {
+                throw new IllegalArgumentException(
+                        "mute_until cannot be in the past: until=" + req.until());
+            }
+        }
         budget.mute(req.until());
         return BudgetView.from(budgetRepository.save(budget));
     }

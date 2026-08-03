@@ -13,10 +13,12 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,13 @@ import org.springframework.transaction.annotation.Transactional;
  * 触发 80% / 100% 阈值。in-memory dedupe 按 {@code (budgetId, periodYearMonth, threshold)}
  * 去重，保证同周期内每个预算每个阈值最多发一次 outbox 事件。
  *
+ * <p><b>commit #7（plan-03 review MEDIUM）</b>：dedupe map 从 {@code ConcurrentHashMap}
+ * 切换为 access-order {@code LinkedHashMap} + {@code Collections.synchronizedMap}，
+ * 通过 {@code removeEldestEntry} 实现 LRU 淘汰（默认 maxSize=1024）。这避免
+ * long-running 进程下 dedupe map 内存无界增长（1 user × 数十 budget × 12 月 × 2
+ * threshold ≈ 1200 keys，1024 足够）。淘汰已发 key 不影响正确性：dedupe key
+ * 含 {@code year-month}，过期 period key 淘汰等于自动解除 dedupe。
+ *
  * <p>注意：dedupe 是进程内 Map，集群部署时需要在 DB 增加 {@code budgets.last_threshold_*}
  * 列（v1.1 评估）。当前单机部署足够。
  */
@@ -37,21 +46,53 @@ public class BudgetEvaluator {
     private static final double THRESHOLD_80 = 0.8;
     private static final double THRESHOLD_100 = 1.0;
 
+    /** 生产默认值。1 user × 数十 budget × 12 月 × 2 threshold ≈ 1200 keys，1024 足够。
+     *  设为 instance field（非 static final）以便 test 注入小值。 */
+    static final int DEFAULT_SENT_THRESHOLDS_MAX_SIZE = 1024;
+
     private final BudgetRepository budgetRepository;
     private final ExpenseRepository expenseRepository;
     private final OutboxWriter outboxWriter;
     private final Clock clock;
 
-    private final Map<String, Boolean> sentThresholds = new ConcurrentHashMap<>();
+    /** 必须先于 {@link #sentThresholds} 声明（实例字段按声明顺序初始化）。 */
+    private final int sentThresholdsMaxSize;
 
+    private final Map<String, Boolean> sentThresholds =
+            Collections.synchronizedMap(
+                    new LinkedHashMap<String, Boolean>(128, 0.75f, true) {
+                        @Override
+                        protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                            return size() > sentThresholdsMaxSize;
+                        }
+                    });
+
+    /** Spring 自动装配用（容器注入 Clock）。多构造器场景必须显式 @Autowired。 */
+    @Autowired
     public BudgetEvaluator(BudgetRepository budgetRepository,
                             ExpenseRepository expenseRepository,
                             OutboxWriter outboxWriter,
                             Clock clock) {
+        this(budgetRepository, expenseRepository, outboxWriter, clock,
+                DEFAULT_SENT_THRESHOLDS_MAX_SIZE);
+    }
+
+    /** Test 注入用（package-private）。允许覆盖 maxSize 以验证 LRU 淘汰行为。 */
+    BudgetEvaluator(BudgetRepository budgetRepository,
+                    ExpenseRepository expenseRepository,
+                    OutboxWriter outboxWriter,
+                    Clock clock,
+                    int sentThresholdsMaxSize) {
         this.budgetRepository = budgetRepository;
         this.expenseRepository = expenseRepository;
         this.outboxWriter = outboxWriter;
         this.clock = clock;
+        this.sentThresholdsMaxSize = sentThresholdsMaxSize;
+    }
+
+    /** 仅供 test 观察 LRU 内部状态（package-private）。 */
+    int sentThresholdsSize() {
+        return sentThresholds.size();
     }
 
     /**
@@ -117,12 +158,18 @@ public class BudgetEvaluator {
             return;
         }
         String dedupeKey = budget.getId() + ":" + year + "-" + month + ":" + threshold;
-        // H7: 改为「check → append → mark」顺序；append 失败时 remove(dedupeKey)
+        // H7: 改为「mark → append → unmark-on-fail」顺序；append 失败时 remove(dedupeKey)
         // 解除污染，避免阈值事件随事务回滚而永久丢失。
+        // commit #7：用 putIfAbsent 替代 containsKey+put，三合一：
+        //   1. atomic — 消除 containsKey+put 之间的 TOCTOU 窗口（commit #7 测试发现）
+        //   2. 真 LRU — putIfAbsent 对已存在 key 触发 access reordering
+        //      （containsKey 不会！accessOrder=true 下必须是 get/put/putIfAbsent）
+        //   3. 同步语义 — Collections.synchronizedMap.putIfAbsent 一次原子调用
         // TOCTOU 窗口在单用户串行 + 同事务场景下不触发（ExpenseService.create 单线程入口）。
         // 未来若 EventConsumer 异步消费 expense.created，需重新审视。
-        if (sentThresholds.containsKey(dedupeKey)) {
-            return;
+        Boolean prev = sentThresholds.putIfAbsent(dedupeKey, Boolean.TRUE);
+        if (prev != null) {
+            return;  // 已发过，dedup
         }
         BudgetThresholdPayload payload = new BudgetThresholdPayload(
                 budget.getUserId(), budget.getId(), threshold, usedCents, totalCents);
@@ -137,9 +184,8 @@ public class BudgetEvaluator {
                     budget.getId(),
                     null, null, null,
                     payload.toMap()));
-            sentThresholds.put(dedupeKey, Boolean.TRUE);
         } catch (RuntimeException ex) {
-            sentThresholds.remove(dedupeKey);
+            sentThresholds.remove(dedupeKey);  // unmark：允许重试
             throw ex;
         }
     }

@@ -18,7 +18,10 @@ import com.lifewise.expense.repository.BudgetRepository;
 import com.lifewise.expense.repository.CategoryRepository;
 import com.lifewise.expense.service.exception.BudgetAlreadyExistsException;
 import com.lifewise.expense.service.exception.BudgetNotFoundException;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,12 +31,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * BudgetService 单元测试（plan-03-expense §5.3）。
+ * BudgetService 单元测试（plan-03-expense §5.3 + commit #7 review MEDIUM）。
  *
- * <p>BR 覆盖：BR-10 唯一性、H-5 静音范围、scope/category_id 一致性。
+ * <p>BR 覆盖：BR-10 唯一性、H-5 静音范围、scope/category_id 一致性、mute past-date 校验。
  */
 @ExtendWith(MockitoExtension.class)
 class BudgetServiceTest {
+
+    /** Fixed clock for deterministic mute past-date validation (2026-08-15). */
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2026-08-15T00:00:00Z"), ZoneOffset.UTC);
 
     @Mock BudgetRepository budgetRepository;
     @Mock CategoryRepository categoryRepository;
@@ -41,7 +48,7 @@ class BudgetServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BudgetService(budgetRepository, categoryRepository);
+        service = new BudgetService(budgetRepository, categoryRepository, FIXED_CLOCK);
     }
 
     // ---------- create ----------
@@ -221,6 +228,74 @@ class BudgetServiceTest {
         BudgetView view = service.mute(7L, 1L, new BudgetMuteRequest(null));
 
         assertThat(view.notifyMutedUntil()).isNull();
+    }
+
+    // ---------- commit #7（plan-03 review MEDIUM）：mute past-date 校验 ----------
+
+    @Test
+    void mute_with_past_date_throws_IllegalArgument() {
+        // FIXED_CLOCK = 2026-08-15；mute 2026-08-10（过去日期）→ 拒绝
+        Budget existing = Budget.create(7L, BudgetScope.CATEGORY, 11L, 2026, 8,
+                10000L, "CNY", true);
+        existing.setIdInternal(1L);
+        when(budgetRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() ->
+                service.mute(7L, 1L, new BudgetMuteRequest(LocalDate.of(2026, 8, 10))))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("cannot be in the past");
+
+        verify(budgetRepository, never()).save(any());
+    }
+
+    @Test
+    void mute_with_today_succeeds() {
+        // FIXED_CLOCK = 2026-08-15；mute 2026-08-15（今天）→ OK（边界：until == today 不算过去）
+        Budget existing = Budget.create(7L, BudgetScope.CATEGORY, 11L, 2026, 8,
+                10000L, "CNY", true);
+        existing.setIdInternal(1L);
+        when(budgetRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(budgetRepository.save(any(Budget.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BudgetView view = service.mute(7L, 1L, new BudgetMuteRequest(LocalDate.of(2026, 8, 15)));
+
+        assertThat(view.notifyMutedUntil()).isEqualTo(LocalDate.of(2026, 8, 15));
+        verify(budgetRepository, times(1)).save(any(Budget.class));
+    }
+
+    @Test
+    void mute_with_future_date_in_period_succeeds() {
+        // FIXED_CLOCK = 2026-08-15；mute 2026-08-20（period 内未来日期）→ OK
+        Budget existing = Budget.create(7L, BudgetScope.CATEGORY, 11L, 2026, 8,
+                10000L, "CNY", true);
+        existing.setIdInternal(1L);
+        when(budgetRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(budgetRepository.save(any(Budget.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BudgetView view = service.mute(7L, 1L, new BudgetMuteRequest(LocalDate.of(2026, 8, 20)));
+
+        assertThat(view.notifyMutedUntil()).isEqualTo(LocalDate.of(2026, 8, 20));
+        verify(budgetRepository, times(1)).save(any(Budget.class));
+    }
+
+    @Test
+    void mute_with_null_unmutes_and_saves() {
+        // mute(null) 走 null check 早返回（不走 Clock 路径）；verify save 仍被调用
+        Budget existing = Budget.create(7L, BudgetScope.CATEGORY, 11L, 2026, 8,
+                10000L, "CNY", true);
+        existing.setIdInternal(1L);
+        existing.mute(LocalDate.of(2026, 8, 25));
+        when(budgetRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(budgetRepository.save(any(Budget.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BudgetView view = service.mute(7L, 1L, new BudgetMuteRequest(null));
+
+        assertThat(view.notifyMutedUntil()).isNull();
+        verify(budgetRepository, times(1)).save(any(Budget.class));
     }
 
     // ---------- list ----------
