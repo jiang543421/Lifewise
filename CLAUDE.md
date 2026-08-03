@@ -309,6 +309,13 @@ v1.0 个人版永远只有一个 user（userId=1）。鉴权由三层防御保�
 注意：本节覆盖的 nginx + resolver 改动按 `daily` 主 commit 提交，task 模块
 作为配套同步（同漏洞修复）。
 
+**模块接入规则**：未来新模块接入 `@CurrentUser` 注解时，必须复用本节定义的
+白名单 resolver 模板（fail-open + `ALLOWED_USER_ID=1`），不要重新设计鉴权
+逻辑。当前未接入鉴权的模块（`expense` / `diet` / `plan` / `ai` / `auth`）仍受
+nginx `/api/` 强制覆盖保护，但不依赖应用层兜底——**未接入鉴权的模块反而是更
+安全的状态**，因为它们没有 userId 解析点供攻击者伪造。模板代码参见
+`com.lifewise.daily.web.CurrentUserArgumentResolver`（首个落地版本）。
+
 ### 7.4 速率限制
 
 - 接口：每用户 60 req/min（Redis 令牌桶）
