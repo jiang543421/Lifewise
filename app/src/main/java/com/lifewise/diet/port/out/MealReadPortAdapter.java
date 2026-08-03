@@ -51,7 +51,8 @@ public class MealReadPortAdapter implements MealReadPort {
     /** diet 模块额外暴露：按日 cents Map（不在 port 接口中，stat 模块专用）。 */
     @Transactional(readOnly = true)
     public Map<LocalDate, Long> sumKcalCentsByDayInRange(Long userId, LocalDate from, LocalDate to) {
-        return statsRepository.sumKcalCentsByDayInRange(userId, from, to);
+        // 与 sumKcalByDayInRange 同源（review §M3：删除重复 default delegate）。
+        return statsRepository.sumKcalByDayInRange(userId, from, to);
     }
 
     private static MealSnapshot toSnapshot(com.lifewise.diet.domain.Meal meal) {

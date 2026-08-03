@@ -60,10 +60,6 @@ public interface StatsRepository extends Repository<Meal, Long> {
                                 @Param("from") LocalDate from,
                                 @Param("to") LocalDate to);
 
-    default Map<LocalDate, Long> sumKcalCentsByDayInRange(Long userId, LocalDate from, LocalDate to) {
-        return sumKcalByDayInRange(userId, from, to);
-    }
-
     /**
      * 从物化视图 {@code mv_meal_nutrition_weekly} 读周聚合。
      */

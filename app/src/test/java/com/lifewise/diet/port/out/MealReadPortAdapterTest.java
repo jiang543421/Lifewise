@@ -64,7 +64,9 @@ class MealReadPortAdapterTest {
     @Test
     @DisplayName("sumKcalCentsByDayInRange returns Map<LocalDate,Long cents>")
     void sum_kcal_cents_by_day() {
-        when(statsRepository.sumKcalCentsByDayInRange(1L,
+        // sumKcalCentsByDayInRange 现在 delegate 到 sumKcalByDayInRange（同源 native）。
+        // 见 review §M3 与 StatsRepository.review §M3 摘除重复 default。
+        when(statsRepository.sumKcalByDayInRange(1L,
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 3)))
                 .thenReturn(Map.of(
                         LocalDate.of(2026, 8, 1), 50000L,
