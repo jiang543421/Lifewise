@@ -24,7 +24,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -169,9 +168,13 @@ class ExpenseE2EIT {
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
         assertThat(total).isEqualTo(3000L);
 
-        Map<Long, Long> byCat = readPort.sumByCategoryInRange(userId,
-                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
-        assertThat(byCat).containsEntry(categoryId, 3000L);
+        List<com.lifewise.shared.integration.port.snapshot.CategoryTotal> byCat =
+                readPort.sumByCategoryInRange(userId,
+                        LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
+        assertThat(byCat)
+                .filteredOn(t -> t.categoryId().equals(categoryId))
+                .extracting(com.lifewise.shared.integration.port.snapshot.CategoryTotal::totalCents)
+                .containsExactly(3000L);
 
         List<ExpenseSnapshot> snaps = readPort.findByCategory(userId, categoryId, 10);
         assertThat(snaps).hasSize(2);

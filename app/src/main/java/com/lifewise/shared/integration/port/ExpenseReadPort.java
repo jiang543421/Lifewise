@@ -1,9 +1,9 @@
 package com.lifewise.shared.integration.port;
 
+import com.lifewise.shared.integration.port.snapshot.CategoryTotal;
 import com.lifewise.shared.integration.port.snapshot.ExpenseSnapshot;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -12,6 +12,8 @@ import java.util.Optional;
  * <p>实现由 expense 模块在 {@code com.lifewise.expense.port.out.ExpenseReadPortAdapter} 提供。
  *
  * <p>所有 sum* 方法返回 {@code long}（cents），跨进程累加无浮点误差（BR-09）。
+ *
+ * <p>集合返回仅限 List/Optional/标量（见 PortContractTest）。
  */
 public interface ExpenseReadPort {
 
@@ -27,6 +29,11 @@ public interface ExpenseReadPort {
     /** 时间区间内消费总额（cents），用于 BudgetEvaluator 等。 */
     long sumInRange(Long userId, LocalDate from, LocalDate to);
 
-    /** 时间区间内按分类汇总（categoryId -> cents），用于 StatsService。 */
-    Map<Long, Long> sumByCategoryInRange(Long userId, LocalDate from, LocalDate to);
+    /**
+     * 时间区间内按分类汇总。
+     *
+     * <p>为何不用 {@code Map<Long, Long>}：{@code PortContractTest.collection_returns_must_be_list}
+     * 强制只读端口集合返回仅限 List/Optional/标量。
+     */
+    List<CategoryTotal> sumByCategoryInRange(Long userId, LocalDate from, LocalDate to);
 }

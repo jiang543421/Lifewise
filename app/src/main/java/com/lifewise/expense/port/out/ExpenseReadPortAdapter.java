@@ -3,13 +3,13 @@ package com.lifewise.expense.port.out;
 import com.lifewise.expense.domain.Expense;
 import com.lifewise.expense.repository.ExpenseRepository;
 import com.lifewise.shared.integration.port.ExpenseReadPort;
+import com.lifewise.shared.integration.port.snapshot.CategoryTotal;
 import com.lifewise.shared.integration.port.snapshot.ExpenseSnapshot;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
@@ -58,14 +58,16 @@ public class ExpenseReadPortAdapter implements ExpenseReadPort {
     }
 
     @Override
-    public Map<Long, Long> sumByCategoryInRange(Long userId, LocalDate from, LocalDate to) {
+    public List<CategoryTotal> sumByCategoryInRange(Long userId, LocalDate from, LocalDate to) {
         List<Expense> rows = expenseRepository
                 .findByUserIdAndLocalDateBetweenAndDeletedAtIsNullOrderByOccurredAtDesc(userId, from, to);
         Map<Long, Long> acc = new HashMap<>();
         for (Expense e : rows) {
             acc.merge(e.getCategoryId(), e.getAmountCents(), Long::sum);
         }
-        return acc;
+        return acc.entrySet().stream()
+                .map(e -> new CategoryTotal(e.getKey(), e.getValue()))
+                .toList();
     }
 
     private ExpenseSnapshot toSnapshot(Expense e) {
