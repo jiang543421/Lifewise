@@ -41,8 +41,8 @@ class HabitControllerWebMvcTest {
 
     @Test
     void list_returns_ok() throws Exception {
-        when(habitService.list(7L)).thenReturn(List.of());
-        mockMvc.perform(get("/api/habits").header("X-User-Id", "7"))
+        when(habitService.list(1L)).thenReturn(List.of());
+        mockMvc.perform(get("/api/habits").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray());
@@ -53,7 +53,7 @@ class HabitControllerWebMvcTest {
         HabitView view = new HabitView(1L, "x", null, HabitFrequency.DAILY, 1, false, null, 0, 0);
         when(habitService.create(anyLong(), any(HabitCreateRequest.class))).thenReturn(view);
         HabitCreateRequest req = new HabitCreateRequest("x", null, HabitFrequency.DAILY, 1);
-        mockMvc.perform(post("/api/habits").header("X-User-Id", "7")
+        mockMvc.perform(post("/api/habits").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -62,7 +62,7 @@ class HabitControllerWebMvcTest {
 
     @Test
     void delete_returns_200() throws Exception {
-        mockMvc.perform(delete("/api/habits/1").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/habits/1").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").exists());
     }
@@ -72,7 +72,7 @@ class HabitControllerWebMvcTest {
         when(habitService.log(anyLong(), anyLong(), any(HabitLogRequest.class)))
                 .thenThrow(new BackfillOutOfRangeException("2026-01-01"));
         HabitLogRequest req = new HabitLogRequest(LocalDate.parse("2026-01-01"), HabitLogSource.NORMAL, null);
-        mockMvc.perform(post("/api/habits/1/logs").header("X-User-Id", "7")
+        mockMvc.perform(post("/api/habits/1/logs").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());
@@ -84,7 +84,7 @@ class HabitControllerWebMvcTest {
                 java.time.OffsetDateTime.now(), HabitLogSource.NORMAL, null);
         when(habitService.log(anyLong(), anyLong(), any(HabitLogRequest.class))).thenReturn(view);
         HabitLogRequest req = new HabitLogRequest(LocalDate.parse("2026-08-02"), HabitLogSource.NORMAL, null);
-        mockMvc.perform(post("/api/habits/1/logs").header("X-User-Id", "7")
+        mockMvc.perform(post("/api/habits/1/logs").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated());
@@ -96,7 +96,7 @@ class HabitControllerWebMvcTest {
                 .thenThrow(new BackfillRateLimitException(1L));
         HabitLogRequest req = new HabitLogRequest(LocalDate.parse("2026-08-02"),
                 HabitLogSource.BACKFILL, null);
-        mockMvc.perform(post("/api/habits/1/logs").header("X-User-Id", "7")
+        mockMvc.perform(post("/api/habits/1/logs").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isTooManyRequests())
