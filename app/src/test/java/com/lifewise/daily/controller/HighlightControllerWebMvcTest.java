@@ -45,9 +45,9 @@ class HighlightControllerWebMvcTest {
     void list_returns_highlights() throws Exception {
         HighlightView v = new HighlightView(99L, 11L, HighlightType.INSIGHT, "k", "d",
                 null, null, 0);
-        when(service.listByReport(7L, 11L)).thenReturn(List.of(v));
+        when(service.listByReport(1L, 11L)).thenReturn(List.of(v));
 
-        mockMvc.perform(get("/api/daily-reports/11/highlights").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/11/highlights").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].id").value(99));
     }
@@ -60,7 +60,7 @@ class HighlightControllerWebMvcTest {
         HighlightRequest req = new HighlightRequest(HighlightType.INSIGHT, "k", "d",
                 null, null, 0);
 
-        mockMvc.perform(post("/api/daily-reports/11/highlights").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports/11/highlights").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -74,7 +74,7 @@ class HighlightControllerWebMvcTest {
         HighlightRequest req = new HighlightRequest(HighlightType.INSIGHT, "k", "d",
                 null, null, null);
 
-        mockMvc.perform(post("/api/daily-reports/11/highlights").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports/11/highlights").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -88,7 +88,7 @@ class HighlightControllerWebMvcTest {
         HighlightRequest req = new HighlightRequest(HighlightType.INSIGHT, "k", "d",
                 null, null, -1);
 
-        mockMvc.perform(post("/api/daily-reports/11/highlights").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports/11/highlights").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -104,7 +104,7 @@ class HighlightControllerWebMvcTest {
         HighlightRequest req = new HighlightRequest(HighlightType.HABIT, "x", null,
                 null, null, 1);
 
-        mockMvc.perform(put("/api/daily-reports/11/highlights/50").header(HEADER, "7")
+        mockMvc.perform(put("/api/daily-reports/11/highlights/50").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -118,7 +118,7 @@ class HighlightControllerWebMvcTest {
         HighlightRequest req = new HighlightRequest(HighlightType.INSIGHT, "k", "d",
                 null, null, 0);
 
-        mockMvc.perform(put("/api/daily-reports/11/highlights/50").header(HEADER, "7")
+        mockMvc.perform(put("/api/daily-reports/11/highlights/50").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound());
@@ -126,7 +126,7 @@ class HighlightControllerWebMvcTest {
 
     @Test
     void delete_returns_200() throws Exception {
-        mockMvc.perform(delete("/api/daily-reports/11/highlights/50").header(HEADER, "7"))
+        mockMvc.perform(delete("/api/daily-reports/11/highlights/50").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("ok"));
     }

@@ -45,7 +45,7 @@ class SearchControllerWebMvcTest {
                 org.mockito.ArgumentMatchers.isNull(), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/daily-reports/search?q=hello").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/search?q=hello").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].reportId").value(11))
@@ -60,7 +60,7 @@ class SearchControllerWebMvcTest {
                 org.mockito.ArgumentMatchers.isNull(), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/daily-reports/search?q=%20%20%20").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/search?q=%20%20%20").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.meta.total").value(0));
@@ -79,14 +79,14 @@ class SearchControllerWebMvcTest {
                         .param("to", "2026-08-31")
                         .param("page", "2")
                         .param("limit", "5")
-                        .header(HEADER, "7"))
+                        .header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.page").value(2));
     }
 
     @Test
-    void search_missing_user_header_returns_401() throws Exception {
-        mockMvc.perform(get("/api/daily-reports/search?q=hello"))
+    void search_invalid_user_header_returns_401() throws Exception {
+        mockMvc.perform(get("/api/daily-reports/search?q=hello").header(HEADER, "2"))
                 .andExpect(status().isUnauthorized());
     }
 }

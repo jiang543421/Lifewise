@@ -58,7 +58,7 @@ class DailyReportControllerWebMvcTest {
         when(service.list(anyLong(), any(), any(), eq(false), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/daily-reports").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].id").value(1))
@@ -70,19 +70,19 @@ class DailyReportControllerWebMvcTest {
         DailyReportView view = new DailyReportView(11L, LocalDate.of(2026, 8, 2), "UTC",
                 "t", "c", Mood.GOOD, 4, true, List.of(), null, OffsetDateTime.now(),
                 OffsetDateTime.now());
-        when(service.getByDate(eq(7L), eq(LocalDate.of(2026, 8, 2)))).thenReturn(view);
+        when(service.getByDate(eq(1L), eq(LocalDate.of(2026, 8, 2)))).thenReturn(view);
 
-        mockMvc.perform(get("/api/daily-reports/by-date/2026-08-02").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/by-date/2026-08-02").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(11));
     }
 
     @Test
     void get_by_date_not_found_returns_404() throws Exception {
-        when(service.getByDate(eq(7L), eq(LocalDate.of(2026, 8, 2))))
-                .thenThrow(new DailyReportNotFoundException(7L, LocalDate.of(2026, 8, 2)));
+        when(service.getByDate(eq(1L), eq(LocalDate.of(2026, 8, 2))))
+                .thenThrow(new DailyReportNotFoundException(1L, LocalDate.of(2026, 8, 2)));
 
-        mockMvc.perform(get("/api/daily-reports/by-date/2026-08-02").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/by-date/2026-08-02").header(HEADER, "1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("DAILY_REPORT_NOT_FOUND"));
     }
@@ -92,9 +92,9 @@ class DailyReportControllerWebMvcTest {
         DailyReportView view = new DailyReportView(11L, LocalDate.of(2026, 8, 2), "UTC",
                 "t", "c", null, null, true, List.of(), null, OffsetDateTime.now(),
                 OffsetDateTime.now());
-        when(service.getOwned(7L, 11L)).thenReturn(view);
+        when(service.getOwned(1L, 11L)).thenReturn(view);
 
-        mockMvc.perform(get("/api/daily-reports/11").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/11").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(11));
     }
@@ -108,7 +108,7 @@ class DailyReportControllerWebMvcTest {
         DailyReportCreateRequest req = new DailyReportCreateRequest(
                 LocalDate.of(2026, 8, 2), "UTC", "t", "c", null, null);
 
-        mockMvc.perform(post("/api/daily-reports").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -118,11 +118,11 @@ class DailyReportControllerWebMvcTest {
     @Test
     void create_duplicate_returns_409() throws Exception {
         when(service.create(anyLong(), any(DailyReportCreateRequest.class)))
-                .thenThrow(new DuplicateDailyReportException(7L, LocalDate.of(2026, 8, 2)));
+                .thenThrow(new DuplicateDailyReportException(1L, LocalDate.of(2026, 8, 2)));
         DailyReportCreateRequest req = new DailyReportCreateRequest(
                 LocalDate.of(2026, 8, 2), null, "t", null, null, null);
 
-        mockMvc.perform(post("/api/daily-reports").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -136,7 +136,7 @@ class DailyReportControllerWebMvcTest {
         DailyReportCreateRequest req = new DailyReportCreateRequest(
                 LocalDate.of(2026, 8, 2), null, "t", "x", null, null);
 
-        mockMvc.perform(post("/api/daily-reports").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -152,7 +152,7 @@ class DailyReportControllerWebMvcTest {
                 .thenReturn(view);
         DailyReportUpdateRequest req = new DailyReportUpdateRequest("new", null, null, null, true);
 
-        mockMvc.perform(put("/api/daily-reports/11").header(HEADER, "7")
+        mockMvc.perform(put("/api/daily-reports/11").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -161,14 +161,16 @@ class DailyReportControllerWebMvcTest {
 
     @Test
     void delete_returns_200() throws Exception {
-        mockMvc.perform(delete("/api/daily-reports/11").header(HEADER, "7"))
+        mockMvc.perform(delete("/api/daily-reports/11").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("ok"));
     }
 
     @Test
-    void missing_user_header_returns_401() throws Exception {
-        mockMvc.perform(get("/api/daily-reports"))
+    void invalid_user_header_returns_401() throws Exception {
+        // v1.0 白名单：非 userId=1 一律 401（CLAUDE.md §7.3.1）。
+        // missing header 已 fail-open 降级到 userId=1（见 CurrentUserArgumentResolverSecurityTest）。
+        mockMvc.perform(get("/api/daily-reports").header(HEADER, "2"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -176,7 +178,7 @@ class DailyReportControllerWebMvcTest {
     void create_validation_error_returns_400_with_field_details() throws Exception {
         // title 为空白（@NotBlank），触发 MethodArgumentNotValidException
         String invalid = "{\"reportDate\":\"2026-08-02\",\"title\":\"\",\"content\":\"c\"}";
-        mockMvc.perform(post("/api/daily-reports").header(HEADER, "7")
+        mockMvc.perform(post("/api/daily-reports").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())

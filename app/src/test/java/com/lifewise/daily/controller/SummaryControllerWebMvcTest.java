@@ -41,7 +41,7 @@ class SummaryControllerWebMvcTest {
                 OffsetDateTime.now(), false);
         when(service.trigger(anyLong(), anyLong())).thenReturn(view);
 
-        mockMvc.perform(post("/api/daily-reports/11/summary").header(HEADER, "7"))
+        mockMvc.perform(post("/api/daily-reports/11/summary").header(HEADER, "1"))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.data.id").value(50));
     }
@@ -51,7 +51,7 @@ class SummaryControllerWebMvcTest {
         when(service.trigger(anyLong(), anyLong()))
                 .thenThrow(new DailyReportNotFoundException(11L));
 
-        mockMvc.perform(post("/api/daily-reports/11/summary").header(HEADER, "7"))
+        mockMvc.perform(post("/api/daily-reports/11/summary").header(HEADER, "1"))
                 .andExpect(status().isNotFound());
     }
 
@@ -60,9 +60,9 @@ class SummaryControllerWebMvcTest {
         AiSummaryView view = new AiSummaryView(50L, 11L, LocalDate.of(2026, 8, 2),
                 SummaryKind.DAILY, "summary", "m", "v", "p", 100,
                 OffsetDateTime.now(), false);
-        when(service.get(7L, 11L)).thenReturn(view);
+        when(service.get(1L, 11L)).thenReturn(view);
 
-        mockMvc.perform(get("/api/daily-reports/11/summary").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/11/summary").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.summaryText").value("summary"))
                 .andExpect(jsonPath("$.data.tokensUsed").value(100));
@@ -73,13 +73,14 @@ class SummaryControllerWebMvcTest {
         when(service.get(anyLong(), anyLong()))
                 .thenThrow(new AiSummaryNotFoundException(11L));
 
-        mockMvc.perform(get("/api/daily-reports/11/summary").header(HEADER, "7"))
+        mockMvc.perform(get("/api/daily-reports/11/summary").header(HEADER, "1"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void missing_user_header_returns_401() throws Exception {
-        mockMvc.perform(post("/api/daily-reports/11/summary"))
+    void invalid_user_header_returns_401() throws Exception {
+        // v1.0 白名单：非 userId=1 一律 401（CLAUDE.md §7.3.1）。
+        mockMvc.perform(post("/api/daily-reports/11/summary").header(HEADER, "2"))
                 .andExpect(status().isUnauthorized());
     }
 }
