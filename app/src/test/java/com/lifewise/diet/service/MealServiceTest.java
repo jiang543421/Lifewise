@@ -202,4 +202,35 @@ class MealServiceTest {
 
         assertThat(existing.getDeletedAt()).isNotNull();
     }
+
+    /**
+     * Bug A lock：33.33g × 99.99kcal 触发非整数 cents
+     * （33.329667 kcal → 3332.9667 cents）。
+     * 在 longValueExact() 之前必须 setScale(0, HALF_UP) 抹零，否则 400 抛错。
+     * 这里用真实 NutritionCalculator（不 mock）走完整链路。
+     */
+    @Test
+    @DisplayName("create with realistic decimals computes totalKcalCents via HALF_UP rounding (Bug A lock)")
+    void create_realistic_decimals_rounds_cents_via_half_up() {
+        NutritionCalculator realCalc = new NutritionCalculator();
+        MealService realService = new MealService(mealRepository, foodRepository,
+                outboxWriter, realCalc, clock);
+        Food decimalFood = Food.system("Decimal food", "STAPLE", 99.99d, 0d, 0d, 0d);
+        decimalFood.setIdInternal(11L);
+        when(foodRepository.findByIdAndDeletedAtIsNull(11L)).thenReturn(Optional.of(decimalFood));
+        when(mealRepository.save(any(Meal.class))).thenAnswer(inv -> {
+            Meal m = inv.getArgument(0);
+            m.setIdInternal(101L);
+            return m;
+        });
+
+        MealCreateRequest req = new MealCreateRequest(
+                MealType.LUNCH, LocalDate.of(2026, 8, 3), "UTC", null,
+                List.of(new MealItemRequest(11L, new BigDecimal("33.33"), null)));
+        MealView view = realService.create(1L, req);
+
+        // 33.33 * 99.99 / 100 = 33.329667 → scale=2 HALF_UP = 33.33
+        // toCents(33.33) = 3333
+        assertThat(view.totalKcal()).isEqualByComparingTo(new BigDecimal("33.33"));
+    }
 }

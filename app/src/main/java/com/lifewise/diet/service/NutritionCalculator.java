@@ -19,29 +19,30 @@ public class NutritionCalculator {
 
     public BigDecimal kcal(MealItem item) {
         validateAmount(item);
-        Food food = item.getMeal() == null ? null : null; // meal 不携带 food 引用
         if (item.getKcalSnapshot() == null) {
             return BigDecimal.ZERO;
         }
-        return item.getKcalSnapshot().setScale(3, RoundingMode.HALF_UP);
+        // scale=2 与 meal_items.kcal_snapshot NUMERIC(10,2) 一致：
+        // 与 SQL 的 SUM/AVG 聚合结果在序列化层同尺度，cents 口径统一。
+        return item.getKcalSnapshot().setScale(2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal proteinG(MealItem item) {
         validateAmount(item);
         return item.getProteinSnapshot() == null ? BigDecimal.ZERO
-                : item.getProteinSnapshot().setScale(3, RoundingMode.HALF_UP);
+                : item.getProteinSnapshot().setScale(2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal fatG(MealItem item) {
         validateAmount(item);
         return item.getFatSnapshot() == null ? BigDecimal.ZERO
-                : item.getFatSnapshot().setScale(3, RoundingMode.HALF_UP);
+                : item.getFatSnapshot().setScale(2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal carbG(MealItem item) {
         validateAmount(item);
         return item.getCarbSnapshot() == null ? BigDecimal.ZERO
-                : item.getCarbSnapshot().setScale(3, RoundingMode.HALF_UP);
+                : item.getCarbSnapshot().setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
@@ -55,7 +56,7 @@ public class NutritionCalculator {
             throw new InvalidAmountException("food must not be null");
         }
         return amountG.multiply(food.getKcalPer100g())
-                .divide(HUNDRED, 3, RoundingMode.HALF_UP);
+                .divide(HUNDRED, 2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal computeProteinSnapshot(BigDecimal amountG, Food food) {
@@ -66,7 +67,7 @@ public class NutritionCalculator {
             return BigDecimal.ZERO;
         }
         return amountG.multiply(food.getProteinGPer100g())
-                .divide(HUNDRED, 3, RoundingMode.HALF_UP);
+                .divide(HUNDRED, 2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal computeFatSnapshot(BigDecimal amountG, Food food) {
@@ -77,7 +78,7 @@ public class NutritionCalculator {
             return BigDecimal.ZERO;
         }
         return amountG.multiply(food.getFatGPer100g())
-                .divide(HUNDRED, 3, RoundingMode.HALF_UP);
+                .divide(HUNDRED, 2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal computeCarbSnapshot(BigDecimal amountG, Food food) {
@@ -88,7 +89,7 @@ public class NutritionCalculator {
             return BigDecimal.ZERO;
         }
         return amountG.multiply(food.getCarbGPer100g())
-                .divide(HUNDRED, 3, RoundingMode.HALF_UP);
+                .divide(HUNDRED, 2, RoundingMode.HALF_UP);
     }
 
     private void validateAmount(MealItem item) {

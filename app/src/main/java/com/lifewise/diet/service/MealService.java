@@ -18,6 +18,7 @@ import com.lifewise.shared.integration.event.EventEnvelope;
 import com.lifewise.shared.integration.event.EventType;
 import com.lifewise.shared.integration.outbox.OutboxWriter;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -143,10 +144,16 @@ public class MealService {
         return buildView(meal);
     }
 
-    /** kcal → cents 严格转换。抛出 ArithmeticException 表示溢出 / 异常小数。 */
+    /**
+     * kcal → cents 严格转换。
+     * <p>先 {@code setScale(0, HALF_UP)} 抹掉小数位（scale=2 的 cents 尾数无意义），
+     * 再 longValueExact 双重防御溢出；任一失败抛 InvalidMealException（400）。
+     */
     private static long toCents(BigDecimal totalKcal) {
         try {
-            return totalKcal.multiply(new BigDecimal("100")).longValueExact();
+            return totalKcal.multiply(new BigDecimal("100"))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .longValueExact();
         } catch (ArithmeticException ex) {
             throw new InvalidMealException("totalKcal overflow or non-integer cents: " + totalKcal);
         }
