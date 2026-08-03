@@ -293,6 +293,22 @@ Lifewise 是一个**个人版生活管理 Web 应用**，覆盖任务、日报�
 - Spring Security 启用 CSRF（Web 端）+ CORS 白名单
 - 密码强度：≥ 12 字符 + 大小写 + 数字 + 符号
 
+### 7.3.1 v1.0 个人版白名单鉴权（临时方案）
+
+v1.0 个人版永远只有一个 user（userId=1）。鉴权由三层防御保证：
+
+1. **nginx 层**（`nginx/conf/conf.d/default.conf`）：在 `/api/ai/chat`、`/api/ai/`、
+   `/api/` 三个 location 强制覆盖 `X-User-Id=1`，客户端传任何值都会被丢弃
+2. **应用层**（`CurrentUserArgumentResolver`）：白名单校验，非 userId=1
+   一律抛 `MissingCurrentUserException` → 401
+3. **fail-safe 降级**：missing header 时降级到 userId=1（nginx 故障时的兜底）
+
+**演进路径**：v1.1+ 切换多用户时，删除本节；启用 §7.3 的 JWT + Refresh Token
+链路，从 `SecurityContext` 取 principal。
+
+注意：本节覆盖的 nginx + resolver 改动按 `daily` 主 commit 提交，task 模块
+作为配套同步（同漏洞修复）。
+
 ### 7.4 速率限制
 
 - 接口：每用户 60 req/min（Redis 令牌桶）
