@@ -387,6 +387,155 @@ ALTER TABLE outbox_events
 
 ---
 
+## 1.4 Outbox 事件补录（plan-03-expense Phase B-3，P0）
+
+plan-03 code review 发现 `ExpenseService.update()` / `softDelete()` / `restore()` 未发射 outbox 事件，导致下游消费者（ai 模块月度聚合、StatsService 实时投影）感知不到状态变更。Phase A 仅发射 `EXPENSE_CREATED`，不一致。本次 P0 修订追加 3 条事件。
+
+修订编号：**P0-EXPENSE-EVENTS-01**（含 P0-EXPENSE-EVENTS-02 修订：restore 走独立 `expense.restored` 事件而非复用 `expense.updated`）
+关联文档：`docs/lifewise/architecture/known-limitations-v1.md` §B-3
+关联代码：`com.lifewise.expense.service.ExpenseService`（`update` / `softDelete` / `restore`）
+
+### 1.4.1 `outbox_events.event_type` 枚举扩展（V39）
+
+```sql
+-- ============================================================
+-- V39__add_expense_updated_deleted_events.sql
+-- plan-03-expense Phase B-3：outbox 事件扩展（27 → 30 条）
+-- 修订编号：P0-EXPENSE-EVENTS-01
+-- 关联：known-limitations-v1 §B-3；business-architecture §5.3 事件契约
+-- ============================================================
+
+ALTER TABLE outbox_events DROP CONSTRAINT IF EXISTS outbox_events_event_type_check;
+
+ALTER TABLE outbox_events ADD CONSTRAINT outbox_events_event_type_check
+    CHECK (event_type IN (
+        -- task / habit（5）
+        'task.created','task.updated','task.completed','task.reopened',
+        'habit.logged',
+        -- plan / milestone（5）
+        'plan.created',
+        'milestone.created','milestone.updated','milestone.completed','milestone.missed',
+        -- daily_report / ai.summary（3）
+        'daily_report.created','daily_report.updated',
+        'ai.summary.generated',
+        -- meal / expense / budget（6，v1.2 +3）
+        'meal.created',
+        'expense.created','expense.updated','expense.restored','expense.deleted',
+        'budget.threshold',
+        -- ai（2）
+        'ai.job.completed','ai.report.feedback',
+        -- export（2）
+        'export.completed','export.failed',
+        -- notification（1）
+        'notification.requested',
+        -- auth canonical（4）
+        'auth.user.registered','auth.user.logged_in',
+        'auth.user.password_reset_requested','auth.token.reuse_detected',
+        -- auth legacy（2）
+        'auth.login','auth.logout'
+    ));
+
+COMMENT ON CONSTRAINT outbox_events_event_type_check ON outbox_events IS
+    'v1.2 P0-EXPENSE-EVENTS-01：30 条事件白名单（plan-03-expense Phase B-3 追加 expense.updated + expense.restored + expense.deleted）';
+```
+
+### 1.4.2 事件清单（plan-03-expense Phase B-3 追加行）
+
+| event_type | 触发源 | 消费方 | 用途 |
+|---|---|---|---|
+| **`expense.updated`** | `ExpenseService.update()` | AI（v1.1 月度聚合）、StatsService 实时投影 | 字段变更（金额 / 分类 / 时间 / note），触发重算与审计同步 |
+| **`expense.restored`** | `ExpenseService.restore()` | AI（v1.1 月度聚合）、StatsService 实时投影 | 软删记录被恢复，触发重新加入累计 + 审计 `EXPENSE_RESTORED` 留痕 |
+| **`expense.deleted`** | `ExpenseService.softDelete()` | AI（v1.1 月度聚合）、StatsService 实时投影 | 软删生效，触发月度聚合剔除 + 审计 `EXPENSE_DELETED` 留痕 |
+
+> **P0-EXPENSE-EVENTS-02 修订说明**：v1.0 初稿曾考虑让 `restore()` 复用 `expense.updated`，但 review 发现两个语义不同的操作（字段修改 vs 记录恢复）共享事件类型会让下游无法区分。`update` 与 `restore` 对 ai/Stats 投影的处理路径不同（restore 需重加入累计，update 仅修正），必须独立事件类型。EventType 中已有 `TASK_REOPENED` 先例（task 模块）作为范式参考。
+
+### 1.4.3 事件 payload 示例
+
+**`expense.updated`**
+
+```json
+{
+  "eventId": "8a6d4f5b-0e1c-7d3a-c14f-5c6d7e8f9a0b",
+  "eventType": "expense.updated",
+  "eventVersion": 1,
+  "occurredAt": "2026-08-03T12:34:56.789Z",
+  "userId": 7,
+  "aggregateType": "expense",
+  "aggregateId": 100,
+  "correlationId": null,
+  "causationId": null,
+  "payload": {
+    "expenseId": 100,
+    "userId": 7,
+    "categoryId": 11,
+    "amountCents": 3500,
+    "currency": "CNY",
+    "occurredAt": "2026-08-03T09:30:00.000Z"
+  }
+}
+```
+
+**`expense.restored`**
+
+```json
+{
+  "eventId": "c8e9f0a1-2b3c-4d5e-9f8a-7b6c5d4e3f2a",
+  "eventType": "expense.restored",
+  "eventVersion": 1,
+  "occurredAt": "2026-08-03T12:36:00.000Z",
+  "userId": 7,
+  "aggregateType": "expense",
+  "aggregateId": 100,
+  "correlationId": null,
+  "causationId": null,
+  "payload": {
+    "expenseId": 100,
+    "userId": 7,
+    "categoryId": 11,
+    "amountCents": 3500,
+    "currency": "CNY",
+    "occurredAt": "2026-08-03T09:30:00.000Z",
+    "restoredAt": "2026-08-03T12:36:00.000Z"
+  }
+}
+```
+
+**`expense.deleted`**
+
+```json
+{
+  "eventId": "9b7e5a6c-1f2d-8e4b-d25a-6d7e8f9a0b1c",
+  "eventType": "expense.deleted",
+  "eventVersion": 1,
+  "occurredAt": "2026-08-03T12:35:10.123Z",
+  "userId": 7,
+  "aggregateType": "expense",
+  "aggregateId": 100,
+  "correlationId": null,
+  "causationId": null,
+  "payload": {
+    "expenseId": 100,
+    "userId": 7,
+    "deletedAt": "2026-08-03T12:35:09.987Z"
+  }
+}
+```
+
+### 1.4.4 BudgetEvaluator 接入修订（P0-EXPENSE-EVAL-01）
+
+code review 发现 `ExpenseService.update()` 未调 `BudgetEvaluator.evaluate()`——金额 / 分类 / 日期变更直接影响分类周期累计，漏调会漏报阈值事件。修订后行为：
+
+| 服务方法 | 是否调 BudgetEvaluator | 理由 |
+|---|---|---|
+| `create` | ✓ | 累计上升，可能触阈 |
+| `update` | ✓（**v1.0 P0 修订**） | 字段变更直接影响累计（金额 / 分类 / 时间） |
+| `restore` | ✓（**v1.0 P0 修订**） | 软删记录恢复后重新计入累计 |
+| `softDelete` | ✗（明确不调） | 累计只可能下降；evaluator 仅在 `pct ≥ threshold` 时 emit，下降不会触发新事件。「回落复位」通知属 v1.1 范围（evaluator 当前无 reset 状态）。 |
+
+dedupe 由 `BudgetEvaluator` 内部按 `(budgetId, period, threshold)` 保证，无需调用方去重。
+
+---
+
 ## 2. P1 修订
 
 ### 2.1 新增 `notification_requests`

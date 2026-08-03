@@ -16,6 +16,9 @@ import com.lifewise.expense.dto.ExpenseCreateRequest;
 import com.lifewise.expense.dto.ExpenseUpdateRequest;
 import com.lifewise.expense.dto.ExpenseView;
 import com.lifewise.expense.event.payload.ExpenseCreatedPayload;
+import com.lifewise.expense.event.payload.ExpenseDeletedPayload;
+import com.lifewise.expense.event.payload.ExpenseRestoredPayload;
+import com.lifewise.expense.event.payload.ExpenseUpdatedPayload;
 import com.lifewise.expense.repository.ExpenseRepository;
 import com.lifewise.expense.service.exception.CategoryNotFoundException;
 import com.lifewise.expense.service.exception.CategoryProtectedException;
@@ -369,5 +372,138 @@ class ExpenseServiceTest {
         ExpenseCreatedPayload payload = new ExpenseCreatedPayload(
                 100L, 7L, 11L, 3500L, "CNY", occurredAt);
         assertThat(env.getValue().payload()).isEqualTo(payload.toMap());
+    }
+
+    // ---------- B-3: EXPENSE_UPDATED / EXPENSE_DELETED 事件发射（plan-03 Phase B）----------
+
+    @Test
+    void update_emits_expense_updated_outbox_event() {
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1),
+                "UTC", 1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.update(7L, 1L, new ExpenseUpdateRequest(null, 2000L, null, null, "更正"));
+
+        ArgumentCaptor<EventEnvelope> env = ArgumentCaptor.forClass(EventEnvelope.class);
+        verify(outboxWriter, times(1)).append(env.capture());
+        EventEnvelope captured = env.getValue();
+        assertThat(captured.eventType()).isEqualTo(EventType.EXPENSE_UPDATED.eventType());
+        assertThat(captured.userId()).isEqualTo(7L);
+        assertThat(captured.aggregateType()).isEqualTo("expense");
+        assertThat(captured.aggregateId()).isEqualTo(1L);
+        ExpenseUpdatedPayload expected = new ExpenseUpdatedPayload(
+                1L, 7L, 11L, 2000L, "CNY",
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC));
+        assertThat(captured.payload()).isEqualTo(expected.toMap());
+    }
+
+    @Test
+    void softDelete_emits_expense_deleted_outbox_event() {
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1), "UTC",
+                1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.softDelete(7L, 1L);
+
+        ArgumentCaptor<EventEnvelope> env = ArgumentCaptor.forClass(EventEnvelope.class);
+        verify(outboxWriter, times(1)).append(env.capture());
+        EventEnvelope captured = env.getValue();
+        assertThat(captured.eventType()).isEqualTo(EventType.EXPENSE_DELETED.eventType());
+        assertThat(captured.userId()).isEqualTo(7L);
+        assertThat(captured.aggregateId()).isEqualTo(1L);
+        ExpenseDeletedPayload payload = new ExpenseDeletedPayload(
+                1L, 7L, existing.getDeletedAt());
+        assertThat(captured.payload()).isEqualTo(payload.toMap());
+    }
+
+    @Test
+    void restore_emits_expense_restored_outbox_event() {
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1), "UTC",
+                1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        existing.softDelete();
+        when(expenseRepository.findByIdAndUserId(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.restore(7L, 1L);
+
+        ArgumentCaptor<EventEnvelope> env = ArgumentCaptor.forClass(EventEnvelope.class);
+        verify(outboxWriter, times(1)).append(env.capture());
+        EventEnvelope captured = env.getValue();
+        // P0-1 修订：restore 走独立 EXPENSE_RESTORED 事件（不与 EXPENSE_UPDATED 复用），
+        // 否则下游无法区分「修改字段」与「恢复软删记录」。
+        assertThat(captured.eventType()).isEqualTo(EventType.EXPENSE_RESTORED.eventType());
+        assertThat(captured.userId()).isEqualTo(7L);
+        assertThat(captured.aggregateType()).isEqualTo("expense");
+        assertThat(captured.aggregateId()).isEqualTo(1L);
+        ExpenseRestoredPayload expected = new ExpenseRestoredPayload(
+                1L, 7L, 11L, 1000L, "CNY",
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC),
+                FIXED_NOW);
+        assertThat(captured.payload()).isEqualTo(expected.toMap());
+    }
+
+    // ---------- B-3 修订 2: BudgetEvaluator 接入（P0-2 修复）----------
+
+    @Test
+    void update_invokes_budget_evaluator() {
+        // update 改 amountCents 直接影响分类周期累计，必须 evaluate
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1),
+                "UTC", 1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.update(7L, 1L, new ExpenseUpdateRequest(null, 2000L, null, null, null));
+
+        verify(budgetEvaluator, times(1)).evaluate(7L, 11L,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC));
+    }
+
+    @Test
+    void restore_invokes_budget_evaluator() {
+        // restore 让软删记录重新进入累计，必须 evaluate
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1),
+                "UTC", 1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        existing.softDelete();
+        when(expenseRepository.findByIdAndUserId(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.restore(7L, 1L);
+
+        verify(budgetEvaluator, times(1)).evaluate(7L, 11L,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC));
+    }
+
+    @Test
+    void softDelete_does_not_invoke_budget_evaluator() {
+        // 软删只让累计下降；evaluator 仅在 pct ≥ threshold 时 emit，下降不触发新事件
+        // 「回落复位」通知属 v1.1 范围
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1), "UTC",
+                1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.softDelete(7L, 1L);
+
+        verify(budgetEvaluator, never()).evaluate(any(), any(), any());
     }
 }

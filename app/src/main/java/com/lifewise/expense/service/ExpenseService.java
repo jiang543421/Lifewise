@@ -6,6 +6,9 @@ import com.lifewise.expense.dto.ExpenseCreateRequest;
 import com.lifewise.expense.dto.ExpenseUpdateRequest;
 import com.lifewise.expense.dto.ExpenseView;
 import com.lifewise.expense.event.payload.ExpenseCreatedPayload;
+import com.lifewise.expense.event.payload.ExpenseDeletedPayload;
+import com.lifewise.expense.event.payload.ExpenseRestoredPayload;
+import com.lifewise.expense.event.payload.ExpenseUpdatedPayload;
 import com.lifewise.expense.repository.ExpenseRepository;
 import com.lifewise.expense.service.exception.CategoryNotFoundException;
 import com.lifewise.expense.service.exception.CategoryProtectedException;
@@ -17,6 +20,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 消费写服务（plan-03-expense §1.3 + §5.1）。
  *
- * <p>职责：CRUD + outbox 同事务 + 校验分类所有权/未归档。读操作也在此类（同事务传播）
- * 以减少 controller 注入的服务数量；{@link com.lifewise.expense.repository.ExpenseRepository}
- * 自身已过滤软删。
+ * <p>职责：CRUD + outbox 同事务 + 校验分类所有权/未归档 + 同事务触发 BudgetEvaluator。
+ * 读操作也在此类（同事务传播）以减少 controller 注入的服务数量；
+ * {@link com.lifewise.expense.repository.ExpenseRepository} 自身已过滤软删。
  */
 @Service
 public class ExpenseService {
@@ -68,34 +72,24 @@ public class ExpenseService {
                 req.payMethod(),
                 req.occurredAt(),
                 req.note());
-        expense = expenseRepository.save(expense);
+        Expense saved = expenseRepository.save(expense);
 
-        ExpenseCreatedPayload payload = new ExpenseCreatedPayload(
-                expense.getId(),
-                userId,
-                expense.getCategoryId(),
-                expense.getAmountCents(),
-                expense.getCurrency(),
-                expense.getOccurredAt());
-        outboxWriter.append(new EventEnvelope(
-                UUID.randomUUID(),
-                EventType.EXPENSE_CREATED.eventType(),
-                1,
-                OffsetDateTime.now(clock),
-                userId,
-                "expense",
-                expense.getId(),
-                null,
-                null,
-                null,
-                payload.toMap()));
+        OffsetDateTime eventAt = OffsetDateTime.now(clock);
+        appendExpenseEvent(EventType.EXPENSE_CREATED, userId, saved.getId(),
+                new ExpenseCreatedPayload(
+                        saved.getId(),
+                        userId,
+                        saved.getCategoryId(),
+                        saved.getAmountCents(),
+                        saved.getCurrency(),
+                        saved.getOccurredAt()).toMap(),
+                eventAt);
 
-        // C1: 同事务内评估预算阈值。dedupe 与 outbox 写库共享本方法 @Transactional，
-        // 任一侧失败均整体回滚（不变量：业务写库 + outbox + 阈值事件三件套同步落库）。
-        // BudgetEvaluator.evaluate 自身声明 Propagation.MANDATORY，强制加入调用方事务。
-        budgetEvaluator.evaluate(userId, expense.getCategoryId(), expense.getOccurredAt());
+        // C1: 同事务内评估预算阈值。BudgetEvaluator.evaluate 自身声明 Propagation.MANDATORY，
+        // 强制加入调用方事务；任一侧失败均整体回滚（不变量：业务写库 + outbox + 阈值事件三件套同步落库）。
+        budgetEvaluator.evaluate(userId, saved.getCategoryId(), saved.getOccurredAt());
 
-        return ExpenseView.from(expense);
+        return ExpenseView.from(saved);
     }
 
     @Transactional
@@ -109,14 +103,46 @@ public class ExpenseService {
         }
         expense.applyUpdate(req.categoryId(), req.amountCents(),
                 req.payMethod(), req.occurredAt(), req.note());
-        return ExpenseView.from(expenseRepository.save(expense));
+        Expense saved = expenseRepository.save(expense);
+
+        OffsetDateTime eventAt = OffsetDateTime.now(clock);
+        appendExpenseEvent(EventType.EXPENSE_UPDATED, userId, saved.getId(),
+                new ExpenseUpdatedPayload(
+                        saved.getId(),
+                        userId,
+                        saved.getCategoryId(),
+                        saved.getAmountCents(),
+                        saved.getCurrency(),
+                        saved.getOccurredAt()).toMap(),
+                eventAt);
+
+        // P0-2 修订：update 必须调 BudgetEvaluator。amountCents/categoryId/occurredAt
+        // 任一变更都直接影响分类周期累计（如 100 元改 10000 元、跨分类迁移、跨日期迁移），
+        // 不评估会漏报阈值事件。dedupe 由 evaluator 内部按 (budgetId, period, threshold) 保证。
+        budgetEvaluator.evaluate(userId, saved.getCategoryId(), saved.getOccurredAt());
+
+        return ExpenseView.from(saved);
     }
 
     @Transactional
     public void softDelete(Long userId, Long expenseId) {
         Expense expense = loadOwnedExpense(userId, expenseId);
         expense.softDelete();
-        expenseRepository.save(expense);
+        Expense saved = expenseRepository.save(expense);
+
+        OffsetDateTime eventAt = OffsetDateTime.now(clock);
+        // B-3: payload.deletedAt 来自域（BaseEntity.softDelete 用 OffsetDateTime.now() 写入）；
+        // envelope.occurredAt 用 service clock 标识业务发生时间。两者可能差几毫秒，是设计上有意分离。
+        appendExpenseEvent(EventType.EXPENSE_DELETED, userId, saved.getId(),
+                new ExpenseDeletedPayload(
+                        saved.getId(),
+                        userId,
+                        saved.getDeletedAt()).toMap(),
+                eventAt);
+
+        // P0-2 修订：softDelete 不调 BudgetEvaluator。软删让分类周期累计下降，
+        // evaluator 仅在 pct ≥ threshold 时 emit，下降不会触发新事件；
+        // 「回落复位」通知属 v1.1 范围（evaluator 当前无 reset 状态）。
     }
 
     @Transactional
@@ -127,7 +153,25 @@ public class ExpenseService {
         Expense expense = expenseRepository.findByIdAndUserId(expenseId, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
         expense.restore();
-        expenseRepository.save(expense);
+        Expense saved = expenseRepository.save(expense);
+
+        OffsetDateTime eventAt = OffsetDateTime.now(clock);
+        // P0-1 修订：restore 使用独立 EXPENSE_RESTORED 事件（不与 EXPENSE_UPDATED 复用）——
+        // 二者对下游 ai/Stats 投影语义不同（restore 需重加入累计，update 仅修正）。
+        appendExpenseEvent(EventType.EXPENSE_RESTORED, userId, saved.getId(),
+                new ExpenseRestoredPayload(
+                        saved.getId(),
+                        userId,
+                        saved.getCategoryId(),
+                        saved.getAmountCents(),
+                        saved.getCurrency(),
+                        saved.getOccurredAt(),
+                        eventAt).toMap(),
+                eventAt);
+
+        // P0-2 修订：restore 必须调 BudgetEvaluator。恢复后分类周期累计上升（之前软删被排除），
+        // 可能重新触阈；同 update 一样依赖 evaluator dedupe 防重复。
+        budgetEvaluator.evaluate(userId, saved.getCategoryId(), saved.getOccurredAt());
     }
 
     @Transactional(readOnly = true)
@@ -158,5 +202,26 @@ public class ExpenseService {
     private Expense loadOwnedExpense(Long userId, Long expenseId) {
         return expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(expenseId, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
+    }
+
+    /**
+     * DRY helper：把消费类 outbox 事件的样板收口（4 处调用统一为 2 行）。
+     * envelope aggregateType 固定为 "expense"，aggregateId 为 expenseId；
+     * null 三个尾字段（correlationId/tenantId/sourceIp）当前 v1.0 不使用，留口 v1.1 接入 Outbox trace。
+     */
+    private void appendExpenseEvent(EventType type, Long userId, Long expenseId,
+                                    Map<String, Object> payload, OffsetDateTime eventAt) {
+        outboxWriter.append(new EventEnvelope(
+                UUID.randomUUID(),
+                type.eventType(),
+                1,
+                eventAt,
+                userId,
+                "expense",
+                expenseId,
+                null,
+                null,
+                null,
+                payload));
     }
 }
