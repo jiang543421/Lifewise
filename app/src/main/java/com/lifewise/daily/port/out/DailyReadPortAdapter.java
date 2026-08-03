@@ -2,6 +2,7 @@ package com.lifewise.daily.port.out;
 
 import com.lifewise.daily.repository.DailyReportRepository;
 import com.lifewise.daily.service.MoodStatsService;
+import com.lifewise.daily.support.DailySnippet;
 import com.lifewise.shared.integration.port.DailyReadPort;
 import com.lifewise.shared.integration.port.snapshot.DailySnapshot;
 import java.time.LocalDate;
@@ -28,7 +29,7 @@ public class DailyReadPortAdapter implements DailyReadPort {
                 .map(r -> new DailySnapshot(
                         r.getId(), r.getUserId(), r.getLocalDate(),
                         r.getMood() == null ? null : r.getMood().name(),
-                        snippet(r.getContent())));
+                        DailySnippet.of(r.getContent())));
     }
 
     @Override
@@ -44,12 +45,5 @@ public class DailyReadPortAdapter implements DailyReadPort {
     @Override
     public long countReportsInRange(Long userId, LocalDate from, LocalDate to) {
         return moodStatsService.countReportsInRange(userId, from, to);
-    }
-
-    private static String snippet(String content) {
-        if (content == null) {
-            return null;
-        }
-        return content.length() <= 120 ? content : content.substring(0, 120) + "…";
     }
 }

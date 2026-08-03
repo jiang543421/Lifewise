@@ -9,6 +9,7 @@ import com.lifewise.daily.dto.DailyReportSearchHit;
 import com.lifewise.daily.repository.DailyReportRepository;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +50,7 @@ class SearchServiceTest {
     void search_maps_repository_results_to_hits() {
         Object[] row = new Object[] { 11L, Date.valueOf(LocalDate.of(2026, 8, 2)),
                 "<em>snip</em>", 0.42 };
-        Page<Object[]> repoPage = new PageImpl<>(List.of(row));
+        Page<Object[]> repoPage = new PageImpl<>(List.<Object[]>of(row));
         when(repository.fullTextSearch(
                 org.mockito.ArgumentMatchers.eq(7L),
                 org.mockito.ArgumentMatchers.eq("hello"),
@@ -70,7 +71,7 @@ class SearchServiceTest {
     @Test
     void search_handles_null_score_gracefully() {
         Object[] row = new Object[] { 12L, Date.valueOf(LocalDate.of(2026, 8, 3)), "snip", null };
-        Page<Object[]> repoPage = new PageImpl<>(List.of(row));
+        Page<Object[]> repoPage = new PageImpl<>(List.<Object[]>of(row));
         when(repository.fullTextSearch(
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyString(),

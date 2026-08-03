@@ -34,6 +34,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -314,7 +315,8 @@ class DailyE2EAndOutboxIT {
 
         double avg = moodStatsService.averageMoodInRange(userId,
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5));
-        assertThat(avg).isEqualTo(3.5);  // (5+2+3)/3
+        // (5+2+3)/3 = 10/3 ≈ 3.333 —— energy_score 1~5 求平均
+        assertThat(avg).isCloseTo(10.0 / 3.0, org.assertj.core.api.Assertions.within(1e-9));
 
         long count = moodStatsService.countReportsInRange(userId,
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5));

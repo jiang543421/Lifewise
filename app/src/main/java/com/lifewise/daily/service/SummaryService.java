@@ -16,6 +16,7 @@ import com.lifewise.shared.integration.outbox.OutboxWriter;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,11 +66,10 @@ public class SummaryService {
         AiSummary existing = repository.findByCacheKey(cacheKey).orElse(null);
         OffsetDateTime now = OffsetDateTime.now(clock);
         AiSummary saved;
-        if (existing != null && !existing.isUserEdited()) {
-            // 复用 cache_key；同一日报同一 kind 同一个快照，幂等返回
-            return AiSummaryView.from(existing);
-        } else if (existing != null) {
-            // 已 user_edited，按 BR-21.c 不覆盖；返回原记录 + 提示
+        if (existing != null) {
+            // 命中 cache_key：
+            //   - !user_edited：幂等返回（同一日报同一 kind 同一快照）
+            //   - user_edited=true：BR-21.c 用户编辑过，AI 不得覆盖；返回原记录
             return AiSummaryView.from(existing);
         }
         AiSummary draft = AiSummary.aiCreate(
@@ -118,11 +118,14 @@ public class SummaryService {
 
     private JsonNode snapshotOf(DailyReport report) {
         try {
-            return objectMapper.readTree(objectMapper.writeValueAsString(Map.of(
-                    "reportId", report.getId(),
-                    "reportDate", report.getLocalDate().toString(),
-                    "title", report.getTitle() == null ? "" : report.getTitle(),
-                    "mood", report.getMood() == null ? null : report.getMood().name())));
+            // LinkedHashMap 保证插入顺序 → snapshot.toString() 跨 JVM/重启稳定 →
+            // computeCacheKey 输出确定（避免 HashMap 迭代顺序不一致导致 cache miss）。
+            java.util.LinkedHashMap<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("reportId", report.getId());
+            map.put("reportDate", report.getLocalDate().toString());
+            map.put("title", report.getTitle() == null ? "" : report.getTitle());
+            map.put("mood", report.getMood() == null ? null : report.getMood().name());
+            return objectMapper.readTree(objectMapper.writeValueAsString(map));
         } catch (Exception ex) {
             throw new RuntimeException("Failed to build summary input snapshot", ex);
         }
@@ -130,7 +133,10 @@ public class SummaryService {
 
     private String computeCacheKey(long userId, DailyReport report, SummaryKind kind,
                                    JsonNode snapshot) {
-        int hash = (userId + ":" + report.getId() + ":" + kind.name() + ":" + snapshot.toString()).hashCode();
+        // 用 | 分隔拼接，避免 "1:2:DAILY:abc" 与 "1:2DAILY:abc" 这种边界碰撞；
+        // hashCode 32-bit 不去重，但 cache_key 在 DB 上有 UNIQUE 约束兜底。
+        String raw = userId + "|" + report.getId() + "|" + kind.name() + "|" + snapshot.toString();
+        int hash = raw.hashCode();
         return "daily:" + userId + ":" + report.getId() + ":" + kind.name() + ":" + Integer.toHexString(hash);
     }
 

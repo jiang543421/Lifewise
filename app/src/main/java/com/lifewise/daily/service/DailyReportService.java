@@ -93,13 +93,12 @@ public class DailyReportService {
     @Transactional
     public DailyReportView update(long userId, long reportId, DailyReportUpdateRequest req) {
         DailyReport report = loadOwned(userId, reportId);
+        // BR-21.d: 发布路径在 publish=true 时切到 DAILY_REPORT_PUBLISHED 事件，
+        // 普通编辑仍走 changeType=edit。事件类型由 applyUpdate 写入的 draft 标志决定。
         report.applyUpdate(req.title(), req.content(), req.mood(), req.energyScore(), req.publish());
-        if (req.publish() != null && req.publish()) {
-            report = repository.save(report);
-        } else {
-            report = repository.save(report);
-        }
-        appendUpdatedEvent(userId, report, "edit");
+        report = repository.save(report);
+        String changeType = (req.publish() != null && req.publish()) ? "publish" : "edit";
+        appendUpdatedEvent(userId, report, changeType);
         return buildView(report);
     }
 
