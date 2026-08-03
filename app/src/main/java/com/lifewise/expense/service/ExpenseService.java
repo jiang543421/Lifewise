@@ -33,13 +33,16 @@ public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final OutboxWriter outboxWriter;
+    private final CategoryService categoryService;
     private final Clock clock;
 
     public ExpenseService(ExpenseRepository expenseRepository,
                            OutboxWriter outboxWriter,
+                           CategoryService categoryService,
                            Clock clock) {
         this.expenseRepository = expenseRepository;
         this.outboxWriter = outboxWriter;
+        this.categoryService = categoryService;
         this.clock = clock;
     }
 
@@ -90,6 +93,12 @@ public class ExpenseService {
     @Transactional
     public ExpenseView update(Long userId, Long expenseId, ExpenseUpdateRequest req) {
         Expense expense = loadOwnedExpense(userId, expenseId);
+        // C2: 当请求里改了 categoryId，必须先校验归属 + 未归档，
+        // 否则攻击者可 PUT 别人的分类 ID → stats 视图 JOIN 泄露他人分类名。
+        if (req.categoryId() != null) {
+            ExpenseCategory category = categoryService.loadOwnedCategory(userId, req.categoryId());
+            validateCategory(category, userId);
+        }
         expense.applyUpdate(req.categoryId(), req.amountCents(),
                 req.payMethod(), req.occurredAt(), req.note());
         return ExpenseView.from(expenseRepository.save(expense));
@@ -104,7 +113,11 @@ public class ExpenseService {
 
     @Transactional
     public void restore(Long userId, Long expenseId) {
-        Expense expense = loadOwnedExpense(userId, expenseId);
+        // H2: 软删记录的 deleted_at 非空，原 loadOwnedExpense 用的
+        // findByIdAndUserIdAndDeletedAtIsNull 会过滤掉，导致 restore 永远 404。
+        // 必须用不带 deletedAt 过滤的 findByIdAndUserId 才能找回软删记录。
+        Expense expense = expenseRepository.findByIdAndUserId(expenseId, userId)
+                .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
         expense.restore();
         expenseRepository.save(expense);
     }

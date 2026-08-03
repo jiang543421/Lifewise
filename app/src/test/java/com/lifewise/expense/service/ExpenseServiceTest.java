@@ -49,12 +49,13 @@ class ExpenseServiceTest {
 
     @Mock ExpenseRepository expenseRepository;
     @Mock OutboxWriter outboxWriter;
+    @Mock CategoryService categoryService;
     ExpenseService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(FIXED_NOW.toInstant(), ZoneOffset.UTC);
-        service = new ExpenseService(expenseRepository, outboxWriter, clock);
+        service = new ExpenseService(expenseRepository, outboxWriter, categoryService, clock);
     }
 
     // ---------- create ----------
@@ -197,7 +198,7 @@ class ExpenseServiceTest {
 
     @Test
     void restore_throws_for_unknown_expense() {
-        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+        when(expenseRepository.findByIdAndUserId(1L, 7L))
             .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.restore(7L, 1L))
@@ -211,7 +212,8 @@ class ExpenseServiceTest {
                 OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
         existing.setIdInternal(1L);
         existing.softDelete();
-        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+        // H2: restore 必须用 findByIdAndUserId（不带 deletedAt 过滤）才能找回软删记录
+        when(expenseRepository.findByIdAndUserId(1L, 7L))
             .thenReturn(Optional.of(existing));
         when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -219,6 +221,71 @@ class ExpenseServiceTest {
 
         assertThat(existing.isDeleted()).isFalse();
         verify(expenseRepository, times(1)).save(existing);
+    }
+
+    // ---------- update categoryId 归属校验（C2）----------
+
+    @Test
+    void update_rejects_other_user_category() {
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1),
+                "UTC", 1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        // 别人的分类
+        ExpenseCategory othersCategory = ExpenseCategory.createUserCategory(99L, "x", null, null, null, 0);
+        othersCategory.setIdInternal(99L);
+        when(categoryService.loadOwnedCategory(7L, 99L)).thenReturn(othersCategory);
+
+        assertThatThrownBy(() ->
+                service.update(7L, 1L, new ExpenseUpdateRequest(99L, null, null, null, null)))
+            .isInstanceOf(CategoryNotFoundException.class);
+
+        verify(expenseRepository, never()).save(any());
+    }
+
+    @Test
+    void update_rejects_archived_category() {
+        Expense existing = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1),
+                "UTC", 1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        existing.setIdInternal(1L);
+        when(expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+        // 已归档分类（虽是本人，但归档后不可指派）
+        ExpenseCategory archived = ExpenseCategory.createUserCategory(7L, "已归档", null, null, null, 0);
+        archived.setIdInternal(11L);
+        archived.archive();
+        when(categoryService.loadOwnedCategory(7L, 11L)).thenReturn(archived);
+
+        assertThatThrownBy(() ->
+                service.update(7L, 1L, new ExpenseUpdateRequest(11L, null, null, null, null)))
+            .isInstanceOf(CategoryProtectedException.class);
+
+        verify(expenseRepository, never()).save(any());
+    }
+
+    @Test
+    void restore_finds_soft_deleted_expense() {
+        // H2 真实场景：模拟用户软删 → restore 真实路径
+        Expense softDeleted = Expense.create(7L, 11L, LocalDate.of(2026, 8, 1),
+                "UTC", 1000L, "CNY", PayMethod.CASH,
+                OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
+        softDeleted.setIdInternal(1L);
+        softDeleted.softDelete();
+        // 关键：用不带 deletedAt 过滤的 finder
+        when(expenseRepository.findByIdAndUserId(1L, 7L))
+            .thenReturn(Optional.of(softDeleted));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.restore(7L, 1L);
+
+        assertThat(softDeleted.isDeleted()).isFalse();
+        assertThat(softDeleted.getDeletedAt()).isNull();
+        verify(expenseRepository, times(1)).save(softDeleted);
+        // 不应再调用 deletedAt 过滤的旧 finder
+        verify(expenseRepository, never()).findByIdAndUserIdAndDeletedAtIsNull(any(), any());
     }
 
     // ---------- query ----------

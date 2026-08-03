@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,6 +18,12 @@ import org.springframework.data.repository.query.Param;
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     Optional<Expense> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+    /**
+     * 按 {@code (id, userId)} 查找，<b>不区分软删状态</b>。仅用于 {@code restore} 找回已软删记录。
+     * 正常查询请用 {@link #findByIdAndUserIdAndDeletedAtIsNull}。
+     */
+    Optional<Expense> findByIdAndUserId(Long id, Long userId);
 
     List<Expense> findByUserIdAndLocalDateBetweenAndDeletedAtIsNullOrderByOccurredAtDesc(
             Long userId, LocalDate from, LocalDate to);
@@ -48,7 +55,13 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
                                      @Param("to") LocalDate to,
                                      @Param("categoryId") Long categoryId);
 
-    /** 软删除账单迁移到新分类（BR-20 辅助；用于分类删除事务）。 */
+    /**
+     * 软删除账单迁移到新分类（BR-20 辅助；用于分类删除事务）。
+     *
+     * <p><b>仅在 {@code @Transactional} 内调用</b>；单独调用会抛 {@code TransactionRequiredException}。
+     * 调用方：{@link CategoryService#softDelete(Long, Long)}。
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update Expense e set e.categoryId = :newCategoryId
             where e.userId = :userId
