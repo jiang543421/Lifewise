@@ -325,9 +325,9 @@ class ExpenseGlobalExceptionHandlerTest {
     }
 
     @Test
-    void illegal_argument_message_sanitized() throws Exception {
-        // 模拟 service 层业务 message 误含 SQL 关键词时不被 envelope 透传
-        // （实际是 service 层责任；handler 兜底断言）
+    void illegal_argument_message_passes_through_when_safe() throws Exception {
+        // commit #8a-1b rename：原 illegal_argument_message_sanitized 行为是"安全字面量透传"，
+        // 原名 "sanitized" 误导。SafeMessageSanitizer 对无 LEAK_PATTERNS 的 message 原样透传。
         when(categoryService.create(anyLong(), any()))
             .thenThrow(new IllegalArgumentException("amount must be positive"));
 
@@ -339,12 +339,71 @@ class ExpenseGlobalExceptionHandlerTest {
                 .andExpect(status().isBadRequest())
                 .andReturn();
         String body = result.getResponse().getContentAsString();
-        // service 透传的字面量在 envelope 中可见，但绝不出现 SQL/堆栈关键词
+        // 安全 message 透传；同时必须不出现 SQL/堆栈关键词
+        org.assertj.core.api.Assertions.assertThat(body)
+                .contains("amount must be positive");
         String[] forbidden = {"INSERT", "UPDATE", "DELETE", "SELECT", "ALTER", "DROP", "duplicate key", "constraint"};
         boolean leaked = Arrays.stream(forbidden).anyMatch(body.toUpperCase()::contains);
         org.assertj.core.api.Assertions.assertThat(leaked)
                 .as("IllegalArgumentException envelope must not contain SQL/constraint keywords")
                 .isFalse();
+    }
+
+    // ---------- commit #8a-1b（plan-03 review MEDIUM-HIGH）：SafeMessageSanitizer 端到端覆盖 ----------
+
+    @Test
+    void envelope_sanitizes_illegal_argument_with_sql_keywords() throws Exception {
+        // service 层若误传含 SQL 关键词的 message，envelope 应降级为 "request failed"
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new IllegalArgumentException(
+                    "could not execute statement [INSERT INTO expense_categories ...]"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.message").value("request failed"));
+    }
+
+    @Test
+    void envelope_sanitizes_illegal_argument_with_constraint_phrase() throws Exception {
+        // PG 错误短语（duplicate key / constraint / violates）触发降级
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new IllegalArgumentException(
+                    "duplicate key value violates unique constraint \"uq_expense_categories_user_name\""));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        var result = mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        // envelope 整体不应出现 SQL / PG 错误短语（断言 envelope 字段 + 整 body）
+        org.assertj.core.api.Assertions.assertThat(body).contains("\"message\":\"request failed\"");
+        org.assertj.core.api.Assertions.assertThat(body.toUpperCase())
+                .doesNotContain("DUPLICATE KEY")
+                .doesNotContain("VIOLATES")
+                .doesNotContain("CONSTRAINT");
+    }
+
+    @Test
+    void envelope_sanitizes_illegal_argument_with_stack_marker() throws Exception {
+        // Java 堆栈 frame 前缀（\tat / Caused by:）触发降级
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new IllegalArgumentException(
+                    "boom\n\tat com.lifewise.expense.service.CategoryService.create(CategoryService.java:42)"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.message").value("request failed"));
     }
 
     // ---------- plan-03 review H5：DataIntegrityViolationException → 409 DATA_CONFLICT ----------

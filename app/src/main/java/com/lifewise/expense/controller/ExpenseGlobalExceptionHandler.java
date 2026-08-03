@@ -12,6 +12,7 @@ import com.lifewise.shared.integration.dto.ApiResponse;
 import com.lifewise.shared.integration.dto.ErrorCode;
 import com.lifewise.shared.integration.dto.ErrorEnvelope;
 import com.lifewise.shared.integration.port.ResourceNotFoundException;
+import com.lifewise.shared.integration.web.SafeMessageSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
@@ -151,7 +152,8 @@ public class ExpenseGlobalExceptionHandler {
         String traceId = UUID.randomUUID().toString();
         LOG.warn("[expense] domain error code={} traceId={} path={} msg={}",
                 code, traceId, req.getRequestURI(), ex.getMessage());
-        ErrorEnvelope err = new ErrorEnvelope(code.name(), ex.getMessage(), traceId, null);
+        ErrorEnvelope err = new ErrorEnvelope(code.name(),
+                SafeMessageSanitizer.sanitize(ex.getMessage()), traceId, null);
         return ResponseEntity.status(status).body(ApiResponse.error(err));
     }
 }

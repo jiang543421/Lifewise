@@ -1,6 +1,7 @@
 package com.lifewise.expense;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lifewise.expense.domain.Expense;
 import com.lifewise.expense.domain.ExpenseCategory;
@@ -179,5 +180,56 @@ class ExpenseE2EIT {
         List<ExpenseSnapshot> snaps = readPort.findByCategory(userId, categoryId, 10);
         assertThat(snaps).hasSize(2);
         assertThat(snaps.get(0).amountCents()).isEqualTo(2000L); // occurredAt DESC
+    }
+
+    // ---------- commit #8a-1b（plan-03 review MEDIUM）：biz-fail outbox 原子性 ----------
+
+    @Test
+    @DisplayName("business failure rolls back outbox_events (atomic with expense)")
+    void business_failure_rolls_back_outbox_event() {
+        // 业务失败（amount_cents = -100 触发 IllegalArgumentException）必须让 outbox 也回滚，
+        // 验证 OutboxWriter @Transactional(MANDATORY) 与 ExpenseService 同事务的契约
+        ExpenseCategory category = categoryService.loadOwnedCategory(userId, categoryId);
+        ExpenseCreateRequest badReq = new ExpenseCreateRequest(
+                categoryId,
+                -100L,  // 触发 Expense.validateAmount → IllegalArgumentException
+                PayMethod.ALIPAY,
+                OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC),
+                null,
+                "CNY");
+
+        assertThatThrownBy(() -> expenseService.create(userId, badReq, category))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount_cents must be positive");
+
+        Integer outboxCount = jdbc.queryForObject(
+                "SELECT count(*) FROM outbox_events WHERE user_id = ?",
+                Integer.class, userId);
+        assertThat(outboxCount)
+                .as("Business failure must roll back outbox_events")
+                .isZero();
+    }
+
+    @Test
+    @DisplayName("business failure does not persist expense row")
+    void business_failure_does_not_persist_expense() {
+        ExpenseCategory category = categoryService.loadOwnedCategory(userId, categoryId);
+        ExpenseCreateRequest badReq = new ExpenseCreateRequest(
+                categoryId,
+                -100L,
+                PayMethod.ALIPAY,
+                OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC),
+                null,
+                "CNY");
+
+        assertThatThrownBy(() -> expenseService.create(userId, badReq, category))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        Integer expenseCount = jdbc.queryForObject(
+                "SELECT count(*) FROM expenses WHERE user_id = ?",
+                Integer.class, userId);
+        assertThat(expenseCount)
+                .as("Business failure must not persist expense row")
+                .isZero();
     }
 }

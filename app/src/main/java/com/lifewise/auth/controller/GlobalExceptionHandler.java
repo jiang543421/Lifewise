@@ -3,6 +3,7 @@ package com.lifewise.auth.controller;
 import com.lifewise.auth.domain.exception.AuthDomainException;
 import com.lifewise.shared.integration.dto.ApiResponse;
 import com.lifewise.shared.integration.dto.ErrorEnvelope;
+import com.lifewise.shared.integration.web.SafeMessageSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.UUID;
@@ -33,7 +34,7 @@ public class GlobalExceptionHandler {
                 ex.errorCode(), traceId, req.getRequestURI(), ex.getMessage());
         ErrorEnvelope err = new ErrorEnvelope(
                 ex.errorCode().name(),
-                ex.getMessage(),
+                SafeMessageSanitizer.sanitize(ex.getMessage()),
                 traceId,
                 null);
         return ResponseEntity.status(httpStatusFor(ex.errorCode().name()))

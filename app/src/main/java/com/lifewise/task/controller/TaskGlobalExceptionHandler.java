@@ -4,6 +4,7 @@ import com.lifewise.shared.integration.dto.ApiResponse;
 import com.lifewise.shared.integration.dto.ErrorCode;
 import com.lifewise.shared.integration.dto.ErrorEnvelope;
 import com.lifewise.shared.integration.port.ResourceNotFoundException;
+import com.lifewise.shared.integration.web.SafeMessageSanitizer;
 import com.lifewise.task.service.exception.BackfillOutOfRangeException;
 import com.lifewise.task.service.exception.BackfillRateLimitException;
 import com.lifewise.task.service.exception.DuplicateTagNameException;
@@ -90,7 +91,8 @@ public class TaskGlobalExceptionHandler {
         String traceId = UUID.randomUUID().toString();
         LOG.warn("[task] domain error code={} traceId={} path={} msg={}",
                 code, traceId, req.getRequestURI(), ex.getMessage());
-        ErrorEnvelope err = new ErrorEnvelope(code.name(), ex.getMessage(), traceId, null);
+        ErrorEnvelope err = new ErrorEnvelope(code.name(),
+                SafeMessageSanitizer.sanitize(ex.getMessage()), traceId, null);
         return ResponseEntity.status(status).body(ApiResponse.error(err));
     }
 }
