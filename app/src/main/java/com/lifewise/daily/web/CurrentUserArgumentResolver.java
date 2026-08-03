@@ -1,4 +1,4 @@
-package com.lifewise.task.web;
+package com.lifewise.daily.web;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * <p>演进路径：v1.1+ 切换多用户时删除 {@code ALLOWED_USER_ID} 白名单，改读
  * SecurityContext 中的 JWT principal。
  */
-@Component("taskCurrentUserArgumentResolver")
+@Component("dailyCurrentUserArgumentResolver")
 public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
 
     /** v1.0 个人版白名单：仅允许 userId=1。 */
