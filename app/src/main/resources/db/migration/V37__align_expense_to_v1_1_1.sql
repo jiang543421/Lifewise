@@ -8,6 +8,14 @@
 -- ============================================================
 
 -- ============================================================
+-- 0. 先 drop 物化视图（依赖 expenses.amount_cents 列类型变更）
+--    V12 mv_expense_monthly_category 用 SUM(e.amount_cents)，
+--    PG 不允许在有 MV/视图依赖的列上改类型。drop 后 section 5 重建。
+--    R__repeatable_mviews.sql 在下次启动时会重新刷新（数据可重新派生）。
+-- ============================================================
+DROP MATERIALIZED VIEW IF EXISTS mv_expense_monthly_category CASCADE;
+
+-- ============================================================
 -- 1. expenses：补 pay_method、occurred_at；金额 BIGINT；note 长度收紧
 -- ============================================================
 
@@ -168,3 +176,45 @@ COMMENT ON COLUMN budgets.period_year IS 'plan-03 §2.3：预算年份（period_
 COMMENT ON COLUMN budgets.period_month IS 'plan-03 §2.3：预算月份 1-12';
 COMMENT ON COLUMN budgets.notify_enabled IS 'H-5：预算通知总开关';
 COMMENT ON COLUMN budgets.notify_muted_until IS 'H-5：静音到期日期（仅当月有效）';
+
+-- ============================================================
+-- 5. 重建物化视图 mv_expense_monthly_category（section 0 已 drop）
+--    定义与 V12 完全一致，但 amount_cents 现为 BIGINT
+--    R__repeatable_mviews.sql 启动时会自动 REFRESH CONCURRENTLY
+-- ============================================================
+
+CREATE MATERIALIZED VIEW mv_expense_monthly_category AS
+SELECT
+    e.user_id,
+    to_char(e.local_date, 'YYYY-MM') AS period_year_month,
+    e.category_id,
+    c.name                          AS category_name,
+    c.parent_id                     AS category_parent_id,
+    e.currency,
+    COUNT(*)                        AS expense_count,
+    SUM(e.amount_cents)             AS total_amount_cents,
+    AVG(e.amount_cents)             AS avg_amount_cents,
+    MIN(e.amount_cents)             AS min_amount_cents,
+    MAX(e.amount_cents)             AS max_amount_cents,
+    MIN(e.local_date)               AS first_date,
+    MAX(e.local_date)               AS last_date,
+    NOW()                           AS refreshed_at
+FROM expenses e
+JOIN expense_categories c ON c.id = e.category_id
+WHERE e.deleted_at IS NULL
+GROUP BY e.user_id, to_char(e.local_date, 'YYYY-MM'),
+         e.category_id, c.name, c.parent_id, e.currency;
+
+-- CONCURRENTLY 刷新前置：必须有 UNIQUE INDEX
+CREATE UNIQUE INDEX uq_mv_expense_monthly_category
+    ON mv_expense_monthly_category(user_id, period_year_month, category_id, currency);
+
+-- 常用查询索引
+CREATE INDEX idx_mv_expense_monthly_user_period
+    ON mv_expense_monthly_category(user_id, period_year_month);
+
+CREATE INDEX idx_mv_expense_monthly_category
+    ON mv_expense_monthly_category(category_id);
+
+COMMENT ON MATERIALIZED VIEW mv_expense_monthly_category IS
+    '每用户每月每分类消费汇总（每小时 03:00 REFRESH CONCURRENTLY）';

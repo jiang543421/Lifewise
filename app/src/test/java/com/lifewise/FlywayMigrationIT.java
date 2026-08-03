@@ -90,20 +90,108 @@ class FlywayMigrationIT {
     // -------------------------------------------------------
 
     @Test
-    void flyway_should_apply_v36_cleanly() throws SQLException {
-        // Spring Boot 启动阶段已通过 spring.flyway 全部应用完毕
+    void flyway_should_apply_v37_cleanly() throws SQLException {
         try (Connection conn = metaConnection();
              Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery("""
                      SELECT COUNT(*)
                      FROM flyway_schema_history
                      WHERE success = TRUE
-                       AND version = '36'
+                       AND version = '37'
                      """)) {
             assertThat(rs.next()).isTrue();
             assertThat(rs.getInt(1))
-                    .as("V36 认证契约修正迁移必须成功应用")
+                    .as("V37 expense schema alignment 迁移必须成功应用")
                     .isEqualTo(1);
+        }
+    }
+
+    @Test
+    void flyway_v37_should_add_expense_pay_method_and_occurred_at() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT column_name, data_type, is_nullable
+                     FROM information_schema.columns
+                     WHERE table_schema='public' AND table_name='expenses'
+                       AND column_name IN ('pay_method','occurred_at','amount_cents')
+                     ORDER BY column_name
+                     """)) {
+            List<String> cols = new ArrayList<>();
+            while (rs.next()) cols.add(rs.getString(1) + ":" + rs.getString(2) + ":" + rs.getString(3));
+            assertThat(cols).contains("amount_cents:bigint:NO");
+            assertThat(cols).contains("occurred_at:timestamp with time zone:NO");
+            assertThat(cols).contains("pay_method:text:NO");
+        }
+    }
+
+    @Test
+    void flyway_v37_should_add_category_archived_and_default_flags() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT column_name, data_type, is_nullable, column_default
+                     FROM information_schema.columns
+                     WHERE table_schema='public' AND table_name='expense_categories'
+                       AND column_name IN ('is_archived','is_user_default')
+                     ORDER BY column_name
+                     """)) {
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString("column_name")).isEqualToIgnoringCase("is_archived");
+            assertThat(rs.getString("data_type")).isEqualToIgnoringCase("boolean");
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString("column_name")).isEqualToIgnoringCase("is_user_default");
+            assertThat(rs.getString("data_type")).isEqualToIgnoringCase("boolean");
+        }
+    }
+
+    @Test
+    void flyway_v37_should_add_budget_scope_notify_and_period_columns() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT column_name
+                     FROM information_schema.columns
+                     WHERE table_schema='public' AND table_name='budgets'
+                       AND column_name IN ('scope','period_year','period_month',
+                                           'notify_enabled','notify_muted_until')
+                     ORDER BY column_name
+                     """)) {
+            List<String> cols = new ArrayList<>();
+            while (rs.next()) cols.add(rs.getString(1));
+            assertThat(cols).containsExactly(
+                    "notify_enabled", "notify_muted_until", "period_month",
+                    "period_year", "scope");
+        }
+    }
+
+    @Test
+    void flyway_v37_should_enforce_budget_mute_within_period() throws SQLException {
+        // H-5：notify_muted_until 必须落在当前预算月份内
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement()) {
+            assertThatThrownBy(() -> st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_muted_until)
+                    VALUES (1, 'CATEGORY', 1, 2026, 8, 10000, '2026-08',
+                            DATE '2026-09-15');
+                    """))
+                    .hasMessageContaining("budgets_mute_within_period");
+        }
+    }
+
+    @Test
+    void flyway_v37_should_enforce_budget_scope_category_consistency() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement()) {
+            assertThatThrownBy(() -> st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month)
+                    VALUES (1, 'TOTAL', 1, 2026, 8, 10000, '2026-08');
+                    """))
+                    .hasMessageContaining("budgets_scope_category_consistent");
         }
     }
 
