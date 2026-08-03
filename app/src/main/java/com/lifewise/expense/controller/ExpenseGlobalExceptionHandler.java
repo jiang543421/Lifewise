@@ -13,15 +13,18 @@ import com.lifewise.shared.integration.dto.ErrorCode;
 import com.lifewise.shared.integration.dto.ErrorEnvelope;
 import com.lifewise.shared.integration.port.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** expense 模块全局异常处理（plan-03-expense §2.2）。 */
 @RestControllerAdvice(basePackages = "com.lifewise.expense")
@@ -78,6 +81,59 @@ public class ExpenseGlobalExceptionHandler {
                 .toList());
         ErrorEnvelope err = new ErrorEnvelope(ErrorCode.INVALID_INPUT.name(),
                 "request validation failed", traceId, details);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(err));
+    }
+
+    // ---------- plan-03 review H5：通用异常兜底 ----------
+
+    /**
+     * 服务层 {@link IllegalArgumentException} → 400 INVALID_INPUT。
+     * message 由 service 层构造（"amount must be positive" 等），
+     * 不含 SQL/堆栈，安全透传。
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(
+            IllegalArgumentException ex, HttpServletRequest req) {
+        return envelope(ex, req, HttpStatus.BAD_REQUEST, ErrorCode.INVALID_INPUT);
+    }
+
+    /**
+     * 数据库完整性冲突（唯一约束违反、FK 违反等） → 409 DATA_CONFLICT。
+     * <p>关键：envelope 暴露通用 message，<b>不透传</b> 原 exception message
+     * （可能含 SQL/约束名/表名等敏感信息）。详因仅服务端 log 留痕。
+     * <p>业务异常（{@code CATEGORY_NAME_EXISTS} / {@code BUDGET_ALREADY_EXISTS}）
+     * service 层已显式抛；本 handler 仅作为漏网到 Spring DAO 层的兜底。
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrity(
+            DataIntegrityViolationException ex, HttpServletRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        LOG.warn("[expense] data integrity violation traceId={} path={} cause={}",
+                traceId, req.getRequestURI(),
+                ex.getMostSpecificCause() == null ? "n/a" : ex.getMostSpecificCause().getMessage());
+        ErrorEnvelope err = new ErrorEnvelope(ErrorCode.DATA_CONFLICT.name(),
+                "data conflict (duplicate or invalid reference)", traceId, null);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(err));
+    }
+
+    /**
+     * 路径 / 查询参数类型不匹配（如 {@code /api/expenses/abc} 给 Long） → 400 INVALID_INPUT。
+     * 复用 {@link MethodArgumentNotValidException} 的 {@code details.errors[]} 形状，
+     * 前端可统一处理。{@code field} 来自参数名，{@code message} 提到期望类型。
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        String typeName = ex.getRequiredType() == null
+                ? "unknown" : ex.getRequiredType().getSimpleName();
+        LOG.warn("[expense] type mismatch traceId={} path={} param={} requiredType={}",
+                traceId, req.getRequestURI(), ex.getName(), typeName);
+        Map<String, Object> details = Map.of("errors", List.of(Map.of(
+                "field", ex.getName(),
+                "message", "expected " + typeName)));
+        ErrorEnvelope err = new ErrorEnvelope(ErrorCode.INVALID_INPUT.name(),
+                "request type mismatch", traceId, details);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(err));
     }
 

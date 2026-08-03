@@ -31,11 +31,13 @@ import com.lifewise.expense.service.exception.CategoryProtectedException;
 import com.lifewise.expense.service.exception.ExpenseNotFoundException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -288,5 +290,149 @@ class ExpenseGlobalExceptionHandlerTest {
         mockMvc.perform(get("/api/expense-categories/system").header("X-User-Id", "7"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
+    }
+
+    // ---------- plan-03 review H5：IllegalArgumentException → 400 INVALID_INPUT ----------
+
+    @Test
+    void illegal_argument_throws_400_with_INVALID_INPUT_envelope() throws Exception {
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new IllegalArgumentException("amount must be positive"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("咖啡", null, null, null, 0);
+        mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.error.message").value("amount must be positive"));
+    }
+
+    @Test
+    void illegal_argument_envelope_has_trace_id() throws Exception {
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new IllegalArgumentException("x"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.trace_id").exists());
+    }
+
+    @Test
+    void illegal_argument_message_sanitized() throws Exception {
+        // 模拟 service 层业务 message 误含 SQL 关键词时不被 envelope 透传
+        // （实际是 service 层责任；handler 兜底断言）
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new IllegalArgumentException("amount must be positive"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        var result = mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        // service 透传的字面量在 envelope 中可见，但绝不出现 SQL/堆栈关键词
+        String[] forbidden = {"INSERT", "UPDATE", "DELETE", "SELECT", "ALTER", "DROP", "duplicate key", "constraint"};
+        boolean leaked = Arrays.stream(forbidden).anyMatch(body.toUpperCase()::contains);
+        org.assertj.core.api.Assertions.assertThat(leaked)
+                .as("IllegalArgumentException envelope must not contain SQL/constraint keywords")
+                .isFalse();
+    }
+
+    // ---------- plan-03 review H5：DataIntegrityViolationException → 409 DATA_CONFLICT ----------
+
+    @Test
+    void data_integrity_violation_throws_409_with_DATA_CONFLICT_envelope() throws Exception {
+        // 模拟 service 层 catch 不到，漏网到 Spring DAO 层
+        // 真实 Spring 异常 message 含 "could not execute statement [INSERT ...]" 等
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new DataIntegrityViolationException(
+                    "could not execute statement [INSERT INTO expense_categories ...] "
+                            + "[duplicate key value violates unique constraint \"uq_expense_categories_user_name\"]"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("咖啡", null, null, null, 0);
+        mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("DATA_CONFLICT"))
+                .andExpect(jsonPath("$.error.message").value("data conflict (duplicate or invalid reference)"));
+    }
+
+    @Test
+    void data_integrity_violation_does_not_leak_sql() throws Exception {
+        // 关键安全断言：SQL 关键词 / 约束名 / 表名 全部不出现于 envelope body
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new DataIntegrityViolationException(
+                    "could not execute statement [INSERT INTO expense_categories ...] "
+                            + "[duplicate key value violates unique constraint \"uq_x\"]"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        var result = mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isConflict())
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        String[] forbidden = {"INSERT", "UPDATE", "DELETE", "SELECT", "ALTER", "DROP",
+                              "duplicate key", "constraint", "uq_x", "expense_categories"};
+        boolean leaked = Arrays.stream(forbidden).anyMatch(body.toUpperCase()::contains);
+        org.assertj.core.api.Assertions.assertThat(leaked)
+                .as("DataIntegrityViolationException envelope must not leak SQL/constraint/table name")
+                .isFalse();
+    }
+
+    @Test
+    void data_integrity_violation_envelope_has_trace_id() throws Exception {
+        when(categoryService.create(anyLong(), any()))
+            .thenThrow(new DataIntegrityViolationException("x"));
+
+        CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
+        mockMvc.perform(post("/api/expense-categories")
+                        .header("X-User-Id", "7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(req)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.trace_id").exists());
+    }
+
+    // ---------- plan-03 review H5：MethodArgumentTypeMismatchException → 400 INVALID_INPUT ----------
+
+    @Test
+    void type_mismatch_throws_400_with_field_details() throws Exception {
+        // /api/expenses/{id} 的 id 是 Long，传 "abc" 触发 MethodArgumentTypeMismatchException
+        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "7"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.error.details.errors").isArray())
+                .andExpect(jsonPath("$.error.details.errors[0].field").value("id"));
+    }
+
+    @Test
+    void type_mismatch_envelope_includes_param_name_and_expected_type() throws Exception {
+        // 验证 field=id（参数名）+ message 提到期望类型 Long
+        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "7"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.details.errors[0].message")
+                        .value(org.hamcrest.Matchers.containsString("Long")));
+    }
+
+    @Test
+    void type_mismatch_envelope_has_trace_id() throws Exception {
+        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "7"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.trace_id").exists());
     }
 }
