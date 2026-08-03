@@ -99,7 +99,8 @@ public class AiSummary extends BaseEntity {
     /**
      * AI 完成时创建摘要记录（service 层入口，BR-21.a 强制）。
      *
-     * @throws ResourceNotFoundException 必填字段缺失
+     * @throws IllegalArgumentException 必填字段缺失或超出长度限制
+     *   （工厂入参校验失败属编程错误，不应映射成 404；走 400）
      */
     public static AiSummary aiCreate(Long userId, Long dailyReportId, LocalDate localDate,
                                      SummaryKind summaryKind, JsonNode inputSnapshot,
@@ -112,7 +113,7 @@ public class AiSummary extends BaseEntity {
                 || promptVersion == null || promptVersion.isBlank()
                 || cacheKey == null || cacheKey.isBlank()
                 || generatedAt == null || inputSnapshot == null) {
-            throw new ResourceNotFoundException("ai_summary", "AI summary missing required fields");
+            throw new IllegalArgumentException("AiSummary required fields missing");
         }
         if (modelVersion.length() > 100) {
             throw new IllegalArgumentException("modelVersion length must be <= 100");

@@ -1,6 +1,8 @@
 package com.lifewise.daily.dto;
 
 import com.lifewise.daily.domain.Mood;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -12,6 +14,6 @@ public record DailyReportUpdateRequest(
         @Size(max = 200) String title,
         @Size(max = 50000) String content,
         Mood mood,
-        Integer energyScore,
+        @Min(1) @Max(5) Integer energyScore,
         Boolean publish) {
 }
