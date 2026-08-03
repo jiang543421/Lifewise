@@ -2,7 +2,7 @@ package com.lifewise.daily.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,7 +40,9 @@ class SearchControllerWebMvcTest {
         DailyReportSearchHit hit = new DailyReportSearchHit(11L, LocalDate.of(2026, 8, 2),
                 "<em>hello</em>", 0.9);
         Page<DailyReportSearchHit> page = new PageImpl<>(List.of(hit));
-        when(service.search(anyLong(), eq("hello"), any(), any(), any(Pageable.class)))
+        when(service.search(anyLong(), anyString(),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(), any(Pageable.class)))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/daily-reports/search?q=hello").header(HEADER, "7"))
@@ -54,7 +56,8 @@ class SearchControllerWebMvcTest {
     @Test
     void search_empty_query_returns_empty_page() throws Exception {
         Page<DailyReportSearchHit> page = Page.empty();
-        when(service.search(anyLong(), eq("   "), any(), any(), any(Pageable.class)))
+        when(service.search(anyLong(), anyString(), org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.isNull(), any(Pageable.class)))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/daily-reports/search?q=%20%20%20").header(HEADER, "7"))
@@ -66,7 +69,8 @@ class SearchControllerWebMvcTest {
     @Test
     void search_with_date_range_passes_from_to() throws Exception {
         Page<DailyReportSearchHit> page = Page.empty();
-        when(service.search(anyLong(), eq("hello"), any(), any(), any(Pageable.class)))
+        when(service.search(anyLong(), anyString(),
+                any(LocalDate.class), any(LocalDate.class), any(Pageable.class)))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/daily-reports/search")

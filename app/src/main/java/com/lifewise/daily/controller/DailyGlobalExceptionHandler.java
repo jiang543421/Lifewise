@@ -38,9 +38,8 @@ public class DailyGlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleReportNotFound(
             com.lifewise.daily.service.exception.DailyReportNotFoundException ex,
             HttpServletRequest req) {
-        ErrorCode code = ex.getMessage() != null && ex.getMessage().contains("CROSS_USER_ACCESS")
-                ? ErrorCode.CROSS_USER_ACCESS : ErrorCode.DAILY_REPORT_NOT_FOUND;
-        return envelope(ex, req, HttpStatus.NOT_FOUND, code);
+        // 跨用户访问同样映射 404（避免存在性泄露，CLAUDE.md §7.2）
+        return envelope(ex, req, HttpStatus.NOT_FOUND, ErrorCode.DAILY_REPORT_NOT_FOUND);
     }
 
     @ExceptionHandler(AiSummaryNotFoundException.class)
@@ -98,6 +97,17 @@ public class DailyGlobalExceptionHandler {
         ErrorEnvelope err = new ErrorEnvelope(ErrorCode.INVALID_INPUT.name(),
                 "request validation failed", traceId, details);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(err));
+    }
+
+    /** 兜底：未被显式映射的异常统一 500 + 通用错误体（CLAUDE.md §7.5）。 */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnexpected(
+            Exception ex, HttpServletRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        LOG.error("[daily] unexpected error traceId={} path={}", traceId, req.getRequestURI(), ex);
+        ErrorEnvelope err = new ErrorEnvelope(ErrorCode.INTERNAL_ERROR.name(),
+                "internal error, please retry", traceId, null);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(err));
     }
 
     private static ResponseEntity<ApiResponse<Object>> envelope(

@@ -7,7 +7,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /** 注册 {@link CurrentUserArgumentResolver} 供 daily 四类 controller 使用。 */
-@Configuration
+@Configuration("dailyWebMvcConfig")
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final CurrentUserArgumentResolver currentUserArgumentResolver;

@@ -8,7 +8,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /** 把 {@link CurrentUser} 解析为 {@code X-User-Id} 头指定的 Long userId。 */
-@Component
+@Component("dailyCurrentUserArgumentResolver")
 public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
 
     @Override
