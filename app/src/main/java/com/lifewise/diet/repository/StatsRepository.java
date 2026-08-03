@@ -42,7 +42,8 @@ public interface StatsRepository extends Repository<Meal, Long> {
     /** 行 → Map 转换（service 层）。 */
     default Map<LocalDate, Long> sumKcalByDayInRange(Long userId, LocalDate from, LocalDate to) {
         return sumKcalByDayRaw(userId, from, to).stream()
-                .collect(java.util.stream.Collectors.toMap(DayKcalRow::day, DayKcalRow::kcalCents));
+                .collect(java.util.stream.Collectors.toMap(
+                        DayKcalRow::getDay, DayKcalRow::getKcalCents));
     }
 
     /** 区间内总 kcal（cents）。 */
@@ -79,26 +80,33 @@ public interface StatsRepository extends Repository<Meal, Long> {
 
     default List<WeeklyBucket> weeklyBuckets(Long userId, LocalDate weekStart) {
         return weeklyBucketsRaw(userId, weekStart).stream()
-                .map(r -> new WeeklyBucket(r.weekStart(), r.mealType(), r.mealCount(),
-                        r.totalKcal(), r.totalProteinG(), r.totalCarbG(), r.totalFatG()))
+                .map(r -> new WeeklyBucket(r.getWeekStart(), r.getMealType(), r.getMealCount(),
+                        r.getTotalKcal(), r.getTotalProteinG(), r.getTotalCarbG(),
+                        r.getTotalFatG()))
                 .toList();
     }
 
-    /** 原生 SQL 行：日聚合。 */
+    /**
+     * 原生 SQL 行：日聚合。
+     * <p>Spring Data JPA native query + interface projection 必须用 JavaBean
+     * getter 风格（{@code getDay()}），record 风格（{@code day()}）不被支持。
+     */
     interface DayKcalRow {
-        LocalDate day();
-        Long kcalCents();
+        LocalDate getDay();
+        Long getKcalCents();
     }
 
-    /** 原生 SQL 行：物化视图周聚合。 */
+    /**
+     * 原生 SQL 行：物化视图周聚合（同上，必须 JavaBean 风格）。
+     */
     interface WeeklyBucketRaw {
-        LocalDate weekStart();
-        String mealType();
-        Long mealCount();
-        java.math.BigDecimal totalKcal();
-        java.math.BigDecimal totalProteinG();
-        java.math.BigDecimal totalCarbG();
-        java.math.BigDecimal totalFatG();
+        LocalDate getWeekStart();
+        String getMealType();
+        Long getMealCount();
+        java.math.BigDecimal getTotalKcal();
+        java.math.BigDecimal getTotalProteinG();
+        java.math.BigDecimal getTotalCarbG();
+        java.math.BigDecimal getTotalFatG();
     }
 
     /** 域内 record（service 层返回）。 */

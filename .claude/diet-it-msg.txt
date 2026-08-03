@@ -1,0 +1,24 @@
+test(diet): DietE2EAndOutboxIT + V41 migration + projection fix
+
+V41 (schema): meal_items 缺 deleted_at 列，MealItem extends BaseEntity 报
+  column-not-found。Unit 全 mock 走不到 INSERT，IT 暴露真 bug。
+  ALTER TABLE meal_items ADD COLUMN deleted_at TIMESTAMPTZ NULL；
+  item 软删除跟随 parent meal（orphanRemoval 整替换），保留列只为匹配实体。
+
+StatsRepository (interface projection): native query + interface projection
+  必须 JavaBean getter 风格（getDay / getKcalCents / getWeekStart / ...）。
+  record 风格 (day()) 被 Spring Data JPA 拒绝：is no accessor method。
+  改 2 个内部 interface + 2 处 method ref。
+
+DietE2EAndOutboxIT (6 端到端 + PG 真实):
+  1. create meal -> 1 行 meals + N 行 meal_items + total_kcal_cents 20750
+     + outbox meal.created 1 行
+  2. update 替换 items -> orphanRemoval 清旧 + cents 15500 重算 + note 持久化
+  3. softDelete + restore -> meal.deleted_at 切换；meal_items 行零数据丢失
+  4. foods JSONB @> alias 模糊搜索 (V40 GIN 索引 + 系统食物 name LIKE)
+  5. cents 一致性 -> StatsService.sumKcalByDayInRange 与 SQL SUM(meals.total_kcal_cents)
+     一致 (46750 cents)
+  6. mv_meal_nutrition_weekly REFRESH 后周聚合命中 (130.00 kcal / LUNCH)
+
+覆盖统计: 336 unit + 56 IT = 392 tests, 0 fail.
+mvn clean verify BUILD SUCCESS.
