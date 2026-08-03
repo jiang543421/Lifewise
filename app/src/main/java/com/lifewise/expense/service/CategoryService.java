@@ -38,7 +38,7 @@ public class CategoryService {
     @Transactional(readOnly = true)
     public List<CategoryView> list(Long userId) {
         return categoryRepository
-                .findByUserIdIsNullOrUserIdAndArchivedFalseAndDeletedAtIsNullOrderBySortOrderAsc(userId, userId)
+                .findByUserIdIsNullOrUserIdAndArchivedFalseAndDeletedAtIsNullOrderBySortOrderAsc(userId)
                 .stream()
                 .map(CategoryView::from)
                 .toList();

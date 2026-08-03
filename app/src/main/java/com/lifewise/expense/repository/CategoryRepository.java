@@ -16,7 +16,7 @@ public interface CategoryRepository extends JpaRepository<ExpenseCategory, Long>
 
     /** 系统默认 + 该用户的自定义分类（未归档 + 未软删）。 */
     List<ExpenseCategory> findByUserIdIsNullOrUserIdAndArchivedFalseAndDeletedAtIsNullOrderBySortOrderAsc(
-            Long userId1, Long userId2);
+            Long userId);
 
     /** 仅系统默认（{@code user_id IS NULL}）。 */
     List<ExpenseCategory> findByUserIdIsNullAndDeletedAtIsNullOrderBySortOrderAsc();

@@ -54,7 +54,7 @@ class CategoryServiceTest {
         ExpenseCategory sys = ExpenseCategory.createSystem("餐饮", null, null, null, 1);
         ExpenseCategory user = ExpenseCategory.createUserCategory(7L, "咖啡", null, null, null, 10);
         when(categoryRepository.findByUserIdIsNullOrUserIdAndArchivedFalseAndDeletedAtIsNullOrderBySortOrderAsc(
-                eq(7L), eq(7L)))
+                eq(7L)))
             .thenReturn(List.of(sys, user));
 
         List<CategoryView> result = service.list(7L);
