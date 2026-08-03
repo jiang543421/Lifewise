@@ -17,7 +17,8 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             select f from Food f
             where f.deletedAt is null
               and (f.userId is null or f.userId = :userId)
-              and (:q is null or lower(f.name) like lower(concat('%', :q, '%')))
+              and (cast(:q as string) is null
+                   or lower(f.name) like lower(concat('%', cast(:q as string), '%')))
             """)
     Page<Food> searchByNameOrOwner(@Param("userId") Long userId,
                                    @Param("q") String q,
@@ -26,13 +27,21 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
     /**
      * 全文匹配：name LIKE %q% OR aliases @> [q]（PG jsonb contains）。
      * 同时返回系统食物（user_id=NULL）与用户自定义。
+     *
+     * <p>{@code CAST(:q AS text) IS NOT NULL} 守卫：
+     * native query 在 q=null 时不会被 PG 协议层拒绝，但
+     * {@code to_jsonb(ARRAY[NULL]) @> aliases} 会把 JSON null
+     * 元素宽松匹配所有 aliases（PG 14+ behavior），导致静默返回全表。
+     * service 层已 guard，但 repository 是公共 API，显式 null 短路
+     * 锁住"null q → 空结果"语义。
      */
     @Query(value = """
             SELECT * FROM foods
             WHERE deleted_at IS NULL
               AND (user_id IS NULL OR user_id = :userId)
-              AND (lower(name) LIKE lower(concat('%', :q, '%'))
-                   OR aliases @> to_jsonb(ARRAY[:q]))
+              AND (CAST(:q AS text) IS NOT NULL
+                   AND (lower(name) LIKE lower(concat('%', :q, '%'))
+                        OR aliases @> to_jsonb(ARRAY[:q])))
             ORDER BY (user_id IS NULL) DESC, name ASC
             LIMIT 50
             """, nativeQuery = true)

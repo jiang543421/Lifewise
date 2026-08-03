@@ -27,9 +27,9 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
             select m from Meal m
             where m.userId = :userId
               and m.deletedAt is null
-              and (:from is null or m.localDate >= :from)
-              and (:to is null or m.localDate <= :to)
-              and (:type is null or m.mealType = :type)
+              and (cast(:from as date) is null or m.localDate >= :from)
+              and (cast(:to as date) is null or m.localDate <= :to)
+              and (cast(:type as string) is null or m.mealType = :type)
             order by m.localDate desc, m.id desc
             """)
     Page<Meal> search(@Param("userId") Long userId,
