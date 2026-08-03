@@ -107,6 +107,145 @@ class FlywayMigrationIT {
     }
 
     @Test
+    void flyway_should_apply_v38_cleanly() throws SQLException {
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("""
+                     SELECT COUNT(*)
+                     FROM flyway_schema_history
+                     WHERE success = TRUE
+                       AND version = '38'
+                     """)) {
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getInt(1))
+                    .as("V38 budgets partial unique index 迁移必须成功应用")
+                    .isEqualTo(1);
+        }
+    }
+
+    @Test
+    void flyway_v38_partial_unique_index_excludes_soft_deleted_budgets() throws SQLException {
+        // H4 数据前置验证：先插 1 行 CATEGORY 预算 → 软删 → 重建同期预算应成功
+        // （V37 的 UNIQUE 会因软删行仍参与唯一性而失败）
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement()) {
+            // 前置：seed 1 个 user + 复用 V14 system category
+            st.execute("""
+                    INSERT INTO users (email, password_hash, display_name, timezone)
+                    VALUES ('v38-test-' || gen_random_uuid() || '@x.test',
+                            'placeholder-hash-1234567890', 'v38test', 'UTC');
+                    """);
+            Long testUserId;
+            try (var rs = st.executeQuery(
+                    "SELECT id FROM users WHERE display_name = 'v38test' ORDER BY id LIMIT 1")) {
+                assertThat(rs.next()).isTrue();
+                testUserId = rs.getLong(1);
+            }
+            Long testCategoryId;
+            try (var rs = st.executeQuery(
+                    "SELECT id FROM expense_categories WHERE user_id IS NULL ORDER BY id LIMIT 1")) {
+                assertThat(rs.next()).isTrue();
+                testCategoryId = rs.getLong(1);
+            }
+            // 1) 插第一行 CATEGORY 预算
+            st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_enabled)
+                    VALUES (%d, 'CATEGORY', %d, 2026, 8, 10000, '2026-08', TRUE);
+                    """.formatted(testUserId, testCategoryId));
+            // 2) 软删该预算
+            st.execute("""
+                    UPDATE budgets SET deleted_at = NOW()
+                    WHERE user_id = %d AND scope = 'CATEGORY'
+                      AND category_id = %d AND period_year = 2026 AND period_month = 8;
+                    """.formatted(testUserId, testCategoryId));
+            // 3) 重建同期同分类预算应成功（H4 修复：partial index WHERE deleted_at IS NULL）
+            st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_enabled)
+                    VALUES (%d, 'CATEGORY', %d, 2026, 8, 12000, '2026-08', TRUE);
+                    """.formatted(testUserId, testCategoryId));
+        }
+    }
+
+    @Test
+    void flyway_v38_total_budget_uniqueness_via_coalesce() throws SQLException {
+        // H4 数据前置验证：TOTAL 预算 (category_id IS NULL) 在 V37 不参与 UNIQUE，
+        // V38 用 coalesce(category_id, -1) 让 TOTAL 也参与唯一性。
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement()) {
+            // 前置：seed 1 个 user（FlywayMigrationIT 不共享数据，每个 test 各自起手）
+            st.execute("""
+                    INSERT INTO users (email, password_hash, display_name, timezone)
+                    VALUES ('v38-tot-' || gen_random_uuid() || '@x.test',
+                            'placeholder-hash-1234567890', 'v38tot', 'UTC');
+                    """);
+            Long testUserId;
+            try (var rs = st.executeQuery(
+                    "SELECT id FROM users WHERE display_name = 'v38tot' ORDER BY id LIMIT 1")) {
+                assertThat(rs.next()).isTrue();
+                testUserId = rs.getLong(1);
+            }
+            // 先插一条 TOTAL 预算
+            st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_enabled)
+                    VALUES (%d, 'TOTAL', NULL, 2027, 1, 50000, '2027-01', TRUE);
+                    """.formatted(testUserId));
+            // 第二条 TOTAL 同期预算应被拒（coalesce 让 NULL = -1 参与唯一性）
+            assertThatThrownBy(() -> st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_enabled)
+                    VALUES (%d, 'TOTAL', NULL, 2027, 1, 60000, '2027-01', TRUE);
+                    """.formatted(testUserId)))
+                    .hasMessageContaining("uq_budgets_user_scope_period");
+        }
+    }
+
+    @Test
+    void flyway_v38_category_budget_uniqueness_still_enforced() throws SQLException {
+        // H4 数据前置验证：CATEGORY 预算（category_id 非 NULL）唯一性未被破坏
+        try (Connection conn = metaConnection();
+             Statement st = conn.createStatement()) {
+            // 前置：seed 1 个 user + 复用 V14 system category
+            st.execute("""
+                    INSERT INTO users (email, password_hash, display_name, timezone)
+                    VALUES ('v38-cat-' || gen_random_uuid() || '@x.test',
+                            'placeholder-hash-1234567890', 'v38cat', 'UTC');
+                    """);
+            Long testUserId;
+            try (var rs = st.executeQuery(
+                    "SELECT id FROM users WHERE display_name = 'v38cat' ORDER BY id LIMIT 1")) {
+                assertThat(rs.next()).isTrue();
+                testUserId = rs.getLong(1);
+            }
+            Long testCategoryId;
+            try (var rs = st.executeQuery(
+                    "SELECT id FROM expense_categories WHERE user_id IS NULL ORDER BY id LIMIT 1")) {
+                assertThat(rs.next()).isTrue();
+                testCategoryId = rs.getLong(1);
+            }
+            st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_enabled)
+                    VALUES (%d, 'CATEGORY', %d, 2027, 2, 10000, '2027-02', TRUE);
+                    """.formatted(testUserId, testCategoryId));
+            assertThatThrownBy(() -> st.execute("""
+                    INSERT INTO budgets
+                      (user_id, scope, category_id, period_year, period_month,
+                       amount_cents, period_year_month, notify_enabled)
+                    VALUES (%d, 'CATEGORY', %d, 2027, 2, 12000, '2027-02', TRUE);
+                    """.formatted(testUserId, testCategoryId)))
+                    .hasMessageContaining("uq_budgets_user_scope_period");
+        }
+    }
+
+    @Test
     void flyway_v37_should_add_expense_pay_method_and_occurred_at() throws SQLException {
         try (Connection conn = metaConnection();
              Statement st = conn.createStatement();

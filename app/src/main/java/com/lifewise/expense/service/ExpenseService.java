@@ -34,15 +34,18 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final OutboxWriter outboxWriter;
     private final CategoryService categoryService;
+    private final BudgetEvaluator budgetEvaluator;
     private final Clock clock;
 
     public ExpenseService(ExpenseRepository expenseRepository,
                            OutboxWriter outboxWriter,
                            CategoryService categoryService,
+                           BudgetEvaluator budgetEvaluator,
                            Clock clock) {
         this.expenseRepository = expenseRepository;
         this.outboxWriter = outboxWriter;
         this.categoryService = categoryService;
+        this.budgetEvaluator = budgetEvaluator;
         this.clock = clock;
     }
 
@@ -86,6 +89,11 @@ public class ExpenseService {
                 null,
                 null,
                 payload.toMap()));
+
+        // C1: 同事务内评估预算阈值。dedupe 与 outbox 写库共享本方法 @Transactional，
+        // 任一侧失败均整体回滚（不变量：业务写库 + outbox + 阈值事件三件套同步落库）。
+        // BudgetEvaluator.evaluate 自身声明 Propagation.MANDATORY，强制加入调用方事务。
+        budgetEvaluator.evaluate(userId, expense.getCategoryId(), expense.getOccurredAt());
 
         return ExpenseView.from(expense);
     }

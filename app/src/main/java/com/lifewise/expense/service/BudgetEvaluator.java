@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 预算评估器（plan-03-expense §1.3 + §5.4）。
@@ -55,10 +57,24 @@ public class BudgetEvaluator {
     /**
      * 评估指定用户在指定月份的预算触发。
      *
+     * <p><b>事务契约</b>：必须在调用方事务内运行（{@link Propagation#MANDATORY}）。
+     * 当前调用方 {@code ExpenseService.create} 处于 {@code @Transactional}，
+     * 与 outbox 写库共享同一事务，确保「业务写库 + outbox + 阈值事件」三件套同步落库或整体回滚。
+     * 从非事务上下文调用会抛 {@code IllegalTransactionStateException}。
+     *
+     * <p><b>dedupe 已知限制</b>：{@code checkAndEmit} 用「check → append → mark」顺序，
+     * append 失败时 {@code remove(dedupeKey)} 解除污染。但若 append 成功且
+     * 调用方事务在 evaluate 返回后被外部 hook 二次抛异常回滚，in-memory {@code sentThresholds}
+     * 不会回滚，导致同 {@code budgetId/period/threshold} 在进程生命周期内不再重发。
+     * 当前 {@code ExpenseService.create} 在 evaluate 之后无可能失败的步骤，故实际不触发；
+     * 未来若 evaluate 之后增加 hook / 二次校验，需重新评估 dedupe 策略。
+     * 临时缓解：依赖运维每日重启进程（dedupe 随进程销毁）。
+     *
      * @param userId      触发该评估的用户（通常与 expense.userId 一致）
      * @param categoryId  触发分类（expense.categoryId）
      * @param occurredAt  消费发生时间（用于推导 period）
      */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void evaluate(Long userId, Long categoryId, OffsetDateTime occurredAt) {
         LocalDate today = LocalDate.now(clock);
         YearMonth period = YearMonth.from(occurredAt.toLocalDate());
@@ -101,20 +117,30 @@ public class BudgetEvaluator {
             return;
         }
         String dedupeKey = budget.getId() + ":" + year + "-" + month + ":" + threshold;
-        if (sentThresholds.putIfAbsent(dedupeKey, Boolean.TRUE) != null) {
+        // H7: 改为「check → append → mark」顺序；append 失败时 remove(dedupeKey)
+        // 解除污染，避免阈值事件随事务回滚而永久丢失。
+        // TOCTOU 窗口在单用户串行 + 同事务场景下不触发（ExpenseService.create 单线程入口）。
+        // 未来若 EventConsumer 异步消费 expense.created，需重新审视。
+        if (sentThresholds.containsKey(dedupeKey)) {
             return;
         }
         BudgetThresholdPayload payload = new BudgetThresholdPayload(
                 budget.getUserId(), budget.getId(), threshold, usedCents, totalCents);
-        outboxWriter.append(new EventEnvelope(
-                UUID.randomUUID(),
-                EventType.BUDGET_THRESHOLD.eventType(),
-                1,
-                OffsetDateTime.now(clock),
-                budget.getUserId(),
-                "budget",
-                budget.getId(),
-                null, null, null,
-                payload.toMap()));
+        try {
+            outboxWriter.append(new EventEnvelope(
+                    UUID.randomUUID(),
+                    EventType.BUDGET_THRESHOLD.eventType(),
+                    1,
+                    OffsetDateTime.now(clock),
+                    budget.getUserId(),
+                    "budget",
+                    budget.getId(),
+                    null, null, null,
+                    payload.toMap()));
+            sentThresholds.put(dedupeKey, Boolean.TRUE);
+        } catch (RuntimeException ex) {
+            sentThresholds.remove(dedupeKey);
+            throw ex;
+        }
     }
 }

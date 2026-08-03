@@ -50,12 +50,14 @@ class ExpenseServiceTest {
     @Mock ExpenseRepository expenseRepository;
     @Mock OutboxWriter outboxWriter;
     @Mock CategoryService categoryService;
+    @Mock BudgetEvaluator budgetEvaluator;
     ExpenseService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(FIXED_NOW.toInstant(), ZoneOffset.UTC);
-        service = new ExpenseService(expenseRepository, outboxWriter, categoryService, clock);
+        service = new ExpenseService(expenseRepository, outboxWriter,
+                categoryService, budgetEvaluator, clock);
     }
 
     // ---------- create ----------
@@ -127,6 +129,28 @@ class ExpenseServiceTest {
                 service.create(7L, new ExpenseCreateRequest(11L, 0L, PayMethod.CASH,
                         FIXED_NOW, null, "CNY"), category))
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ---------- C1: BudgetEvaluator 接入 ----------
+    // 测试覆盖：create() 必须在 outbox append 之后调用 BudgetEvaluator.evaluate，
+    // 传 userId / categoryId / occurredAt；同一事务内（不验证事务，由 Spring AOP 接管）。
+
+    @Test
+    void create_invokes_budget_evaluator_with_expense_context() {
+        ExpenseCategory category = ExpenseCategory.createUserCategory(7L, "咖啡", null, null, null, 0);
+        category.setIdInternal(11L);
+        OffsetDateTime occurredAt = OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC);
+
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> {
+            Expense e = inv.getArgument(0);
+            e.setIdInternal(100L);
+            return e;
+        });
+
+        service.create(7L, new ExpenseCreateRequest(11L, 3500L, PayMethod.ALIPAY,
+                occurredAt, "早咖啡", "CNY"), category);
+
+        verify(budgetEvaluator, times(1)).evaluate(7L, 11L, occurredAt);
     }
 
     // ---------- update ----------
