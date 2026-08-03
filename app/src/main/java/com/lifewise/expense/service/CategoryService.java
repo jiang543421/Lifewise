@@ -46,7 +46,8 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryView> listSystem() {
-        return categoryRepository.findByUserIdIsNullAndDeletedAtIsNullOrderBySortOrderAsc()
+        return categoryRepository
+                .findByUserIdIsNullAndDeletedAtIsNullAndArchivedFalseOrderBySortOrderAsc()
                 .stream()
                 .map(CategoryView::from)
                 .toList();
@@ -57,6 +58,7 @@ public class CategoryService {
         if (categoryRepository.findByUserIdAndNameAndDeletedAtIsNull(userId, req.name()).isPresent()) {
             throw new CategoryNameExistsException(req.name());
         }
+        validateParentId(userId, req.parentId());
         ExpenseCategory created = ExpenseCategory.createUserCategory(
                 userId,
                 req.name(),
@@ -66,6 +68,36 @@ public class CategoryService {
                 req.sortOrder() == null ? 0 : req.sortOrder());
         ExpenseCategory saved = categoryRepository.save(created);
         return CategoryView.from(saved);
+    }
+
+    /**
+     * 校验 parentId（plan-03 review MEDIUM：create 路径 parentId 完全缺失）。
+     *
+     * <p>规则：
+     * <ul>
+     *   <li>{@code null} → 顶级分类，跳过校验</li>
+     *   <li>不存在 / 已软删 → 404 {@code CategoryNotFoundException}（不区分，防探测）</li>
+     *   <li>不属于该 user 且非系统分类 → 404（不暴露存在性，防跨 user 探测）</li>
+     *   <li>已归档 → 400 {@code IllegalArgumentException}（走 commit #4 新增 handler → INVALID_INPUT）</li>
+     *   <li>系统分类 / 自己的活跃分类 → 允许</li>
+     * </ul>
+     *
+     * <p>注：{@code CategoryUpdateRequest} 无 {@code parentId} 字段，update 路径不涉及
+     * parent 修改，本 commit 不覆盖 update。如未来加 parentId 字段，需复用本方法。
+     */
+    private void validateParentId(Long userId, Long parentId) {
+        if (parentId == null) {
+            return;
+        }
+        ExpenseCategory parent = categoryRepository.findByIdAndDeletedAtIsNull(parentId)
+                .orElseThrow(() -> new CategoryNotFoundException(parentId));
+        if (parent.isArchived()) {
+            throw new IllegalArgumentException(
+                    "parent category is archived: id=" + parentId);
+        }
+        if (!parent.isSystem() && !parent.isOwnedBy(userId)) {
+            throw new CategoryNotFoundException(parentId);
+        }
     }
 
     @Transactional
