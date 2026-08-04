@@ -2,7 +2,7 @@
 
 > **文档状态**：WIP review notes（step-11 skeleton + step-12 路径 B Flyway 阶段）
 > **创建日期**：2026-08-04
-> **更新日期**：2026-08-04（code-review 后扩到 5 条 + 修正 V31 误判）
+> **更新日期**：2026-08-04（v0.2 code-review 后扩到 5 条 + V31 反驳；v0.3 加 §5 commit message 章节号澄清）
 > **关联**：plan-06-ai.md §3 + V8__create_ai_module.sql + V31__extend_ai_jobs_status.sql + V42/V46 Flyway
 > **目的**：把 plan、code 与实际 DDL 之间的字段缺口落到文档，避免下次会话重复踩坑
 
@@ -134,5 +134,23 @@ AiController ─┬─► AiJobService ─┬─► ScopedDataFetcher ──► 
 
 ---
 
-*文档版本：v0.2（step-11 skeleton + 路径 B Flyway 落地后）*
-*下次更新时机：服务层 GREEN 落地后补 ScopedDataFetcher 的 SQL 白名单落地详情；commit-D 修代码后再升 v0.3*
+*文档版本：v0.3（step-11 skeleton + 路径 B Flyway + commit message 章节号澄清）*
+*下次更新时机：服务层 GREEN 落地后补 ScopedDataFetcher 的 SQL 白名单落地详情；V42/V46/V47 合并 main 后升 v0.4 删 §5（澄清已完成使命）*
+
+---
+
+## 5. Flyway commit message 章节号澄清（v0.3 新增）
+
+commit `4d1c04a` (`feat(db): add V42 message_metadata + V46 job_type CHECK extension`)
+message 描述可能被误读 —— **明确边界如下**：
+
+| Migration | 修改对象 | 不修改对象 | 章节号引用 |
+|---|---|---|---|
+| V42 | `chat_messages.message_metadata` 列 ADD | `ai_jobs.*` / `ai_reports.*` 完全不动 | plan-06 §3 + Finding #4 |
+| V46 | `ai_jobs.job_type` CHECK 扩 9 值 | `ai_jobs.status` CHECK 不动（V31 已扩 9 值） | plan-06 §3 + Finding #2 |
+
+**关键**：**V42 与 V46 都不动 `ai_jobs.status`**。`ai_jobs.status` CHECK 扩展由 V31 完成
+（不在本批 WIP 范围）。code-review Finding #1 reviewer 误判"V31 没扩 CHECK"已被 grep
+实证反驳（V31 line 14-20 显式含 `PENDING_PARTIAL` 与 `RUNNING_DEGRADED`）。
+
+后人若需追溯：先看本节，再读 4d1c04a commit message，最后读 V31。
