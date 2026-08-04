@@ -320,6 +320,7 @@ Lifewise 是一个**个人版生活管理 Web 应用**，覆盖任务、日报�
 - 全局规则：`~/.claude/CLAUDE.md`（个人全局）
 - 项目规则：本文件（仓库根）
 - 模块规则：`docs/lifewise/{module}/AGENTS.md`（模块独有约束，按需建立）
+- 工具陷阱（Windows PS 5.1）：`.claude/rules/powershell/bom-trap.md`（BOM 写入 / CRLF 转码 / GetBytes 默认行为 / `git^{tree}` 解析坑）
 
 ### 8.2 文档读取优先级
 
