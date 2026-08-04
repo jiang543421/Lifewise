@@ -36,6 +36,9 @@ public enum EventType {
     // ---- meal / expense / budget ----
     MEAL_CREATED("meal.created"),
     EXPENSE_CREATED("expense.created"),
+    EXPENSE_UPDATED("expense.updated"),
+    EXPENSE_RESTORED("expense.restored"),
+    EXPENSE_DELETED("expense.deleted"),
     BUDGET_THRESHOLD("budget.threshold"),
 
     // ---- ai ----
@@ -53,7 +56,11 @@ public enum EventType {
     AUTH_USER_REGISTERED("auth.user.registered"),
     AUTH_USER_LOGGED_IN("auth.user.logged_in"),
     AUTH_USER_PASSWORD_RESET_REQUESTED("auth.user.password_reset_requested"),
-    AUTH_TOKEN_REUSE_DETECTED("auth.token.reuse_detected");
+    AUTH_TOKEN_REUSE_DETECTED("auth.token.reuse_detected"),
+
+    // ---- auth legacy（2 条，V36 SQL CHECK 预存，B-3 守卫测试检出漂移后补齐）----
+    AUTH_LOGIN("auth.login"),
+    AUTH_LOGOUT("auth.logout");
 
     private final String eventType;
 

@@ -130,6 +130,37 @@ class TaskControllerWebMvcTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // ---------- C3 防御层：CurrentUserArgumentResolver 格式校验边界（task + expense 同步）----------
+    // 校验链：缺失 → 非数字 → 长度超 19 → 非正数 → 401 TOKEN_INVALID envelope
+
+    @Test
+    void non_numeric_user_id_returns_401_TOKEN_INVALID() throws Exception {
+        mockMvc.perform(get("/api/tasks").header(HEADER, "abc"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("TOKEN_INVALID"));
+    }
+
+    @Test
+    void user_id_exceeds_max_length_returns_401_TOKEN_INVALID() throws Exception {
+        // 20 位数字（Long.MAX_VALUE 是 19 位）→ 长度超限
+        mockMvc.perform(get("/api/tasks").header(HEADER, "12345678901234567890"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("TOKEN_INVALID"));
+    }
+
+    @Test
+    void non_positive_user_id_returns_401_TOKEN_INVALID() throws Exception {
+        mockMvc.perform(get("/api/tasks").header(HEADER, "0"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("TOKEN_INVALID"));
+        mockMvc.perform(get("/api/tasks").header(HEADER, "-1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("TOKEN_INVALID"));
+    }
+
     // ---- TaskGlobalExceptionHandler 映射补全（task §7 关键路径）----
 
     @Test

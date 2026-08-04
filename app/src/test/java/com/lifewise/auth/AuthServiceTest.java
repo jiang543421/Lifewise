@@ -54,6 +54,7 @@ class AuthServiceTest {
     @Mock private JwtTokenProvider tokenProvider;
     @Mock private JwtRefreshTokenService refreshService;
     @Mock private OutboxWriter outboxWriter;
+    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     private AuthService service;
 
@@ -63,7 +64,7 @@ class AuthServiceTest {
         PasswordService pwd = new PasswordService(new PasswordEncoderConfig().passwordEncoder());
         service = new AuthService(
                 userRepository, refreshTokenRepository, pwd,
-                tokenProvider, refreshService, outboxWriter, fixed);
+                tokenProvider, refreshService, outboxWriter, eventPublisher, fixed);
         lenient().when(tokenProvider.createAccessToken(any(), any()))
                 .thenReturn("access.token.value");
         lenient().when(tokenProvider.parseAccessToken(anyString()))

@@ -40,6 +40,13 @@ public enum ErrorCode {
     // ---- 消费与预算 ----
     EXPENSE_INVALID_AMOUNT,
     BUDGET_ALREADY_EXISTS,
+    EXPENSE_NOT_FOUND,
+    CATEGORY_NOT_FOUND,
+    CATEGORY_NAME_EXISTS,
+    CATEGORY_PROTECTED,
+    CATEGORY_HAS_BUDGET,
+    BUDGET_NOT_FOUND,
+    DATA_CONFLICT,                 // plan-03 review H5：兜底唯一约束违反等（漏网到 service 层业务异常）
 
     // ---- 饮食与营养 ----
     MEAL_INVALID_TIME_WINDOW,
