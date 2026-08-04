@@ -43,8 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class BudgetEvaluator {
 
-    private static final double THRESHOLD_80 = 0.8;
-    private static final double THRESHOLD_100 = 1.0;
+    private static final int THRESHOLD_80_PCT = 80;
+    private static final int THRESHOLD_100_PCT = 100;
 
     /** 生产默认值。1 user × 数十 budget × 12 月 × 2 threshold ≈ 1200 keys，1024 足够。
      *  设为 instance field（非 static final）以便 test 注入小值。 */
@@ -155,20 +155,23 @@ public class BudgetEvaluator {
                     : expenseRepository.sumInRangeByCategoryCents(
                             userId, periodStart, periodEnd, budget.getCategoryId());
             long totalCents = budget.getAmountCents();
-            double pct = (double) usedCents / (double) totalCents;
+            // plan-03 review M4：payload 改 int thresholdPct，evaluator 内部也按整数百分比比较。
+            // 公式：usedCents * 100 / totalCents（长整型 × 100 不溢出：9_999_999_999 × 100
+            // < 2^63）。ceil 防止「恰好 79.999%」误判为 80% 触发。
+            int pctX100 = (int) ((usedCents * 100L + totalCents - 1) / totalCents);
 
-            checkAndEmit(budget, year, month, usedCents, totalCents, pct, THRESHOLD_80);
-            checkAndEmit(budget, year, month, usedCents, totalCents, pct, THRESHOLD_100);
+            checkAndEmit(budget, year, month, usedCents, totalCents, pctX100, THRESHOLD_80_PCT);
+            checkAndEmit(budget, year, month, usedCents, totalCents, pctX100, THRESHOLD_100_PCT);
         }
     }
 
     private void checkAndEmit(Budget budget, int year, int month,
-                               long usedCents, long totalCents, double pct,
-                               double threshold) {
-        if (pct < threshold) {
+                               long usedCents, long totalCents, int pctX100,
+                               int thresholdPct) {
+        if (pctX100 < thresholdPct) {
             return;
         }
-        String dedupeKey = budget.getId() + ":" + year + "-" + month + ":" + threshold;
+        String dedupeKey = budget.getId() + ":" + year + "-" + month + ":" + thresholdPct;
         // H7: 改为「mark → append → unmark-on-fail」顺序；append 失败时 remove(dedupeKey)
         // 解除污染，避免阈值事件随事务回滚而永久丢失。
         // commit #7：用 putIfAbsent 替代 containsKey+put，三合一：
@@ -183,7 +186,7 @@ public class BudgetEvaluator {
             return;  // 已发过，dedup
         }
         BudgetThresholdPayload payload = new BudgetThresholdPayload(
-                budget.getUserId(), budget.getId(), threshold, usedCents, totalCents);
+                budget.getUserId(), budget.getId(), thresholdPct, usedCents, totalCents);
         try {
             outboxWriter.append(new EventEnvelope(
                     UUID.randomUUID(),

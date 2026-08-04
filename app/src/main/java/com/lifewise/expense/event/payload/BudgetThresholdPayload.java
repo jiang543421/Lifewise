@@ -8,13 +8,17 @@ import java.util.Map;
 /**
  * {@code budget.threshold} 事件负载（plan-03-expense §2.5）。
  *
- * <p>{@code threshold}：0.8 / 1.0（80% / 100%）。驱动 notify 模块 Web Push 投递。
+ * <p>{@code thresholdPct}：整数百分比（80 = 80% / 100 = 100%）。驱动 notify 模块
+ * Web Push 投递。plan-03 review M4：从 {@code Double threshold} 改为 {@code int
+ * thresholdPct}，避免「金额边界避免浮点」原则被阈值边界计算破坏。
+ *
+ * <p>范围约束：1..100（应用层校验）。
  */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record BudgetThresholdPayload(
         Long userId,
         Long budgetId,
-        Double threshold,
+        Integer thresholdPct,
         Long usedCents,
         Long totalCents) {
 
@@ -22,7 +26,7 @@ public record BudgetThresholdPayload(
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("userId", userId);
         map.put("budgetId", budgetId);
-        map.put("threshold", threshold);
+        map.put("thresholdPct", thresholdPct);
         map.put("usedCents", usedCents);
         map.put("totalCents", totalCents);
         return map;
