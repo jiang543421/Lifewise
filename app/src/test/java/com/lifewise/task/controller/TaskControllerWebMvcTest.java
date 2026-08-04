@@ -55,7 +55,7 @@ class TaskControllerWebMvcTest {
                 null, null, List.of());
         Page<TaskListItem> page = new PageImpl<>(List.of(item));
         when(taskQueryService.list(anyLong(), any(), any(), any(), any(Pageable.class))).thenReturn(page);
-        mockMvc.perform(get("/api/tasks").header(HEADER, "7"))
+        mockMvc.perform(get("/api/tasks").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].id").value(1));
@@ -64,18 +64,18 @@ class TaskControllerWebMvcTest {
     @Test
     void get_returns_view() throws Exception {
         com.lifewise.task.domain.Task entity = com.lifewise.task.domain.Task.create(
-                7L, "t", null, TaskPriority.NORMAL, null, null);
+                1L, "t", null, TaskPriority.NORMAL, null, null);
         entity.setIdInternal(1L);
-        when(taskService.getOwned(7L, 1L)).thenReturn(entity);
-        mockMvc.perform(get("/api/tasks/1").header(HEADER, "7"))
+        when(taskService.getOwned(1L, 1L)).thenReturn(entity);
+        mockMvc.perform(get("/api/tasks/1").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(1));
     }
 
     @Test
     void get_not_found_returns_404() throws Exception {
-        when(taskService.getOwned(7L, 1L)).thenThrow(new TaskNotFoundException(1L));
-        mockMvc.perform(get("/api/tasks/1").header(HEADER, "7"))
+        when(taskService.getOwned(1L, 1L)).thenThrow(new TaskNotFoundException(1L));
+        mockMvc.perform(get("/api/tasks/1").header(HEADER, "1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false));
     }
@@ -86,7 +86,7 @@ class TaskControllerWebMvcTest {
                 null, null, null);
         when(taskService.create(anyLong(), any(TaskCreateRequest.class))).thenReturn(view);
         TaskCreateRequest req = new TaskCreateRequest("x", null, TaskPriority.HIGH, null, null, List.of());
-        mockMvc.perform(post("/api/tasks").header(HEADER, "7")
+        mockMvc.perform(post("/api/tasks").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -99,7 +99,7 @@ class TaskControllerWebMvcTest {
                 null, null, null);
         when(taskService.update(anyLong(), anyLong(), any(TaskUpdateRequest.class))).thenReturn(view);
         TaskUpdateRequest req = new TaskUpdateRequest("x", null, null, null, null, null);
-        mockMvc.perform(put("/api/tasks/1").header(HEADER, "7")
+        mockMvc.perform(put("/api/tasks/1").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -108,23 +108,25 @@ class TaskControllerWebMvcTest {
 
     @Test
     void delete_returns_200() throws Exception {
-        mockMvc.perform(delete("/api/tasks/1").header(HEADER, "7"))
+        mockMvc.perform(delete("/api/tasks/1").header(HEADER, "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").exists());
     }
 
     @Test
     void complete_conflict_returns_409() throws Exception {
-        when(taskService.complete(7L, 1L)).thenThrow(new TaskStateConflictException(
+        when(taskService.complete(1L, 1L)).thenThrow(new TaskStateConflictException(
                 TaskStateConflictException.Kind.ALREADY_COMPLETED, 1L));
-        mockMvc.perform(post("/api/tasks/1/complete").header(HEADER, "7"))
+        mockMvc.perform(post("/api/tasks/1/complete").header(HEADER, "1"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
-    void missing_user_header_returns_401() throws Exception {
-        mockMvc.perform(get("/api/tasks"))
+    void invalid_user_header_returns_401() throws Exception {
+        // v1.0 白名单：非 userId=1 一律 401（CLAUDE.md §7.3.1）。
+        // missing header 已 fail-open 降级到 userId=1（见 CurrentUserArgumentResolverSecurityTest）。
+        mockMvc.perform(get("/api/tasks").header(HEADER, "2"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -166,7 +168,7 @@ class TaskControllerWebMvcTest {
         when(taskService.update(anyLong(), anyLong(), any(TaskUpdateRequest.class)))
                 .thenThrow(new ParentUserMismatchException(99L));
         TaskUpdateRequest req = new TaskUpdateRequest("x", null, null, null, 99L, null);
-        mockMvc.perform(put("/api/tasks/1").header(HEADER, "7")
+        mockMvc.perform(put("/api/tasks/1").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isForbidden())
@@ -178,7 +180,7 @@ class TaskControllerWebMvcTest {
     void create_validation_error_returns_400_with_field_details() throws Exception {
         // title 为空白（@NotBlank），应触发 MethodArgumentNotValidException → 400 + field details
         String invalid = "{\"title\":\"\",\"priority\":\"HIGH\"}";
-        mockMvc.perform(post("/api/tasks").header(HEADER, "7")
+        mockMvc.perform(post("/api/tasks").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalid))
                 .andExpect(status().isBadRequest())
@@ -189,9 +191,9 @@ class TaskControllerWebMvcTest {
 
     @Test
     void reopen_already_open_returns_409() throws Exception {
-        when(taskService.reopen(7L, 1L)).thenThrow(new TaskStateConflictException(
+        when(taskService.reopen(1L, 1L)).thenThrow(new TaskStateConflictException(
                 TaskStateConflictException.Kind.ALREADY_OPEN, 1L));
-        mockMvc.perform(post("/api/tasks/1/reopen").header(HEADER, "7"))
+        mockMvc.perform(post("/api/tasks/1/reopen").header(HEADER, "1"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("TASK_INVALID_STATUS_TRANSITION"));
     }
@@ -203,7 +205,7 @@ class TaskControllerWebMvcTest {
         // 6 个 tag id，超过 MAX_TAGS_PER_TASK=5
         java.util.List<Long> tagIds = java.util.List.of(1L, 2L, 3L, 4L, 5L, 6L);
         TaskCreateRequest req = new TaskCreateRequest("x", null, TaskPriority.NORMAL, null, null, tagIds);
-        mockMvc.perform(post("/api/tasks").header(HEADER, "7")
+        mockMvc.perform(post("/api/tasks").header(HEADER, "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isConflict())

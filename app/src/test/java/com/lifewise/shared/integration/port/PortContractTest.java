@@ -88,14 +88,15 @@ class PortContractTest {
                     continue;
                 }
                 if (raw == long.class || raw == Long.class
-                        || raw == int.class || raw == Integer.class) {
+                        || raw == int.class || raw == Integer.class
+                        || raw == double.class || raw == Double.class) {
                     continue;
                 }
                 assertThat(raw)
                         .as("%s.%s 返回 %s 不是 List/Optional/标量；只读端口禁用其他容器",
                                 iface.getSimpleName(), m.getName(), raw.getSimpleName())
                         .isIn(List.class, Optional.class, long.class, Long.class,
-                                int.class, Integer.class);
+                                int.class, Integer.class, double.class, Double.class);
             }
         }
     }

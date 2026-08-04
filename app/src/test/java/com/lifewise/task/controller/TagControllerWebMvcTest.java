@@ -36,8 +36,8 @@ class TagControllerWebMvcTest {
 
     @Test
     void list_returns_ok() throws Exception {
-        when(tagService.list(7L)).thenReturn(List.of());
-        mockMvc.perform(get("/api/task-tags").header("X-User-Id", "7"))
+        when(tagService.list(1L)).thenReturn(List.of());
+        mockMvc.perform(get("/api/task-tags").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -45,9 +45,9 @@ class TagControllerWebMvcTest {
     @Test
     void create_returns_201() throws Exception {
         TaskTagView view = new TaskTagView(1L, "x", null);
-        when(tagService.create(7L, "x", null)).thenReturn(view);
+        when(tagService.create(1L, "x", null)).thenReturn(view);
         CreateTagRequest req = new CreateTagRequest("x", null);
-        mockMvc.perform(post("/api/task-tags").header("X-User-Id", "7")
+        mockMvc.perform(post("/api/task-tags").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -56,9 +56,9 @@ class TagControllerWebMvcTest {
 
     @Test
     void create_duplicate_returns_409() throws Exception {
-        when(tagService.create(7L, "x", null)).thenThrow(new DuplicateTagNameException("x"));
+        when(tagService.create(1L, "x", null)).thenThrow(new DuplicateTagNameException("x"));
         CreateTagRequest req = new CreateTagRequest("x", null);
-        mockMvc.perform(post("/api/task-tags").header("X-User-Id", "7")
+        mockMvc.perform(post("/api/task-tags").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isConflict());
@@ -69,7 +69,7 @@ class TagControllerWebMvcTest {
         TaskTagView view = new TaskTagView(1L, "y", null);
         when(tagService.rename(anyLong(), anyLong(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(view);
         UpdateTagRequest req = new UpdateTagRequest("y", null);
-        mockMvc.perform(put("/api/task-tags/1").header("X-User-Id", "7")
+        mockMvc.perform(put("/api/task-tags/1").header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
@@ -77,7 +77,7 @@ class TagControllerWebMvcTest {
 
     @Test
     void delete_returns_200() throws Exception {
-        mockMvc.perform(delete("/api/task-tags/1").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/task-tags/1").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").exists());
     }
