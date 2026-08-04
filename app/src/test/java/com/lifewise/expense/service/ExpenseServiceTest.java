@@ -128,10 +128,11 @@ class ExpenseServiceTest {
         ExpenseCategory category = ExpenseCategory.createUserCategory(7L, "咖啡", null, null, null, 0);
         category.setIdInternal(11L);
 
+        // plan-03 review M2：金额非法 → ExpenseInvalidAmountException（而非 IllegalArgumentException）。
         assertThatThrownBy(() ->
                 service.create(7L, new ExpenseCreateRequest(11L, 0L, PayMethod.CASH,
                         FIXED_NOW, null, "CNY"), category))
-            .isInstanceOf(IllegalArgumentException.class);
+            .isInstanceOf(com.lifewise.expense.service.exception.ExpenseInvalidAmountException.class);
     }
 
     // ---------- C1: BudgetEvaluator 接入 ----------

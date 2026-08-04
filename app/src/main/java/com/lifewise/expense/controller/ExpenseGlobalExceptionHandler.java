@@ -6,6 +6,7 @@ import com.lifewise.expense.service.exception.CategoryHasBudgetException;
 import com.lifewise.expense.service.exception.CategoryNameExistsException;
 import com.lifewise.expense.service.exception.CategoryNotFoundException;
 import com.lifewise.expense.service.exception.CategoryProtectedException;
+import com.lifewise.expense.service.exception.ExpenseInvalidAmountException;
 import com.lifewise.expense.service.exception.ExpenseNotFoundException;
 import com.lifewise.expense.web.MissingCurrentUserException;
 import com.lifewise.shared.integration.dto.ApiResponse;
@@ -62,6 +63,17 @@ public class ExpenseGlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleBudgetExists(
             BudgetAlreadyExistsException ex, HttpServletRequest req) {
         return envelope(ex, req, HttpStatus.CONFLICT, ErrorCode.BUDGET_ALREADY_EXISTS);
+    }
+
+    /**
+     * plan-03 review M2：金额非法（≤ 0 或 > 9_999_999_999）→ 400 EXPENSE_INVALID_AMOUNT。
+     * 独立 handler 优先于通用 {@code IllegalArgumentException} handler；
+     * 必须放在更通用 handler 之前，Spring 按具体类型匹配。
+     */
+    @ExceptionHandler(ExpenseInvalidAmountException.class)
+    public ResponseEntity<ApiResponse<Object>> handleInvalidAmount(
+            ExpenseInvalidAmountException ex, HttpServletRequest req) {
+        return envelope(ex, req, HttpStatus.BAD_REQUEST, ErrorCode.EXPENSE_INVALID_AMOUNT);
     }
 
     @ExceptionHandler(MissingCurrentUserException.class)

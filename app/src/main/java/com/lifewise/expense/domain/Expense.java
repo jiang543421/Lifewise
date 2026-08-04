@@ -133,10 +133,12 @@ public class Expense extends BaseEntity {
 
     private static void validateAmount(Long amountCents) {
         if (amountCents == null || amountCents <= 0) {
-            throw new IllegalArgumentException("amount_cents must be positive");
+            throw new com.lifewise.expense.service.exception.ExpenseInvalidAmountException(
+                    "amount_cents must be positive", amountCents);
         }
         if (amountCents > 9_999_999_999L) {
-            throw new IllegalArgumentException("amount_cents exceeds limit");
+            throw new com.lifewise.expense.service.exception.ExpenseInvalidAmountException(
+                    "amount_cents exceeds limit (max 9999999999)", amountCents);
         }
     }
 
