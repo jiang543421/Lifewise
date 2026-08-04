@@ -69,7 +69,7 @@ public class ExpenseCategory extends BaseEntity {
             throw new IllegalArgumentException("userId required for user category");
         }
         validateName(name);
-        return new ExpenseCategory(userId, name, icon, color, parentId, sortOrder, false, false);
+        return new ExpenseCategory(userId, name.trim(), icon, color, parentId, sortOrder, false, false);
     }
 
     /** 系统默认分类（{@code is_user_default = TRUE}，BR-24 保护）。 */
@@ -79,14 +79,14 @@ public class ExpenseCategory extends BaseEntity {
             throw new IllegalArgumentException("userId required for user default");
         }
         validateName(name);
-        return new ExpenseCategory(userId, name, icon, color, null, sortOrder, false, true);
+        return new ExpenseCategory(userId, name.trim(), icon, color, null, sortOrder, false, true);
     }
 
     /** 系统种子分类（{@code user_id = NULL}）。 */
     public static ExpenseCategory createSystem(String name, String icon, String color,
                                                Long parentId, int sortOrder) {
         validateName(name);
-        return new ExpenseCategory(null, name, icon, color, parentId, sortOrder, false, false);
+        return new ExpenseCategory(null, name.trim(), icon, color, parentId, sortOrder, false, false);
     }
 
     /** 应用层更新（name/icon/color/sortOrder）。BR-24：默认分类不可改。 */
@@ -124,8 +124,12 @@ public class ExpenseCategory extends BaseEntity {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
-        if (name.length() > 20) {
-            throw new IllegalArgumentException("name must be <= 20 chars");
+        // plan-03 review M7：先 trim 再校验 length，避免 "a"×50 + " " 即便存储后只 50 字符
+        // 也被拒（trim 后实际只 50 字符，合法）。trim 不改变原始 name reference，由
+        // applyUpdate / createUser* 各自的 caller 决定是否写入 .trim() 后的值。
+        String trimmed = name.trim();
+        if (trimmed.length() > 20) {
+            throw new IllegalArgumentException("name must be <= 20 chars (trimmed)");
         }
     }
 

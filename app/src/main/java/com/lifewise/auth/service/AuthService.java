@@ -17,11 +17,13 @@ import com.lifewise.shared.infra.security.JwtRefreshTokenService;
 import com.lifewise.shared.infra.security.JwtTokenProvider;
 import com.lifewise.shared.integration.event.EventEnvelope;
 import com.lifewise.shared.integration.event.EventType;
+import com.lifewise.shared.integration.event.UserRegisteredEvent;
 import com.lifewise.shared.integration.outbox.OutboxWriter;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,7 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final JwtRefreshTokenService refreshService;
     private final OutboxWriter outboxWriter;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
     private final Duration refreshTtl;
 
@@ -49,6 +52,7 @@ public class AuthService {
             JwtTokenProvider tokenProvider,
             JwtRefreshTokenService refreshService,
             OutboxWriter outboxWriter,
+            ApplicationEventPublisher applicationEventPublisher,
             Clock authClock) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -56,6 +60,7 @@ public class AuthService {
         this.tokenProvider = tokenProvider;
         this.refreshService = refreshService;
         this.outboxWriter = outboxWriter;
+        this.applicationEventPublisher = applicationEventPublisher;
         this.clock = authClock;
         this.refreshTtl = Duration.ofDays(30);
     }
@@ -94,6 +99,11 @@ public class AuthService {
                         user.timezone(),
                         user.locale(),
                         OffsetDateTime.now(clock)).toMap()));
+
+        // 同步预置「其他」分类（plan-03-expense BR-24）。
+        // 走 Spring ApplicationEvent：publishEvent 在当前事务内同步触发，
+        // CategorySeedService 监听 @EventListener 共享同一事务。
+        applicationEventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
 
         return TokenResponse.of(pair.access, pair.refresh, pair.expiresIn, pair.issuedAt.toInstant());
     }
