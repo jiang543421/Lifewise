@@ -99,17 +99,28 @@ public class BudgetEvaluator {
      * 评估指定用户在指定月份的预算触发。
      *
      * <p><b>事务契约</b>：必须在调用方事务内运行（{@link Propagation#MANDATORY}）。
-     * 当前调用方 {@code ExpenseService.create} 处于 {@code @Transactional}，
-     * 与 outbox 写库共享同一事务，确保「业务写库 + outbox + 阈值事件」三件套同步落库或整体回滚。
-     * 从非事务上下文调用会抛 {@code IllegalTransactionStateException}。
+     * 当前调用方为 {@code ExpenseService.create / update / restore}（均处于
+     * {@code @Transactional}），与 outbox 写库共享同一事务，确保「业务写库 + outbox
+     * + 阈值事件」三件套同步落库或整体回滚。从非事务上下文调用会抛
+     * {@code IllegalTransactionStateException}。
      *
-     * <p><b>dedupe 已知限制</b>：{@code checkAndEmit} 用「check → append → mark」顺序，
-     * append 失败时 {@code remove(dedupeKey)} 解除污染。但若 append 成功且
-     * 调用方事务在 evaluate 返回后被外部 hook 二次抛异常回滚，in-memory {@code sentThresholds}
-     * 不会回滚，导致同 {@code budgetId/period/threshold} 在进程生命周期内不再重发。
-     * 当前 {@code ExpenseService.create} 在 evaluate 之后无可能失败的步骤，故实际不触发；
-     * 未来若 evaluate 之后增加 hook / 二次校验，需重新评估 dedupe 策略。
-     * 临时缓解：依赖运维每日重启进程（dedupe 随进程销毁）。
+     * <p><b>dedupe 已知限制（H3，方案 B 现状）</b>：当前实现走「方案 B：
+     * 进程内 LRU Map」（同 transaction 内 in-memory dedupe；详
+     * BudgetEvaluator commit #7 message 与 commit #9 LRU 改造），未采用
+     * review notes (plan-03-expense-review-notes §H3) 推荐的「方案 A：
+     * budget_notifications 表」。两个真实约束：
+     * <ul>
+     *   <li><b>事务回滚不对应 Map 回滚</b>：{@code checkAndEmit} 用「mark → append → unmark-on-fail」
+     *       顺序，append 失败时 {@code remove(dedupeKey)} 解除污染；但若 append 成功且
+     *       调用方事务在 evaluate 返回后被外部 hook 二次抛异常回滚，in-memory sentThresholds
+     *       不会回滚，导致同 {@code budgetId/period/threshold} 在进程生命周期内不再重发。
+     *       当前 ExpenseService 三个调用方在 evaluate 之后均无可能失败的步骤，故实际不触发；
+     *       未来若 evaluate 之后增加 hook / 二次校验，需重新评估。</li>
+     *   <li><b>进程重启 = dedupe 清空</b>：sentThresholds 是 in-memory 状态，重启即丢。
+     *       这是「每天保证已达阈值的预算会在下次消费时再发一次通知」的机制，不是缓解措施。
+     *       v1.0 单机部署接受这一行为；集群或要求严格一次通知的场景必须切方案 A
+     *       （DB UNIQUE (budget_id, threshold_pct, period_year_month)）。</li>
+     * </ul>
      *
      * @param userId      触发该评估的用户（通常与 expense.userId 一致）
      * @param categoryId  触发分类（expense.categoryId）
