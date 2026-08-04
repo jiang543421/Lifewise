@@ -43,6 +43,7 @@ public enum ErrorCode {
 
     // ---- 饮食与营养 ----
     MEAL_INVALID_TIME_WINDOW,
+    MEAL_NOT_FOUND,
     FOOD_NOT_FOUND,
 
     // ---- AI ----
