@@ -8,27 +8,9 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
-
- * 把 {@link CurrentUser} 解析为 {@code X-User-Id} 头指定的 Long userId。
+ * 把 {@link CurrentUser} 解析为 {@code X-User-Id} 头指定的 Long userId（v1.0 单用户版）。
  *
- * <p><b>防御层（Phase A）</b>：格式校验（numeric + 长度 ≤ 19 + 严格正整数）。
- * 拒绝任何缺失 / 非数字 / 长度超过 Long.MAX_VALUE 字符数（19）/ 非正整数的输入，
- * 由 {@link com.lifewise.task.controller.TaskGlobalExceptionHandler} 映射为
- * {@code 401 TOKEN_INVALID} envelope。
- *
- * <p><b>同步契约</b>：本类实现必须与
- * {@code com.lifewise.expense.web.CurrentUserArgumentResolver.parseUserId}
- * 保持完全一致（错误消息、异常类型、校验顺序）。后续抽取见 plan-03 §12。
- */
-@Component
-public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
-
-    /** Long.MAX_VALUE 字符数（"9223372036854775807".length()）。 */
-    private static final int MAX_USER_ID_LENGTH = 19;
-
- * v1.0 个人版白名单解析：仅允许 userId=1（CLAUDE.md §7.3.1）。
- *
- * <p>设计要点：
+ * <p><b>设计要点</b>：
  * <ul>
  *   <li>nginx 强制覆盖 X-User-Id=1（{@code nginx/conf/conf.d/default.conf}），
  *       客户端无法伪造</li>
@@ -46,6 +28,8 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     /** v1.0 个人版白名单：仅允许 userId=1。 */
     private static final long ALLOWED_USER_ID = 1L;
 
+    /** Long.MAX_VALUE 字符数（"9223372036854775807".length()）。 */
+    private static final int MAX_USER_ID_LENGTH = 19;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -56,31 +40,17 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-
         return parseUserId(webRequest.getHeader("X-User-Id"));
     }
 
     /**
-     * 解析 {@code X-User-Id} 头为 Long。校验链：缺失 → 长度超限 → 非数字 → 非正数。
-     * 任意校验失败抛 {@link MissingCurrentUserException} → 401 TOKEN_INVALID。
-     *
-     * <p>必须与 {@code com.lifewise.expense.web.CurrentUserArgumentResolver.parseUserId}
-     * 保持完全一致（错误消息、异常类型、校验顺序）。后续抽取见 plan-03 §12。
-     *
-     * <p><b>已知限制</b>：{@link MissingCurrentUserException} 也用于非法格式
-     * （非数字 / 长度超限 / 非正数），源于历史命名约定。
-     * Phase B issue C3-nginx 落地后，可统一重命名为 {@code InvalidCurrentUserException}，
-     * 同步更新 envelope 错误码链路上的所有 handler / 测试 / 文档。
+     * 校验链：缺失 → 默认 ALLOWED_USER_ID（fail-safe）；
+     * 长度超限 / 非数字 / 非白名单 → 抛 {@link MissingCurrentUserException} → 401。
      */
     private Long parseUserId(String header) {
-
-        String header = webRequest.getHeader("X-User-Id");
-        // missing / blank → fail-open 降级到 userId=1（nginx 故障兜底）
-
         if (header == null || header.isBlank()) {
             return ALLOWED_USER_ID;
         }
-
         String trimmed = header.trim();
         if (trimmed.length() > MAX_USER_ID_LENGTH) {
             throw new MissingCurrentUserException("X-User-Id exceeds max length (19)");
@@ -94,20 +64,10 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
         if (parsed <= 0) {
             throw new MissingCurrentUserException("X-User-Id must be positive");
         }
-        return parsed;
-
-        long userId;
-        try {
-            userId = Long.parseLong(header.trim());
-        } catch (NumberFormatException ex) {
-            throw new MissingCurrentUserException("X-User-Id header must be numeric");
-        }
-        // 白名单校验：非 1 一律拒绝（客户端伪造防御）
-        if (userId != ALLOWED_USER_ID) {
+        if (parsed != ALLOWED_USER_ID) {
             throw new MissingCurrentUserException(
                     "v1.0 single-user mode: only userId=" + ALLOWED_USER_ID + " is allowed");
         }
-        return userId;
-
+        return parsed;
     }
 }
