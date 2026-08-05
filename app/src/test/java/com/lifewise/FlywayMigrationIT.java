@@ -107,18 +107,19 @@ class FlywayMigrationIT {
     }
 
     @Test
-    void flyway_should_apply_v38_cleanly() throws SQLException {
+    void flyway_should_apply_v48_cleanly() throws SQLException {
+        // v1.0.1 hot-fix: V38 文件名 rename 为 V48（V45-V49 区间清理跨模块 daily/expense 碰撞）
         try (Connection conn = metaConnection();
              Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery("""
                      SELECT COUNT(*)
                      FROM flyway_schema_history
                      WHERE success = TRUE
-                       AND version = '38'
+                       AND version = '48'
                      """)) {
             assertThat(rs.next()).isTrue();
             assertThat(rs.getInt(1))
-                    .as("V38 budgets partial unique index 迁移必须成功应用")
+                    .as("V48 budgets partial unique index 迁移必须成功应用")
                     .isEqualTo(1);
         }
     }

@@ -1,38 +1,8 @@
-# plan-03-expense KNOWN_LIMITATIONS (v1.1 — ledger reconciliation)
+# plan-03-expense KNOWN_LIMITATIONS (v1.3 — 3 pre-existing hot-fix + Path B M8)
 
-> **v1.1 status: REWRITTEN 2026-08-04** based on direct review of
-> [`docs/lifewise/specs/plan-03-review/plan-03-expense-review-notes.md`](../specs/plan-03-review/plan-03-expense-review-notes.md)
-> (the original review notes lived only on the local
-> `refs/backup/pre-fix-stash-78645273` ref — created automatically by
-> `git stash` when the B-2/B-3 fix cycle was committed. The ref IS
-> reachable (git gc won't reclaim it), but it is **not** under
-> `refs/heads/*`, so `git branch -a --contains` cannot find it; it
-> is never pushed, so collaborators and the Gitee mirror cannot reach
-> it; and a future `git stash drop` of the corresponding stash or a
-> manual `git update-ref -d refs/backup/pre-fix-stash-78645273` would
-> lose it permanently. Rescued here because this document treats the
-> review notes as its authoritative source — losing them would make
-> the ledger unverifiable).
+> **v1.3 status: 2026-08-05 — 3 pre-existing release-blockers closed**, B-2 M8 fully Closed via Path B (PostgreSQL UPSERT), and 1 new finding recorded (Session-pollution-bug discovery via B-2 IT).
 >
-> **v1 (2026-08-03, `98f9d41`) was inaccurate on multiple counts:**
-> - Header counts claimed 22 findings (3C/8H/7M/4L). Actual: 10 findings (0C/3H/6M/1L).
-> - B-2 description claimed "CategorySeedService absent"; review notes M8 actually says
->   the service exists but is not concurrency-safe.
-> - B-4 claimed "4 minor style/noise findings" from "review §findings table"; the
->   review notes only have 1 LOW finding (L1 = duplicate of M3, marked "优先合并处理").
->   The "4" came from the summary statistic row, not from 4 separate findings.
-> - B-3 was tracked as a separate finding; in the review notes it appears only as a
->   suggestion inside M6 ("Service 层加 update 路径发 EXPENSE_UPDATED event (如需要)").
-> - Several real closure commits (H2 → V37, H1 demoted, M3/L1 → exception+handler) were
->   never recorded in the v1 ledger.
-> - Two real open items were missing from the v1 ledger entirely:
->   - H3 (BudgetEvaluator idempotency) — review notes recommended plan A (DB table);
->     implementation chose plan B (in-memory LRU Map), and B-3 widened the surface
->     area from 1 caller to 3 (create/update/restore).
->   - M4 (BudgetEvaluator float `thresholdRatio`) — never addressed.
->
-> This v1.1 replaces the v1 table with a row-per-finding reconciliation so the
-> ledger reflects ground truth, not a summary statistic.
+> Full v1.0 / v1.1 / v1.2 history in §4 update log. ADR-001 §5 unchanged.
 
 ## 1. Reconciliation table
 
@@ -55,7 +25,7 @@ Legend:
 | M5  | MEDIUM | `Budget.applyUpdate()` / `muteUntil()` public mutable        | Closed   | entity 工厂方法 + `applyUpdate` / `mute` / `unmute` / `archive` / `unarchive` 业务方法; 无 public setter. `Budget.java` (构造器 private, 字段全 private, `applyUpdate` 是业务方法带 validateAmount). `ExpenseCategory.java` 同模式 (`applyUpdate` 带 BR-24 默认分类守护 + `validateName` 先 trim 后 length). |
 | M6  | MEDIUM | `Expense.applyUpdate()` public mutable + no EXPENSE_UPDATED | Partially closed (B-3 closed the event half: `a4570d0` emits EXPENSE_UPDATED / RESTORED / DELETED; access modifier tightening still open) | review notes §M6 |
 | M7  | MEDIUM | `ExpenseCategory.rename()` length validation order           | Closed   | `ExpenseCategory.java:127-133`: `validateName` 先 `name.trim()` 后校验 `trimmed.length() > 20`; commit annotation 引用 "plan-03 review M7：先 trim 再校验 length, 避免 "a"×50 + " " 即便存储后只 50 字符也被拒". |
-| M8  | MEDIUM | `CategorySeedService.ensureUserDefault()` not concurrency-safe | **Partially closed** (code fixed; concurrency IT pending) | `a068e0` feat(expense): seed default category on registration. `CategorySeedService.java:63-69`: `try { categoryRepository.save(...) } catch (DataIntegrityViolationException ex) { 重新查询确认 }` — DB unique partial index `uq_expense_categories_user_default` 兜底. **Remaining**: 并发 IT (B-2 follow-up). |
+| M8  | MEDIUM | `CategorySeedService.ensureUserDefault()` not concurrency-safe | **Closed** (Path B PostgreSQL UPSERT + REQUIRES_NEW 隔离) | v1.3: 替换 v1.0 catch + re-query 路径。`CategorySeedService.java:75-100` 用 `TransactionTemplate(REQUIRES_NEW)` 包裹 `CategoryRepository.insertUserDefaultIfAbsent(...)`（native SQL `INSERT ... ON CONFLICT (user_id) WHERE is_user_default = TRUE DO NOTHING`） + 独立事务 JdbcTemplate SELECT 拿 id。彻底消除 Hibernate session pollution（v1.0 catch 块触发 `org.hibernate.AssertionFailure` 逃出）。**Concurrency IT**: `CategorySeedServiceConcurrencyIT` 10 线程 + CountDownLatch + AssertionFailure 反向监测，全绿。 |
 | L1  | LOW    | `BUDGET_ALREADY_EXISTS` ErrorCode no thrower                | Closed (merged with M3) | same as M3 |
 
 ## 2. Phase B issues (active work)
@@ -66,25 +36,19 @@ items still requiring code work, mapped to their review-notes origin.
 | ID  | Source    | Title                                                       | Severity | Trigger / Notes |
 |-----|-----------|-------------------------------------------------------------|----------|-----------------|
 | B-1 | plan-03 cross-module (no review-notes origin) | nginx URL hardening: `ALLOWED_USER_IDS` env wiring + X-User-Id resolver dual-layer defense | C3       | Trigger: `a6f7b22` (format validation in CurrentUserArgumentResolver — Phase A only validated request-side format). Phase B scope: nginx config + body validation. |
-| B-2 | review §M8 | `CategorySeedService.ensureUserDefault()` concurrency safety | MEDIUM (M8) | **Code fixed** by `a068e0` (catch `DataIntegrityViolationException` + re-query at `CategorySeedService.java:63-69`; DB partial unique index `uq_expense_categories_user_default` 兜底). **Remaining**: 并发 IT (B-2 follow-up test, N=10 threads CountDownLatch, 断言 catch 分支至少触发 1 次). |
+| B-2 | review §M8 | `CategorySeedService.ensureUserDefault()` concurrency safety | **Closed** (Path B PostgreSQL UPSERT) | v1.3: 替换 v1.0 catch + re-query (`a068e0` 已无效)。Path B: native SQL `INSERT ... ON CONFLICT ... DO NOTHING` + `TransactionTemplate(REQUIRES_NEW)` 隔离 INSERT/SELECT + `JdbcTemplate` fallback SELECT 绕开 Hibernate 脏 session。详见 §1 M8 行的 closure / Reference 列。 |
 | B-3 | review §M6 (inferred from "可选" suggestion) | Emit EXPENSE_UPDATED / EXPENSE_DELETED outbox events         | Closed `a4570d0` | (also added EXPENSE_RESTORED + BudgetEvaluator integration — see plan-03 B-3 commit message) |
 | B-4 | **DELETED** | "4 minor style/noise findings" — phantom item | — | The v1 ledger's "L × 4" came from a summary statistic, not 4 separate findings. Review notes contain exactly 1 LOW (L1), and L1 = duplicate of M3 (already closed). No code work to do here. |
+| B-5 | v1.3 discovery (release-blocker scan) | 3 pre-existing cross-module hot-fixes (bean name collision + Flyway V37/V38/V39 collision + TaskChangedConsumer dead-bean) | **Closed** (commit 1-4 of v1.3 PR) | Bean name 冲突: `expense.controller.StatsController` + `diet.controller.StatsController` 同名 → `ConflictingBeanDefinitionException` 阻塞 Spring 启动。同样 `expense.service.StatsService` + `diet.service.StatsService`。修法: `@RestController("expenseStatsController")` / `@RestController("dietStatsController")` + `@Service("expenseStatsService")` / `@Service("dietStatsService")`。Flyway 冲突: V37/V38/V39 daily 和 expense 各自有同名文件 → "Found more than one migration with version X"。修法: rename 到 V45-V49 区间（daily V37→V45/V38→V46/V39→V47, expense V38→V48/V39→V49）。TaskChangedConsumer 死 bean: `PlanEventConsumerConfig.planTaskChangedConsumer` 创建的 `TaskChangedConsumer` 实例 implements `EventConsumer` → 被 `OutboxDispatcher(List<EventConsumer>)` 收，按 `eventType()` 索引抛 `UOE: TaskChangedConsumer must be wrapped by TaskChangedForwarder`。修法: class 移除 `implements EventConsumer`，forwarder 仍持有引用调 `delegate.consume(env)`。**Why these came in one PR**: 3 个阻塞在 mvn verify 同一连续命令暴露，必须同一 PR 修复才能 verify green。**How to apply**: v1.1+ 新模块接入时，`@RestController` / `@Service` 命名必须带模块前缀（plan-05 ADR seed planned）。 |
+| B-6 | v1.3 discovery (B-2 IT side-effect) | Hibernate session pollution in `CategorySeedService` catch + re-query | **Closed** (Path B = commit 5 of v1.3 PR) | B-2 IT 10 线程并发暴露 v1.0 catch + re-query 的隐性 bug: `save()` 失败后 Hibernate 持久化上下文保留脏实体（id=null），catch 块调 `findFirstBy...` 触发 auto-flush → `org.hibernate.AssertionFailure: null id in ExpenseCategory entry`，逃出 catch。**Why this is a real release blocker**: v1.0 单用户 race 罕见，但生产部署一旦撞上（重启 + 并发注册），整方法 fail，后续注册都失败。**How to apply**: 任何 `@Transactional` 方法 + `try { save(...) } catch (DataIntegrityViolationException) { re-query }` 模式都有该风险——要么用 native UPSERT，要么事务隔离做 `REQUIRES_NEW`。 |
 
-**Backlog note** (after 2026-08-05 v1.2 reconciliation): **M1 / M2 / M4 / M5 / M7
-are closed** — see §1 closure column. **H3 is decided** via ADR-001 §5 (plan B
-maintained for v1.0 single-user deploy; plan A mandatory on v1.1 clusterization
-trigger). **Remaining §1 Open** = M8 (B-2 partial: code fixed `a068e0`, pending
-并发 IT). **Remaining §2 Open** = **B-1 nginx URL hardening** (C3, current
-`nginx/conf/conf.d/default.conf` hardcodes `X-User-Id=1` in 3 locations —
-`/api/ai/chat`, `/api/ai/`, `/api/` — needs env wiring `ALLOWED_USER_IDS` +
-dual-layer defense). **M6 partial closure**: event half closed (`a4570d0`);
-access modifier tightening on `Expense.applyUpdate()` still open (low priority).
+**Backlog note** (after 2026-08-05 v1.3 reconciliation): **M1 / M2 / M4 / M5 / M7 / M8 / B-2 / B-3 / B-5 / B-6 are closed** — see §1 closure column. **B-5/B-6 ledger-only**: 3 release-blockers + 1 IT-side-effect discovery. **H3 is decided** via ADR-001 §5 (plan B for v1.0 single-user; plan A mandatory on v1.1 clusterization trigger). **Remaining §1 Open** = **M6 access modifier tightening** (low priority — `Expense.applyUpdate()` 仍 public mutable). **Remaining §2 Open** = **B-1 nginx URL hardening** (3 locations hardcode `X-User-Id=1` in `nginx/conf/conf.d/default.conf`).
 
 ## 3. Conventions (unchanged)
 
 - IDs `B-N` are stable — never reused. **B-4 is intentionally deleted** to avoid
   the trap of "phantom backlog item that becomes a phantom claim of completeness".
-- B-3 was the last ID issued from v1. New issues append to v2 (see Update Log).
+- B-6 was the last ID issued from v1. New issues append to v2 (see Update Log).
 - "Trigger commit" is the Phase A commit that surfaced the finding (subject hash).
 - "Issue" is the public GitHub URL — filled by owner after `gh issue create`.
   Run: `gh issue create --title "..." --body "..." --label "phase-b,plan-03-expense"`.
@@ -124,6 +88,15 @@ access modifier tightening on `Expense.applyUpdate()` still open (low priority).
   在 v1.1 集群化打开前维持 plan B（in-memory LRU Map）；集群化 trigger 触发后**必须**迁 plan A（DB `budget_notifications` 表）。
   Plan A 迁移草案已写明 DDL / Repository / Service / 验证 / 前端清理 5 步。
   无新 schema 改动，无 service 改动，纯文档决策记录。
+- 2026-08-05: **v1.3 hot-fix release.** 3 pre-existing release-blockers + 1 IT-side-effect discovery closed in 1 PR (6 commit):
+    - **B-5 closed** (3 pre-existing cross-module hot-fixes):
+      1. bean name conflict: `expense/diet.StatsController` + `expense/diet.StatsService` 同名 → Spring 启动失败。
+      2. Flyway V37/V38/V39 collision: daily 模块和 expense 模块各有同名文件 → migration 启动失败。
+      3. TaskChangedConsumer dead bean: 实现 `EventConsumer` 接口 + `@Bean` 创建 → 被 `OutboxDispatcher.List<EventConsumer>` 收，索引失败。
+    - **B-2 / M8 fully Closed** (Path B PostgreSQL UPSERT): native SQL `INSERT ... ON CONFLICT ... DO NOTHING` + `TransactionTemplate(REQUIRES_NEW)` 隔离 INSERT/SELECT + `JdbcTemplate` fallback SELECT 绕开 Hibernate 脏 session。`CategorySeedServiceConcurrencyIT` 10 线程并发 + AssertionFailure 反向监测，全绿。
+    - **B-6 new finding** (session-pollution-bug discovery via B-2 IT): v1.0 catch + re-query 路径在 production race 下暴露 Hibernate session pollution（`AssertionFailure: null id` 逃出 catch）。属于 v1.0 release 真隐患，由 B-2 IT 逮到。已在 Path B 替换中根本修复。
+    - **pre-existing 失败**: `ExpenseE2EIT.business_failure_does_not_persist_expense` / `business_failure_rolls_back_outbox_event` 硬编码 `IllegalArgumentException` vs 实际 `ExpenseInvalidAmountException`（v1.0 plan-03 review 引入的 domain exception）。与 Path B 改动**无关**，暂留待 v1.3.x 后续 IT 硬编码清理。
+    - **新 PRD 变更**: M8 + B-2 + B-5 + B-6 ledger 闭环，剩余 Open = M6 (low priority) + B-1 (nginx URL hardening)。
 
 ## 5. ADR-001: H3 BudgetEvaluator 阈值事件幂等 — Plan A vs Plan B
 
@@ -206,3 +179,27 @@ LRU 重启后的 dedupe 漂移在多实例环境 = 永久问题，不只是单�
 - `BudgetEvaluator.java:106-112`（plan B javadoc 现状）
 - `a4570d0` feat(expense): emit EXPENSE_UPDATED / RESTORED / DELETED outbox events（B-3 commit）
 - `data-model-v1.2-amendment.md` §1.4（notification_requests / notification_deliveries 预留）
+
+### 5.8 v1.3 模块命名约定 seed（v1.1+ 落地待议）
+
+> 日期：2026-08-05
+> 状态：**Seed**（v1.3 ledger 同步；v1.1+ plan-05/plan-06 落地为正式 ADR）
+> 决策者：江兴旺
+> 关联：v1.3 B-5 bean name 冲突复盘
+
+#### 5.8.1 Context
+
+v1.3 修复的 3 pre-existing hot-fix 中，第 1 项是 `expense/diet.StatsController` 同名 bean → Spring 启动直接 fail。原因：6 模块每模块有自己的 `StatsController` 走模块特定路径但类名相同，依赖 Spring 默认按类名小写生成 bean name，造成 `ConflictingBeanDefinitionException`。
+
+#### 5.8.2 提议规则（v1.1+）
+
+- 所有 `@RestController` / `@Service` / `@Component` / `@Repository` 命名必须带模块前缀。
+- 例：`expenseStatsController` / `dietStatsService` / `planMilestoneRepository`。
+- v1.0 紧急止血用 `@RestController("xxx")` / `@Service("xxx")` 显式命名（v1.3 落地）。
+- v1.1+ 接入新模块前制定 ArchUnit 规则或 IDE 模板强制约束。
+
+#### 5.8.3 Why this seed (ADR not promoted)
+
+- v1.3 修复是为了 release unblock，没时间完善 ArchUnit/checkstyle。
+- v1.1+ 集群化打开前推荐补一次跨模块命名约定 ADR（覆盖 controllers / services / repositories / outbox event types / flyway version numbers）。
+- 当前不强制 v1.0 范围必须执行。
