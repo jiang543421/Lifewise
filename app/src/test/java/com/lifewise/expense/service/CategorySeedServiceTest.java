@@ -3,118 +3,125 @@ package com.lifewise.expense.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.lifewise.expense.domain.ExpenseCategory;
 import com.lifewise.expense.repository.CategoryRepository;
 import com.lifewise.shared.integration.event.UserRegisteredEvent;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 /**
- * CategorySeedService 单元测试（plan-03-expense BR-24 + review M8）。
+ * CategorySeedService 单元测试（plan-03-expense BR-24 + review M8 + B-2 follow-up）。
  *
- * <p>覆盖 4 路径：
+ * <p>v1.0 修订（ledger M8 fully Closed）：旧版 catch + re-query 实现已被 PostgreSQL UPSERT
+ * + JdbcTemplate fallback 替代。本测试覆盖 4 路径：
  * <ol>
- *   <li>已存在默认分类时不重复创建</li>
- *   <li>不存在时创建「其他」</li>
- *   <li>并发插入触发 DataIntegrityViolationException，重查存在后不抛异常</li>
- *   <li>重查仍不存在时重新抛出（不能静默吞掉真问题）</li>
+ *   <li>UPSERT 成功 1 行 → JDBC SELECT 拿 id → 返回 id</li>
+ *   <li>UPSERT 抛 DataIntegrityViolationException（残余 race）→ JDBC SELECT 兜底 → 返回 id</li>
+ *   <li>userId = null → 抛 IllegalArgumentException</li>
+ *   <li>JDBC SELECT 拿不到 id（不变量违反）→ 抛 IllegalStateException</li>
  * </ol>
  */
 @ExtendWith(MockitoExtension.class)
 class CategorySeedServiceTest {
 
     @Mock CategoryRepository categoryRepository;
+    @Mock JdbcTemplate jdbcTemplate;
+    @Mock PlatformTransactionManager transactionManager;
 
     private CategorySeedService service;
 
     @BeforeEach
     void setUp() {
-        service = new CategorySeedService(categoryRepository);
+        // 让 TransactionTemplate 内部 getTransaction(...) 拿到 stub status，commit/rollback 走 mock
+        // lenient: null_user_id_throws 在 null check 前不调 transactionManager
+        org.mockito.Mockito.lenient().when(transactionManager.getTransaction(any(TransactionDefinition.class)))
+                .thenReturn(new SimpleTransactionStatus());
+        service = new CategorySeedService(categoryRepository, jdbcTemplate, transactionManager);
     }
 
     @Test
-    @DisplayName("已存在默认分类 → 不重复创建")
-    void no_op_when_default_exists() {
-        ExpenseCategory existing = ExpenseCategory.createUserDefault(7L, "其他", "📦", "#9CA3AF", 9999);
-        existing.setIdInternal(99L);
-        when(categoryRepository.findFirstByUserIdAndUserDefaultTrueAndDeletedAtIsNull(7L))
-                .thenReturn(Optional.of(existing));
+    @DisplayName("UPSERT 成功 → JDBC SELECT 拿 id")
+    void upsert_success_returns_id_via_jdbc_select() {
+        when(categoryRepository.insertUserDefaultIfAbsent(anyLong(), anyString(), anyString(), anyString(), anyInt()))
+                .thenReturn(1);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), any()))
+                .thenReturn(42L);
 
-        service.ensureUserDefault(7L);
+        Long id = service.ensureUserDefault(7L);
 
-        verify(categoryRepository, never()).save(any());
+        assertThat(id).isEqualTo(42L);
+        verify(categoryRepository, times(1))
+                .insertUserDefaultIfAbsent(7L, "其他", "📦", "#9CA3AF", 9999);
     }
 
     @Test
-    @DisplayName("不存在 → 创建「其他」默认分类")
-    void creates_default_other() {
-        when(categoryRepository.findFirstByUserIdAndUserDefaultTrueAndDeletedAtIsNull(7L))
-                .thenReturn(Optional.empty())
-                .thenReturn(Optional.empty());  // 第二次（failure 后）查询也返回空 → 抛出
-        when(categoryRepository.save(any(ExpenseCategory.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        service.ensureUserDefault(7L);
-
-        ArgumentCaptor<ExpenseCategory> captor = ArgumentCaptor.forClass(ExpenseCategory.class);
-        verify(categoryRepository, times(1)).save(captor.capture());
-        ExpenseCategory saved = captor.getValue();
-        assertThat(saved.getUserId()).isEqualTo(7L);
-        assertThat(saved.getName()).isEqualTo("其他");
-        assertThat(saved.isUserDefault()).isTrue();
-    }
-
-    @Test
-    @DisplayName("并发：unique violation 后重查存在 → 不抛异常")
-    void concurrent_insert_recovered_via_recheck() {
-        ExpenseCategory winner = ExpenseCategory.createUserDefault(7L, "其他", "📦", "#9CA3AF", 9999);
-        winner.setIdInternal(99L);
-        // 第一次空，save 抛 unique violation，第二次重查存在
-        when(categoryRepository.findFirstByUserIdAndUserDefaultTrueAndDeletedAtIsNull(7L))
-                .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(winner));
-        when(categoryRepository.save(any(ExpenseCategory.class)))
+    @DisplayName("UPSERT 抛 DataIntegrityViolation → JDBC fallback 拿 id")
+    void upsert_race_fallback_to_jdbc_select() {
+        when(categoryRepository.insertUserDefaultIfAbsent(anyLong(), anyString(), anyString(), anyString(), anyInt()))
                 .thenThrow(new DataIntegrityViolationException("uq_expense_categories_user_default"));
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), any()))
+                .thenReturn(99L);
 
-        service.ensureUserDefault(7L);  // 不应抛
+        Long id = service.ensureUserDefault(7L);
 
-        verify(categoryRepository, times(2))
-                .findFirstByUserIdAndUserDefaultTrueAndDeletedAtIsNull(7L);
+        assertThat(id).isEqualTo(99L);
+        // 不应再有人为重试 INSERT，由 JDBC SELECT 兜底
+        verify(categoryRepository, times(1))
+                .insertUserDefaultIfAbsent(anyLong(), anyString(), anyString(), anyString(), anyInt());
     }
 
     @Test
-    @DisplayName("并发：unique violation 后重查仍不存在 → 重新抛出")
-    void rethrows_when_recheck_also_empty() {
-        when(categoryRepository.findFirstByUserIdAndUserDefaultTrueAndDeletedAtIsNull(7L))
-                .thenReturn(Optional.empty());  // 两次都空
-        when(categoryRepository.save(any(ExpenseCategory.class)))
-                .thenThrow(new DataIntegrityViolationException("real DB error"));
+    @DisplayName("userId = null → 抛 IllegalArgumentException")
+    void null_user_id_throws() {
+        assertThatThrownBy(() -> service.ensureUserDefault(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("userId");
+        verify(categoryRepository, never()).insertUserDefaultIfAbsent(anyLong(), anyString(),
+                anyString(), anyString(), anyInt());
+    }
+
+    @Test
+    @DisplayName("JDBC SELECT 拿不到 id → 抛 IllegalStateException")
+    void jdbc_select_empty_throws() {
+        when(categoryRepository.insertUserDefaultIfAbsent(anyLong(), anyString(), anyString(), anyString(), anyInt()))
+                .thenReturn(1);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), any()))
+                .thenThrow(new EmptyResultDataAccessException("not found", 1));
 
         assertThatThrownBy(() -> service.ensureUserDefault(7L))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("user_default category missing");
     }
 
     @Test
     @DisplayName("UserRegisteredEvent 监听器透传到 ensureUserDefault")
     void event_listener_dispatches_to_ensureUserDefault() {
-        ExpenseCategory existing = ExpenseCategory.createUserDefault(7L, "其他", "📦", "#9CA3AF", 9999);
-        when(categoryRepository.findFirstByUserIdAndUserDefaultTrueAndDeletedAtIsNull(7L))
-                .thenReturn(Optional.of(existing));
+        when(categoryRepository.insertUserDefaultIfAbsent(anyLong(), anyString(), anyString(), anyString(), anyInt()))
+                .thenReturn(1);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), any()))
+                .thenReturn(42L);
 
         service.onUserRegistered(new UserRegisteredEvent(7L));
 
-        verify(categoryRepository, never()).save(any());
+        verify(categoryRepository, times(1))
+                .insertUserDefaultIfAbsent(7L, "其他", "📦", "#9CA3AF", 9999);
     }
 }
