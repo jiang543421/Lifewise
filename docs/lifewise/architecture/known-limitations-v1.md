@@ -108,3 +108,89 @@ only v1.0 Phase B code work.**
   Also fixed `BudgetEvaluator.java:106-112` javadoc — previous "依赖运维每日重启进程
   (dedupe 随进程销毁)" was an inverted framing (restart = re-notification, not mitigation);
   replaced with honest two-bullet description of the plan-B gap.
+- 2026-08-05: **ADR-001 H3 Plan A/B 决议（§5 新增）**.
+  在 v1.1 集群化打开前维持 plan B（in-memory LRU Map）；集群化 trigger 触发后**必须**迁 plan A（DB `budget_notifications` 表）。
+  Plan A 迁移草案已写明 DDL / Repository / Service / 验证 / 前端清理 5 步。
+  无新 schema 改动，无 service 改动，纯文档决策记录。
+
+## 5. ADR-001: H3 BudgetEvaluator 阈值事件幂等 — Plan A vs Plan B
+
+> 日期：2026-08-05
+> 状态：**Decided** — 维持 plan B（in-memory LRU Map），不引入新 schema，直到 §5.3 触发条件之一满足再迁 plan A
+> 决策者：江兴旺
+> 关联：plan-03-expense §H3 / `plan-03-expense-review-notes.md` §H3
+
+### 5.1 Context
+
+- **Plan A**（review notes 推荐）：建 `budget_notifications` DB 表，
+  每次阈值跨越写一行；读取时去重。重启不丢，生产可观测，可跨实例。
+- **Plan B**（当前实现）：in-memory `LRUMap<BudgetId, LastNotifiedAt>` 做 dedupe。
+- 当前部署：v1.0 单用户 + 单机 docker compose。✓ plan B 足够（单进程 = 唯一 source of truth）。
+- 集群化场景（v1.1+）：横向扩 pod / 多实例 → 每个进程各自维护 LRU → 同一事件 N 次推送。
+  此时 plan B 的 "process restart = dedupe reset" 从可接受变为 correctness bug。
+- B-3（commit `a4570d0`）把 caller 从 1 个（create）扩到 3 个（create/update/restore），
+  放大了 plan B 的 failure 面（同一进程内 tryLock 串行化足够，跨进程就不够了）。
+
+### 5.2 Decision
+
+**v1.0**：维持 plan B，不引入新 schema，不变更 service 接口。
+- 接受 "process restart = dedupe reset"：v1.0 单进程部署，dedupe 漂移是噪声而非 correctness bug。
+- 接受 B-3 扩张后的多 caller 抖动：由单进程内存 tryLock 串行化处理。
+- 当前 BudgetEvaluator.java:106-112 javadoc 已诚实记录 plan B 的限制（v1.1 rewrite 同时修过）。
+
+**v1.1 / 集群化 trigger**（§5.3 任一条件满足）：**必须**先迁 plan A 再放量。
+否则：同 budget 同阈值事件 → 每个 pod 各推一次 → 用户重复收到同一通知 → 信任成本上升；
+LRU 重启后的 dedupe 漂移在多实例环境 = 永久问题，不只是单次重启。
+
+### 5.3 Trigger conditions（任一满足即触发 plan A 迁移）
+
+1. Lifewise 部署从单机 docker compose 升级到 k8s / docker swarm / 多机部署
+2. `docker-compose.yml` 中 `app` service 的 `deploy.replicas > 1`
+3. nginx upstream 多实例化（虽 v1.0 单 userId=1 可能不直接触发，旁路风险存在）
+4. v1.1+ 多用户上线后同一 user 多设备并发（即使同一进程，跨设备 dedupe 失效）
+
+### 5.4 Migration plan（Plan A 草案，待 trigger 时细化）
+
+1. **DDL** 新增 `budget_notifications` 表：
+   ```sql
+   CREATE TABLE budget_notifications (
+       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       budget_id BIGINT NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+       threshold_pct NUMERIC(5,4) NOT NULL,
+       notified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+       channel TEXT NOT NULL DEFAULT 'web_push',
+       trace_id TEXT,
+       UNIQUE (budget_id, threshold_pct, channel)
+   );
+   CREATE INDEX idx_budget_notifications_recent
+     ON budget_notifications (budget_id, notified_at DESC);
+   ```
+2. **Repository**：新增 `BudgetNotificationRepository`（Spring Data JPA）
+3. **Service**：`BudgetEvaluator.recordThreshold(...)` 改写为
+   `INSERT ... ON CONFLICT DO NOTHING` → rowcount=0 跳过 / rowcount=1 推 Web Push。
+   替换原有的 LRUMap 写读。
+4. **删除** in-memory `LRUMap`（plan B 残留）+ 相关字段初始化代码。
+5. **验证** `mvn -pl app test` 全 GREEN；集成测试覆盖「同 budget 同 threshold 跨实例只推一次」（Testcontainers PostgreSQL + 2 个 app context）。
+6. **可选前端**：通知中心 "已读" 入口清理 `budget_notifications` 历史行。
+
+### 5.5 Consequences
+
+- 接受 plan B 在 v1.0 的"单进程内存互斥"假设（单用户部署下成立）。
+- 接受 B-3 扩张 surface 后的跨进程正确性缺口——这就是本 ADR 存在的全部理由。
+- v1.0 release 在功能上完整；事件幂等是 "best-effort 单进程" 而非 "全局一致"。
+- v1.1 集群化打开前，本 ADR 必须翻面（Proposed → Migrating → Done），**不可遗忘**。
+
+### 5.6 Cross-module impact
+
+- 0 改动：task / daily / diet / plan / ai / auth 6 模块都不依赖 budget threshold 事件。
+- 不影响 6 模块协作链路。
+- 出 Outbox 影响待复核：threshold 事件当前可能未走 Outbox（如未走，需在 Plan A 迁移时一并接入 `notification.requested` OutboxEvent，
+  对齐 `data-model-v1.2-amendment.md` §1.4 已定义的 `notification_requests` / `notification_deliveries` 表）。
+
+### 5.7 References
+
+- `known-limitations-v1.md` §1 H3 行（reconciliation table）
+- `plan-03-expense-review-notes.md` §H3（review notes 原版）
+- `BudgetEvaluator.java:106-112`（plan B javadoc 现状）
+- `a4570d0` feat(expense): emit EXPENSE_UPDATED / RESTORED / DELETED outbox events（B-3 commit）
+- `data-model-v1.2-amendment.md` §1.4（notification_requests / notification_deliveries 预留）
