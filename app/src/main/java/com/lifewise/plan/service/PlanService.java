@@ -7,6 +7,7 @@ import com.lifewise.plan.dto.PlanView;
 import com.lifewise.plan.event.payload.PlanCreatedPayload;
 import com.lifewise.plan.repository.MilestoneRepository;
 import com.lifewise.plan.repository.PlanRepository;
+import com.lifewise.plan.service.exception.PlanAlreadyAbandonedException;
 import com.lifewise.plan.service.exception.PlanNotFoundException;
 import com.lifewise.shared.integration.event.EventEnvelope;
 import com.lifewise.shared.integration.event.EventType;
@@ -57,6 +58,10 @@ public class PlanService {
     @Transactional
     public PlanView update(Long userId, Long planId, PlanCreateRequest req) {
         Plan plan = loadOwnedPlan(userId, planId);
+        // 已放弃（status=CANCELLED）的 plan 不可编辑（与 MilestoneService.create 行为一致）
+        if (plan.isCancelled()) {
+            throw new PlanAlreadyAbandonedException(planId);
+        }
         plan.applyUpdate(req.title(), req.description(), req.type(),
                 req.startDate(), req.targetEndDate());
         Plan saved = planRepository.save(plan);

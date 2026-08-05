@@ -51,7 +51,7 @@ public class ProgressEvaluator {
         long totalTasks = linkedTaskIds.size();
         long completedTasks = linkedTaskIds.isEmpty()
                 ? 0
-                : taskReadPortFacade.countCompletedSince(userId, planId);
+                : taskReadPortFacade.countCompletedInPlan(userId, planId);
 
         double ratio = total == 0 ? 0.0 : (double) completed / (double) total;
         return new ProgressView(planId, completed, total, completedTasks, totalTasks,

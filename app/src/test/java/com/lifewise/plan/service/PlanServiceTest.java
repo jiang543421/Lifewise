@@ -18,6 +18,7 @@ import com.lifewise.plan.event.payload.PlanCreatedPayload;
 import com.lifewise.plan.repository.MilestoneRepository;
 import com.lifewise.plan.repository.PlanRepository;
 import com.lifewise.plan.service.exception.EndBeforeStartException;
+import com.lifewise.plan.service.exception.PlanAlreadyAbandonedException;
 import com.lifewise.plan.service.exception.PlanNotFoundException;
 import com.lifewise.shared.integration.event.EventEnvelope;
 import com.lifewise.shared.integration.outbox.OutboxWriter;
@@ -108,6 +109,24 @@ class PlanServiceTest {
 
         assertThat(view.title()).isEqualTo("新标题");
         assertThat(view.status()).isEqualTo(PlanStatus.ACTIVE);
+    }
+
+    @Test
+    void update_rejects_cancelled_plan() {
+        Plan existing = Plan.create(7L, "原标题", "原描述", "STUDY",
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 1));
+        existing.setIdInternal(1L);
+        existing.abandon();
+        when(planRepository.findByIdAndUserIdAndDeletedAtIsNull(1L, 7L))
+            .thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.update(7L, 1L,
+                new PlanCreateRequest("新标题", "新描述", "WORK",
+                        LocalDate.of(2026, 2, 1), LocalDate.of(2026, 7, 1))))
+            .isInstanceOf(PlanAlreadyAbandonedException.class)
+            .hasMessageContaining("1");
+
+        verify(planRepository, never()).save(any());
     }
 
     @Test

@@ -1,8 +1,8 @@
 package com.lifewise.plan.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -77,13 +77,30 @@ class ProgressEvaluatorTest {
         when(milestoneRepository.findAllByPlanIdAndDeletedAtIsNull(1L))
             .thenReturn(List.of(link(10L, MilestoneStatus.PENDING)));
         when(taskReadPortFacade.findByPlanId(1L)).thenReturn(List.of(101L, 102L, 103L));
-        when(taskReadPortFacade.countCompletedSince(anyLong(), anyLong()))
+        when(taskReadPortFacade.countCompletedInPlan(7L, 1L))
             .thenReturn(2L);
 
         ProgressView view = evaluator.compute(7L, 1L);
 
         assertThat(view.completedTasks()).isEqualTo(2);
         assertThat(view.totalTasks()).isEqualTo(3);
+        verify(taskReadPortFacade, times(1)).countCompletedInPlan(7L, 1L);
+    }
+
+    @Test
+    void progress_scopes_task_count_to_plan_only() {
+        // 回归：旧实现 countCompletedSince 返回全量计数，会让 totalTasks=3 + completedTasks=42
+        // 现在必须按 plan 内部 task.status==DONE 计数，且空 list 短路（不再调 countCompletedInPlan）
+        when(milestoneRepository.findAllByPlanIdAndDeletedAtIsNull(1L))
+            .thenReturn(List.of(link(10L, MilestoneStatus.PENDING)));
+        when(taskReadPortFacade.findByPlanId(1L)).thenReturn(List.of());
+
+        ProgressView view = evaluator.compute(7L, 1L);
+
+        assertThat(view.totalTasks()).isZero();
+        assertThat(view.completedTasks()).isZero();
+        verify(taskReadPortFacade, times(1)).findByPlanId(1L);
+        verify(taskReadPortFacade, times(0)).countCompletedInPlan(anyLong(), anyLong());
     }
 
     @Test

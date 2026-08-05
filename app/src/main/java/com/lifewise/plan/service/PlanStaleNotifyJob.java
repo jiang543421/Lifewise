@@ -5,6 +5,7 @@ import com.lifewise.plan.service.notification.PlanNotifier;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>每日 04:00 运行；扫描 last_activity_at 超过 14 天的 ACTIVE plan，
  * 委托 {@link PlanNotifier} 推送提醒（v1.0 noop，v1.1 push）。
+ *
+ * <p>cron 由 {@code plan.jobs.stale-cron} 控制（默认 0 0 4 * * *）；测试可通过
+ * {@code -} 关闭（如 {@code plan.jobs.stale-cron=-}）。
  */
 @Component
 public class PlanStaleNotifyJob {
@@ -30,6 +34,7 @@ public class PlanStaleNotifyJob {
         this.clock = clock;
     }
 
+    @Scheduled(cron = "${plan.jobs.stale-cron:0 0 4 * * *}", zone = "UTC")
     public void run() {
         OffsetDateTime cutoff = OffsetDateTime.now(clock)
                 .minus(STALE_DAYS, ChronoUnit.DAYS);
