@@ -55,17 +55,26 @@ public class ChatMessageAiAuditLogger implements AiAuditLogger {
             throw new IllegalArgumentException("decision required");
         }
 
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        String content = renderContent(decision);
-        String metadataJson = renderMetadata(decision);
+        // trace_id 必填：若调用方未提供 → 自动生成 UUID 串联 4 步（plan §7.7）
+        AiAuditDecision enriched = decision.traceId() == null
+                ? AiAuditDecision.builder()
+                    .decisionType(decision.decisionType())
+                    .decision(decision.decision())
+                    .traceId(java.util.UUID.randomUUID().toString())
+                    .latencyMs(decision.latencyMs())
+                    .tokensUsed(decision.tokensUsed())
+                    .metadata(decision.metadata())
+                    .build()
+                : decision;
 
-        // 审计消息：V25 之前用 message_refs（V42 加 message_metadata JSONB），先保留旧字段
-        // 兼容性：metadata 写入 content，待 V42 上线后切到 message_metadata 列
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        String content = renderContent(enriched);
+        String metadataJson = renderMetadata(enriched);
+
         ChatMessage audit = ChatMessage.auditMessage(userId, today, content);
         chatMessageRepository.save(audit);
-        log.debug("AI audit logged userId={} type={} decision={}", userId, decision.decisionType(), decision.decision());
+        log.debug("AI audit logged userId={} type={} decision={}", userId, enriched.decisionType(), enriched.decision());
 
-        // 调试用：记录 metadata 序列化（生产环境可降级为 DEBUG 级）
         if (log.isTraceEnabled()) {
             log.trace("AI audit metadata userId={} metadata={}", userId, metadataJson);
         }
