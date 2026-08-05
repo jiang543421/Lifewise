@@ -1,4 +1,4 @@
-package com.lifewise.task.web;
+package com.lifewise.plan.web;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
@@ -8,27 +8,18 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * 把 {@link CurrentUser} 解析为 {@code X-User-Id} 头指定的 Long userId（v1.0 单用户版）。
+ * X-User-Id 头解析（CLAUDE.md §7.3.1 v1.0 白名单方案模板）。
  *
- * <p><b>设计要点</b>：
- * <ul>
- *   <li>nginx 强制覆盖 X-User-Id=1（{@code nginx/conf/conf.d/default.conf}），
- *       客户端无法伪造</li>
- *   <li>应用层兜底：non-numeric / 非 1 一律抛
- *       {@link MissingCurrentUserException} → 401</li>
- *   <li>missing / blank header 降级到 userId=1（nginx 故障时的 fail-safe）</li>
- * </ul>
- *
- * <p>演进路径：v1.1+ 切换多用户时删除 {@code ALLOWED_USER_ID} 白名单，改读
- * SecurityContext 中的 JWT principal。
+ * <p>v1.0 个人版永远只有 userId=1；本 resolver 复制自 daily 模块首个落地版本（fail-open +
+ * {@code ALLOWED_USER_ID=1}）。后续模块接入 @CurrentUser 时复用本模板。
  */
-@Component("taskCurrentUserArgumentResolver")
+@Component("planCurrentUserArgumentResolver")
 public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolver {
 
-    /** v1.0 个人版白名单：仅允许 userId=1。 */
+    /** v1.0 个人版固定 userId（CLAUDE.md §7.3.1）。 */
     private static final long ALLOWED_USER_ID = 1L;
 
-    /** Long.MAX_VALUE 字符数（"9223372036854775807".length()）。 */
+    /** Long.MAX_VALUE 字符数。 */
     private static final int MAX_USER_ID_LENGTH = 19;
 
     @Override
@@ -44,8 +35,9 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     }
 
     /**
-     * 校验链：缺失 → 默认 ALLOWED_USER_ID（fail-safe）；
-     * 长度超限 / 非数字 / 非白名单 → 抛 {@link MissingCurrentUserException} → 401。
+     * fail-open 解析链：缺失 → 默认 1（nginx 故障兜底）；非白名单 → 401。
+     *
+     * <p>缺失头时降级到 ALLOWED_USER_ID=1；非数字 / 长度超限 / 非白名单均抛 MissingCurrentUserException。
      */
     private Long parseUserId(String header) {
         if (header == null || header.isBlank()) {
@@ -66,7 +58,7 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
         }
         if (parsed != ALLOWED_USER_ID) {
             throw new MissingCurrentUserException(
-                    "v1.0 single-user mode: only userId=" + ALLOWED_USER_ID + " is allowed");
+                    "v1.0 plan module only allows X-User-Id=" + ALLOWED_USER_ID);
         }
         return parsed;
     }
