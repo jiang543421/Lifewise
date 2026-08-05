@@ -11,8 +11,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Nutrition stats REST endpoints (plan-04-diet section 4.1 /stats). */
-@RestController
+/**
+ * Nutrition stats REST endpoints (plan-04-diet section 4.1 /stats).
+ *
+ * <p>Explicit bean name: {@code com.lifewise.expense.controller.StatsController} shares this
+ * class name, so both would default to {@code statsController} and clash, breaking the whole
+ * Spring context. Follows the module-prefix convention already used by each module's
+ * {@code CurrentUserArgumentResolver}.
+ */
+@RestController("dietStatsController")
 @RequestMapping("/api/diet/stats")
 public class StatsController {
 

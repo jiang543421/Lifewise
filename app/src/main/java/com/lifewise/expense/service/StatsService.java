@@ -30,8 +30,11 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p><b>LOW-currency（plan-03 review）</b>：所有 SQL 加 {@code AND currency = :currency}
  * 过滤，避免多币种混合聚合（v1.0 默认 CNY）。
+ *
+ * <p>显式 bean name：与 {@code com.lifewise.diet.service.StatsService} 类名相同，
+ * 默认 bean name 都会是 {@code statsService} 而冲突，导致整个 Spring 上下文无法启动。
  */
-@Service
+@Service("expenseStatsService")
 public class StatsService {
 
     /** v1.0 单币种默认值；v1.1 多币种时由调用方传入。 */

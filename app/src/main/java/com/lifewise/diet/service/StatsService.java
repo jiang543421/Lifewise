@@ -15,8 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
  * 营养统计（plan-04-diet §2.3 + §5.4）。
  *
  * <p>按日聚合走 meal_items 实时计算；按周聚合走物化视图 mv_meal_nutrition_weekly。
+ *
+ * <p>显式 bean name：与 {@code com.lifewise.expense.service.StatsService} 类名相同，
+ * 默认 bean name 都会是 {@code statsService} 而冲突，导致整个 Spring 上下文无法启动。
  */
-@Service
+@Service("dietStatsService")
 public class StatsService {
 
     private final StatsRepository statsRepository;

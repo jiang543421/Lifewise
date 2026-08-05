@@ -11,8 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 统计 REST 端点（plan-03-expense §1.1 1 端点）。 */
-@RestController
+/**
+ * 统计 REST 端点（plan-03-expense §1.1 1 端点）。
+ *
+ * <p>显式 bean name：与 {@code com.lifewise.diet.controller.StatsController} 类名相同，
+ * 默认 bean name 都会是 {@code statsController} 而冲突，导致整个 Spring 上下文无法启动。
+ * 命名方式沿用各模块 {@code CurrentUserArgumentResolver} 的模块前缀惯例。
+ */
+@RestController("expenseStatsController")
 @RequestMapping("/api/expenses/stats")
 public class StatsController {
 
