@@ -7,7 +7,6 @@ import com.lifewise.shared.integration.port.TaskReadPort;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +39,7 @@ public class MilestoneTaskLinkService {
         if (taskIds == null || taskIds.isEmpty()) {
             return List.of();
         }
-        Set<Long> deduped = new LinkedHashSet<>(taskIds).stream().collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        Set<Long> deduped = new LinkedHashSet<>(taskIds);
         List<Long> inserted = new ArrayList<>();
         OffsetDateTime now = OffsetDateTime.now(clock);
         for (Long taskId : deduped) {
@@ -55,11 +54,5 @@ public class MilestoneTaskLinkService {
             inserted.add(taskId);
         }
         return inserted;
-    }
-
-    /** 抑制未使用引用警告。 */
-    @SuppressWarnings("unused")
-    private static Set<Long> emptySet() {
-        return new HashSet<>();
     }
 }

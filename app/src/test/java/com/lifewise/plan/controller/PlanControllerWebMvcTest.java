@@ -41,9 +41,6 @@ class PlanControllerWebMvcTest {
     @Autowired ObjectMapper json;
 
     @MockBean PlanService planService;
-    @MockBean PlanReadPortAdapterUnusedMarker unused; // 触发 Spring 装配 plan 包
-    // Suppress unused-warning for unused field
-    static class PlanReadPortAdapterUnusedMarker {}
 
     @Test
     void POST_creates_plan_with_status_201() throws Exception {

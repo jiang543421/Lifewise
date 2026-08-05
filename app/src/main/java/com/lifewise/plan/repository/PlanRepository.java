@@ -39,14 +39,6 @@ public interface PlanRepository extends JpaRepository<Plan, Long> {
     List<Plan> findAllActiveOrCancelledByUser(@Param("userId") Long userId);
 
     /**
-     * 软删除 plan 时同事务级联删除关联 milestones（plan-05-plan §4.5）。
-     * 由 MilestoneService 删除 milestones 后，{@code plan.deleted_at} 由 service 设值。
-     */
-    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update Plan p set p.deletedAt = CURRENT_TIMESTAMP where p.id = :id and p.userId = :userId")
-    int softDeleteById(@Param("id") Long id, @Param("userId") Long userId);
-
-    /**
      * 长期未活动的 plan（last_activity_at 在 cutoff 之前或为 null）。
      * 用于 PlanStaleNotifyJob（plan-05-plan §5.7）。
      */

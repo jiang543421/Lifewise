@@ -34,7 +34,8 @@ class LastActivityRefresherTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(FIXED_NOW.toInstant(), ZoneOffset.UTC);
-        refresher = new LastActivityRefresher(planRepository, clock);
+        // v1.0 单用户白名单（CLAUDE.md §7.3.1）：默认值 1L
+        refresher = new LastActivityRefresher(planRepository, clock, 1L);
     }
 
     private Plan activePlan() {

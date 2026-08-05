@@ -1,9 +1,9 @@
 package com.lifewise.plan.service;
 
-import com.lifewise.plan.domain.Plan;
 import com.lifewise.plan.repository.PlanRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,16 +12,23 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>供 {@code TaskCompletedConsumer / TaskReopenedConsumer / TaskChangedConsumer} 调用。
  * planId 为 null 或 plan 不属于当前 user 时静默 noop。
+ *
+ * <p>v1.0 默认 userId 通过 {@code lifewise.v1.user-id} 注入（CLAUDE.md §7.3.1 白名单设计）；
+ * v1.1+ 切多用户时改用调用方传入的 userId。
  */
 @Service
 public class LastActivityRefresher {
 
     private final PlanRepository planRepository;
     private final Clock clock;
+    private final long v1UserId;
 
-    public LastActivityRefresher(PlanRepository planRepository, Clock clock) {
+    public LastActivityRefresher(PlanRepository planRepository,
+                                 Clock clock,
+                                 @Value("${lifewise.v1.user-id:1}") long v1UserId) {
         this.planRepository = planRepository;
         this.clock = clock;
+        this.v1UserId = v1UserId;
     }
 
     /**
@@ -33,16 +40,10 @@ public class LastActivityRefresher {
         if (planId == null || taskId == null) {
             return;
         }
-        planRepository.findByIdAndUserIdAndDeletedAtIsNull(planId, 1L)  // v1.0 固定 userId=1
+        planRepository.findByIdAndUserIdAndDeletedAtIsNull(planId, v1UserId)
                 .ifPresent(plan -> {
                     plan.touchActivity(OffsetDateTime.now(clock));
                     planRepository.save(plan);
                 });
-    }
-
-    /** 抑制 Plan 引用未用警告。 */
-    @SuppressWarnings("unused")
-    private static Class<?> anchor() {
-        return Plan.class;
     }
 }
