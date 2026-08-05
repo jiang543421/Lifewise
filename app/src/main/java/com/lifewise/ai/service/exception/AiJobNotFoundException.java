@@ -5,4 +5,8 @@ public class AiJobNotFoundException extends RuntimeException {
     public AiJobNotFoundException(Long id) {
         super("AI job not found: id=" + id);
     }
+
+    public AiJobNotFoundException(String message) {
+        super(message);
+    }
 }
