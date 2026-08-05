@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>按日聚合走 meal_items 实时计算；按周聚合走物化视图 mv_meal_nutrition_weekly。
  */
-@Service
+@Service("dietStatsService")
 public class StatsService {
 
     private final StatsRepository statsRepository;

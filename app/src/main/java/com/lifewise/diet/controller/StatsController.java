@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Nutrition stats REST endpoints (plan-04-diet section 4.1 /stats). */
-@RestController
+@RestController("dietStatsController")
 @RequestMapping("/api/diet/stats")
 public class StatsController {
 

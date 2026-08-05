@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 统计 REST 端点（plan-03-expense §1.1 1 端点）。 */
-@RestController
+@RestController("expenseStatsController")
 @RequestMapping("/api/expenses/stats")
 public class StatsController {
 
