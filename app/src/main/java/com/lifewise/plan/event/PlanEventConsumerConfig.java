@@ -9,26 +9,26 @@ import org.springframework.context.annotation.Configuration;
 /**
  * plan 模块事件消费者注册（plan-05-plan §7）。
  *
- * <p>{@code TaskChangedConsumer} 单实例同时订阅 {@code task.created} + {@code task.updated}，
- * 因此注册为两个 bean（共享同一实例）。本 config 同时负责装配
- * {@link TaskChangedConsumer} 本身 —— 因为它不是 {@code @Component}（见类 javadoc）。
+ * <p>{@code TaskChangedConsumer} 同时订阅 {@code task.created} + {@code task.updated}，
+ * 因此包成两个 {@link TaskChangedForwarder} bean。
+ *
+ * <p><b>关键约束</b>：{@link TaskChangedConsumer} 本身**不能**注册为 bean。
+ * {@code OutboxDispatcher} 构造时注入 {@code List<EventConsumer>}（即全部 EventConsumer
+ * bean）并对每个调用 {@code eventType()}，而 TaskChangedConsumer#eventType() 是故意抛
+ * {@code UnsupportedOperationException} 的 —— 只要它是 bean，上下文就起不来。
+ * 所以 delegate 一律在 forwarder 内部 new，不经过容器。
  */
 @Configuration
 public class PlanEventConsumerConfig {
 
-    @Bean
-    public TaskChangedConsumer planTaskChangedConsumer(LastActivityRefresher refresher) {
-        return new TaskChangedConsumer(refresher);
-    }
-
     @Bean("planTaskChangedCreatedConsumer")
-    public EventConsumer taskChangedCreatedConsumer(TaskChangedConsumer consumer) {
-        return new TaskChangedForwarder("task.created", consumer);
+    public EventConsumer taskChangedCreatedConsumer(LastActivityRefresher refresher) {
+        return new TaskChangedForwarder("task.created", new TaskChangedConsumer(refresher));
     }
 
     @Bean("planTaskChangedUpdatedConsumer")
-    public EventConsumer taskChangedUpdatedConsumer(TaskChangedConsumer consumer) {
-        return new TaskChangedForwarder("task.updated", consumer);
+    public EventConsumer taskChangedUpdatedConsumer(LastActivityRefresher refresher) {
+        return new TaskChangedForwarder("task.updated", new TaskChangedConsumer(refresher));
     }
 
     /** 简单转发器：固定 eventType + 委托 consume。 */
