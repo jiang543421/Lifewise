@@ -47,15 +47,15 @@ Legend:
 |-----|--------|-------------------------------------------------------------|---------|---------------------|
 | H1  | HIGH   | `int amountCents` ↔ INT overflow contract                   | Demoted (no active bug in v1.0) | review notes §H1 (INT capacity ≈ $21M/row suffices for personal scope; defer BIGINT to v1.1+) |
 | H2  | HIGH   | `budgets.category_id` NOT NULL vs `0L` sentinel             | Closed   | `0cf1a3b` (V37 schema alignment: `DROP NOT NULL` + partial unique indexes; sentinel removed in `9ced426`) |
-| H3  | HIGH   | BudgetEvaluator threshold event idempotency                 | **Degraded — OPEN** | Implemented plan B (in-memory LRU Map) where review notes recommended plan A (DB `budget_notifications` table). B-3 widened callers from 1 (create) to 3 (+update/+restore), amplifying the gap. **Open until plan A adopted or single-user deploy documented as acceptable.** |
-| M1  | MEDIUM | N+1 in `BudgetController.list`                              | Open (low impact; ≤12 budgets/user) | review notes §M1 |
-| M2  | MEDIUM | `EXPENSE_INVALID_AMOUNT` ErrorCode unmapped                 | Open     | review notes §M2 |
+| H3  | HIGH   | BudgetEvaluator threshold event idempotency                 | **Decided** (plan B for v1.0; ADR-001 §5) | Plan B (in-memory LRU Map) maintained until v1.1 clusterization trigger; plan A (DB `budget_notifications` table) mandatory when trigger fires. Migration draft in ADR-001 §5.4. |
+| M1  | MEDIUM | N+1 in `BudgetController.list`                              | Closed   | service-layer scan 2026-08-05: 0 residue. ExpenseService / BudgetService / CategoryService / StatsService 全部单 query + map-to-view; no `for-each findById` patterns. (Note: `BudgetController.list` is thin delegation to `BudgetService.list`, which itself is a single JPQL query.) |
+| M2  | MEDIUM | `EXPENSE_INVALID_AMOUNT` ErrorCode unmapped                 | Closed   | `2a1c0a1` feat(expense): add typed invalid amount handling (Budget.java:156-164 throws `ExpenseInvalidAmountException`) + `ExpenseGlobalExceptionHandler.java:73-77` mapping to `ErrorCode.EXPENSE_INVALID_AMOUNT` (400). |
 | M3  | MEDIUM | `BUDGET_ALREADY_EXISTS` ErrorCode has no thrower            | Closed   | `501003f` / `4023847` (BudgetAlreadyExistsException + handler) |
-| M4  | MEDIUM | BudgetEvaluator float `thresholdRatio`                      | **Open** | review notes §M4; still uses `double THRESHOLD_80 = 0.8` + `double pct = used/total` |
-| M5  | MEDIUM | `Budget.applyUpdate()` / `muteUntil()` public mutable        | Open     | review notes §M5 |
+| M4  | MEDIUM | BudgetEvaluator float `thresholdRatio`                      | Closed   | `c5d0885` fix(expense): use integer budget threshold percentages. `BudgetEvaluator.java:46-47` `int THRESHOLD_80_PCT = 80`; line 161 `int pctX100 = (int) ((usedCents * 100L + totalCents - 1) / totalCents)` (long × 100 不溢出). `Budget.java:58` `int alertThresholdPct`. `BudgetThresholdPayload.java:21` `Integer thresholdPct`. |
+| M5  | MEDIUM | `Budget.applyUpdate()` / `muteUntil()` public mutable        | Closed   | entity 工厂方法 + `applyUpdate` / `mute` / `unmute` / `archive` / `unarchive` 业务方法; 无 public setter. `Budget.java` (构造器 private, 字段全 private, `applyUpdate` 是业务方法带 validateAmount). `ExpenseCategory.java` 同模式 (`applyUpdate` 带 BR-24 默认分类守护 + `validateName` 先 trim 后 length). |
 | M6  | MEDIUM | `Expense.applyUpdate()` public mutable + no EXPENSE_UPDATED | Partially closed (B-3 closed the event half: `a4570d0` emits EXPENSE_UPDATED / RESTORED / DELETED; access modifier tightening still open) | review notes §M6 |
-| M7  | MEDIUM | `ExpenseCategory.rename()` length validation order           | Open     | review notes §M7 |
-| M8  | MEDIUM | `CategorySeedService.ensureUserDefault()` not concurrency-safe | Open | review notes §M8 (NOT "service absent" as v1 ledger claimed) |
+| M7  | MEDIUM | `ExpenseCategory.rename()` length validation order           | Closed   | `ExpenseCategory.java:127-133`: `validateName` 先 `name.trim()` 后校验 `trimmed.length() > 20`; commit annotation 引用 "plan-03 review M7：先 trim 再校验 length, 避免 "a"×50 + " " 即便存储后只 50 字符也被拒". |
+| M8  | MEDIUM | `CategorySeedService.ensureUserDefault()` not concurrency-safe | **Partially closed** (code fixed; concurrency IT pending) | `a068e0` feat(expense): seed default category on registration. `CategorySeedService.java:63-69`: `try { categoryRepository.save(...) } catch (DataIntegrityViolationException ex) { 重新查询确认 }` — DB unique partial index `uq_expense_categories_user_default` 兜底. **Remaining**: 并发 IT (B-2 follow-up). |
 | L1  | LOW    | `BUDGET_ALREADY_EXISTS` ErrorCode no thrower                | Closed (merged with M3) | same as M3 |
 
 ## 2. Phase B issues (active work)
@@ -66,21 +66,19 @@ items still requiring code work, mapped to their review-notes origin.
 | ID  | Source    | Title                                                       | Severity | Trigger / Notes |
 |-----|-----------|-------------------------------------------------------------|----------|-----------------|
 | B-1 | plan-03 cross-module (no review-notes origin) | nginx URL hardening: `ALLOWED_USER_IDS` env wiring + X-User-Id resolver dual-layer defense | C3       | Trigger: `a6f7b22` (format validation in CurrentUserArgumentResolver — Phase A only validated request-side format). Phase B scope: nginx config + body validation. |
-| B-2 | review §M8 (NOT "service absent" as v1 claimed) | `CategorySeedService.ensureUserDefault()` concurrency safety | MEDIUM (M8) | Service EXISTS but is not concurrency-safe. Fix: catch unique violation → re-query, or `SELECT FOR UPDATE`. |
+| B-2 | review §M8 | `CategorySeedService.ensureUserDefault()` concurrency safety | MEDIUM (M8) | **Code fixed** by `a068e0` (catch `DataIntegrityViolationException` + re-query at `CategorySeedService.java:63-69`; DB partial unique index `uq_expense_categories_user_default` 兜底). **Remaining**: 并发 IT (B-2 follow-up test, N=10 threads CountDownLatch, 断言 catch 分支至少触发 1 次). |
 | B-3 | review §M6 (inferred from "可选" suggestion) | Emit EXPENSE_UPDATED / EXPENSE_DELETED outbox events         | Closed `a4570d0` | (also added EXPENSE_RESTORED + BudgetEvaluator integration — see plan-03 B-3 commit message) |
 | B-4 | **DELETED** | "4 minor style/noise findings" — phantom item | — | The v1 ledger's "L × 4" came from a summary statistic, not 4 separate findings. Review notes contain exactly 1 LOW (L1), and L1 = duplicate of M3 (already closed). No code work to do here. |
 
-**Backlog note** (§1 Open items without B-ID): **M1 / M2 / M4 / M5 / M7**
-are v1.0-acceptable technical debt — either low impact (≤12 budgets/user,
-duplicate-with-M3-L1, single-user deploy) or low priority (length/order
-checks, access-modifier polish) — and do NOT enter Phase B. **H3**
-(degraded from plan A in §H3, in-memory LRU Map) requires an explicit
-plan-A migration decision **before** any v1.1 clusterization opens (cluster
-deploy would change "process restart = dedupe reset" from an acceptable
-behavior into a correctness bug). H3 therefore defers to v2 backlog when
-that scope opens; for now it is honestly recorded as Degraded — OPEN.
-**B-1 (nginx URL hardening) and B-2 (M8 concurrency safety) remain the
-only v1.0 Phase B code work.**
+**Backlog note** (after 2026-08-05 v1.2 reconciliation): **M1 / M2 / M4 / M5 / M7
+are closed** — see §1 closure column. **H3 is decided** via ADR-001 §5 (plan B
+maintained for v1.0 single-user deploy; plan A mandatory on v1.1 clusterization
+trigger). **Remaining §1 Open** = M8 (B-2 partial: code fixed `a068e0`, pending
+并发 IT). **Remaining §2 Open** = **B-1 nginx URL hardening** (C3, current
+`nginx/conf/conf.d/default.conf` hardcodes `X-User-Id=1` in 3 locations —
+`/api/ai/chat`, `/api/ai/`, `/api/` — needs env wiring `ALLOWED_USER_IDS` +
+dual-layer defense). **M6 partial closure**: event half closed (`a4570d0`);
+access modifier tightening on `Expense.applyUpdate()` still open (low priority).
 
 ## 3. Conventions (unchanged)
 
@@ -108,6 +106,20 @@ only v1.0 Phase B code work.**
   Also fixed `BudgetEvaluator.java:106-112` javadoc — previous "依赖运维每日重启进程
   (dedupe 随进程销毁)" was an inverted framing (restart = re-notification, not mitigation);
   replaced with honest two-bullet description of the plan-B gap.
+- 2026-08-05: **v1.2 reconciliation.** Ledger §1 / §2 / backlog note rewritten
+  against current code state via service-layer + handler + entity scan:
+    - **Closed**: M1 (N+1 — service-layer scan 0 residue), M2 (`2a1c0a1` typed
+      invalid amount + `ExpenseGlobalExceptionHandler.java:73-77` mapping), M4
+      (`c5d0885` integer threshold percentages + `BudgetEvaluator.java:161`
+      `int pctX100`), M5 (entity 工厂方法 + `applyUpdate` 业务方法, 无 public
+      setter), M7 (`ExpenseCategory.java:127-133` trim before length).
+    - **Partially closed**: M8 (B-2 code fixed `a068e0` catch +
+      re-query; pending 并发 IT).
+    - **Decided** (via ADR-001 §5): H3 (plan B for v1.0; plan A mandatory on
+      v1.1 clusterization trigger).
+    - **Still open**: B-1 (nginx URL hardening — 3 locations hardcode
+      `X-User-Id=1` in `default.conf`), B-2 IT (M8 concurrency IT), M6 access
+      modifier tightening (low priority).
 - 2026-08-05: **ADR-001 H3 Plan A/B 决议（§5 新增）**.
   在 v1.1 集群化打开前维持 plan B（in-memory LRU Map）；集群化 trigger 触发后**必须**迁 plan A（DB `budget_notifications` 表）。
   Plan A 迁移草案已写明 DDL / Repository / Service / 验证 / 前端清理 5 步。
