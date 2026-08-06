@@ -1,16 +1,21 @@
 package com.lifewise.auth.service;
 
+import com.lifewise.auth.domain.PasswordResetToken;
 import com.lifewise.auth.domain.RefreshToken;
 import com.lifewise.auth.domain.User;
 import com.lifewise.auth.domain.exception.EmailExistsException;
 import com.lifewise.auth.domain.exception.InvalidCredentialsException;
+import com.lifewise.auth.domain.exception.TokenExpiredException;
 import com.lifewise.auth.domain.exception.TokenInvalidException;
 import com.lifewise.auth.domain.exception.UserLockedException;
+import com.lifewise.auth.domain.exception.WeakPasswordException;
 import com.lifewise.auth.dto.LoginRequest;
 import com.lifewise.auth.dto.RegisterRequest;
 import com.lifewise.auth.dto.TokenResponse;
+import com.lifewise.auth.event.payload.PasswordResetRequestedPayload;
 import com.lifewise.auth.event.payload.UserLoggedInPayload;
 import com.lifewise.auth.event.payload.UserRegisteredPayload;
+import com.lifewise.auth.repository.PasswordResetTokenRepository;
 import com.lifewise.auth.repository.RefreshTokenRepository;
 import com.lifewise.auth.repository.UserRepository;
 import com.lifewise.shared.infra.security.JwtRefreshTokenService;
@@ -19,9 +24,14 @@ import com.lifewise.shared.integration.event.EventEnvelope;
 import com.lifewise.shared.integration.event.EventType;
 import com.lifewise.shared.integration.event.UserRegisteredEvent;
 import com.lifewise.shared.integration.outbox.OutboxWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.HexFormat;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -37,18 +47,24 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordService passwordService;
+    private final EmailService emailService;
     private final JwtTokenProvider tokenProvider;
     private final JwtRefreshTokenService refreshService;
     private final OutboxWriter outboxWriter;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
     private final Duration refreshTtl;
+    private final Duration passwordResetTtl;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             PasswordService passwordService,
+            EmailService emailService,
             JwtTokenProvider tokenProvider,
             JwtRefreshTokenService refreshService,
             OutboxWriter outboxWriter,
@@ -56,13 +72,16 @@ public class AuthService {
             Clock authClock) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordService = passwordService;
+        this.emailService = emailService;
         this.tokenProvider = tokenProvider;
         this.refreshService = refreshService;
         this.outboxWriter = outboxWriter;
         this.applicationEventPublisher = applicationEventPublisher;
         this.clock = authClock;
         this.refreshTtl = Duration.ofDays(30);
+        this.passwordResetTtl = Duration.ofHours(1);
     }
 
     @Transactional
@@ -178,6 +197,106 @@ public class AuthService {
                 refreshTokenRepository.save(rt);
             }
         });
+    }
+
+    /**
+     * 忘记密码用例（plan-auth §5.4 + B-7 closure）。
+     *
+     * <p>始终返回（即便 email 不存在也不暴露，防 enumeration）。token 生成后:
+     * <ol>
+     *   <li>持久化 SHA-256(token) 到 password_reset_tokens</li>
+     *   <li>EmailService.sendPasswordReset 投递原始 token</li>
+     *   <li>outbox append AUTH_USER_PASSWORD_RESET_REQUESTED 事件</li>
+     * </ol>
+     */
+    @Transactional
+    public void forgotPassword(String email) {
+        if (email == null || email.isBlank()) {
+            return; // 防 enumeration: 入参不合法也走 happy path
+        }
+        String normalized = email.toLowerCase();
+        User user = userRepository.findByEmail(normalized).orElse(null);
+        if (user == null) {
+            return; // 防 enumeration: email 不存在也走 happy path
+        }
+
+        String rawToken = generateRawResetToken();
+        String tokenHash = sha256Hex(rawToken);
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        OffsetDateTime expiresAt = now.plus(passwordResetTtl);
+
+        PasswordResetToken row = PasswordResetToken.issue(user.getId(), tokenHash, expiresAt);
+        passwordResetTokenRepository.save(row);
+
+        emailService.sendPasswordReset(user.email(), rawToken);
+
+        outboxWriter.append(new EventEnvelope(
+                UUID.randomUUID(),
+                EventType.AUTH_USER_PASSWORD_RESET_REQUESTED.eventType(),
+                1,
+                now,
+                user.getId(),
+                "user",
+                user.getId(),
+                null,
+                null,
+                null,
+                new PasswordResetRequestedPayload(user.getId(), user.email(), now).toMap()));
+    }
+
+    /**
+     * 重置密码用例（plan-auth §5.4 + B-7 closure）。
+     *
+     * <p>校验 token：未 used / 未 revoked / 未过期。校验通过后：
+     * <ol>
+     *   <li>User.changePasswordHash(新 BCrypt 哈希)</li>
+     *   <li>token.markUsed(now)</li>
+     *   <li>token 同 family 不存在（仅一次性 use，无 family 概念）</li>
+     * </ol>
+     *
+     * @throws TokenInvalidException token 不存在或被消费/吊销
+     * @throws TokenExpiredException token 过期
+     * @throws WeakPasswordException 新密码强度不足
+     */
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        passwordService.assertStrong(newPassword);
+
+        String tokenHash = sha256Hex(rawToken == null ? "" : rawToken);
+        PasswordResetToken row = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new TokenInvalidException("reset token unknown"));
+
+        OffsetDateTime now = OffsetDateTime.now(clock);
+        if (row.usedAt() != null || row.revokedAt() != null) {
+            throw new TokenInvalidException("reset token already consumed");
+        }
+        if (!row.expiresAt().isAfter(now)) {
+            throw new TokenExpiredException("reset token expired");
+        }
+
+        User user = userRepository.findById(row.userId())
+                .orElseThrow(() -> new TokenInvalidException("user not found"));
+        user.changePasswordHash(passwordService.hash(newPassword));
+        userRepository.save(user);
+
+        row.markUsed(now);
+        passwordResetTokenRepository.save(row);
+    }
+
+    private String generateRawResetToken() {
+        byte[] buf = new byte[32];
+        secureRandom.nextBytes(buf);
+        return HexFormat.of().formatHex(buf);
+    }
+
+    private static String sha256Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     private TokenPair issueInitialTokens(User user) {

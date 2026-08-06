@@ -21,9 +21,15 @@ public interface MilestoneRepository extends JpaRepository<Milestone, Long> {
 
     List<Milestone> findAllByPlanIdAndDeletedAtIsNullOrderBySortOrderAscIdAsc(Long planId);
 
-    /** 软删 plan 时同事务级联软删所有 milestones。 */
+    /**
+     * 软删 plan 时同事务级联软删所有 milestones。
+     *
+     * <p>用 HQL {@code offset datetime} 而非 {@code CURRENT_TIMESTAMP}：后者在 Hibernate 6
+     * 下推导为 {@code java.sql.Timestamp}，赋给 {@code OffsetDateTime} 类型的 deletedAt 会在
+     * 启动期校验阶段抛 SemanticException，导致整个 Spring 上下文加载失败。
+     */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update Milestone m set m.deletedAt = CURRENT_TIMESTAMP where m.planId = :planId")
+    @Query("update Milestone m set m.deletedAt = offset datetime where m.planId = :planId")
     int softDeleteByPlanId(@Param("planId") Long planId);
 
     /**
