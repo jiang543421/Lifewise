@@ -19,9 +19,11 @@ import com.lifewise.auth.domain.exception.WeakPasswordException;
 import com.lifewise.auth.dto.LoginRequest;
 import com.lifewise.auth.dto.RegisterRequest;
 import com.lifewise.auth.dto.TokenResponse;
+import com.lifewise.auth.repository.PasswordResetTokenRepository;
 import com.lifewise.auth.repository.RefreshTokenRepository;
 import com.lifewise.auth.repository.UserRepository;
 import com.lifewise.auth.service.AuthService;
+import com.lifewise.auth.service.EmailService;
 import com.lifewise.auth.service.JwtRefreshServiceImpl;
 import com.lifewise.auth.service.PasswordService;
 import com.lifewise.shared.infra.security.JwtRefreshTokenService;
@@ -51,10 +53,12 @@ class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private RefreshTokenRepository refreshTokenRepository;
+    @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
     @Mock private JwtTokenProvider tokenProvider;
     @Mock private JwtRefreshTokenService refreshService;
     @Mock private OutboxWriter outboxWriter;
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock private EmailService emailService;
 
     private AuthService service;
 
@@ -63,7 +67,8 @@ class AuthServiceTest {
         Clock fixed = Clock.fixed(NOW, ZoneOffset.UTC);
         PasswordService pwd = new PasswordService(new PasswordEncoderConfig().passwordEncoder());
         service = new AuthService(
-                userRepository, refreshTokenRepository, pwd,
+                userRepository, refreshTokenRepository, passwordResetTokenRepository,
+                pwd, emailService,
                 tokenProvider, refreshService, outboxWriter, eventPublisher, fixed);
         lenient().when(tokenProvider.createAccessToken(any(), any()))
                 .thenReturn("access.token.value");

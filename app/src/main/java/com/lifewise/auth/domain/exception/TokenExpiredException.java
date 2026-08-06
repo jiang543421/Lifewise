@@ -8,4 +8,9 @@ public class TokenExpiredException extends AuthDomainException {
     public TokenExpiredException() {
         super(ErrorCode.TOKEN_EXPIRED, "refresh token expired");
     }
+
+    /** B-7 closure (v1.3.3): reset-password token 过期专用 message */
+    public TokenExpiredException(String message) {
+        super(ErrorCode.TOKEN_EXPIRED, message);
+    }
 }
