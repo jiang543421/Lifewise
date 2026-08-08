@@ -12,7 +12,6 @@ import com.lifewise.expense.repository.CategoryRepository;
 import com.lifewise.expense.repository.ExpenseRepository;
 import com.lifewise.expense.service.CategoryService;
 import com.lifewise.expense.service.ExpenseService;
-import com.lifewise.expense.service.exception.ExpenseInvalidAmountException;
 import com.lifewise.shared.integration.outbox.OutboxEventRepository;
 import com.lifewise.shared.integration.port.ExpenseReadPort;
 import com.lifewise.shared.integration.port.snapshot.ExpenseSnapshot;
@@ -188,19 +187,19 @@ class ExpenseE2EIT {
     @Test
     @DisplayName("business failure rolls back outbox_events (atomic with expense)")
     void business_failure_rolls_back_outbox_event() {
-        // 业务失败（amount_cents = -100 触发 ExpenseInvalidAmountException）必须让 outbox 也回滚，
+        // 业务失败（amount_cents = -100 触发 IllegalArgumentException）必须让 outbox 也回滚，
         // 验证 OutboxWriter @Transactional(MANDATORY) 与 ExpenseService 同事务的契约
         ExpenseCategory category = categoryService.loadOwnedCategory(userId, categoryId);
         ExpenseCreateRequest badReq = new ExpenseCreateRequest(
                 categoryId,
-                -100L,  // 触发 Expense.validateAmount → ExpenseInvalidAmountException
+                -100L,  // 触发 Expense.validateAmount → IllegalArgumentException
                 PayMethod.ALIPAY,
                 OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC),
                 null,
                 "CNY");
 
         assertThatThrownBy(() -> expenseService.create(userId, badReq, category))
-                .isInstanceOf(ExpenseInvalidAmountException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("amount_cents must be positive");
 
         Integer outboxCount = jdbc.queryForObject(
@@ -224,7 +223,7 @@ class ExpenseE2EIT {
                 "CNY");
 
         assertThatThrownBy(() -> expenseService.create(userId, badReq, category))
-                .isInstanceOf(ExpenseInvalidAmountException.class);
+                .isInstanceOf(IllegalArgumentException.class);
 
         Integer expenseCount = jdbc.queryForObject(
                 "SELECT count(*) FROM expenses WHERE user_id = ?",
