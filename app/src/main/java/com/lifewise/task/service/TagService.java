@@ -55,7 +55,8 @@ public class TagService {
         TaskTag tag = tagRepository.findById(tagId)
                 .filter(t -> userId == t.getUserId() && !t.isDeleted())
                 .orElseThrow(() -> new TagNotFoundException(tagId));
-        linkRepository.findByIdTaskId(tagId);
+        // 修复（H2）：detach 所有 task_tag_links 后再删除 tag，避免孤儿 link 行
+        linkRepository.deleteByIdTaskId(tagId);
         tagRepository.delete(tag);
     }
 }
