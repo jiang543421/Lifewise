@@ -77,4 +77,27 @@ class CurrentUserArgumentResolverSecurityTest {
                 new ServletWebRequest(req), null);
         assertThat(result).isEqualTo(1L);
     }
+
+    // ---------- v1.0.3 review F3 closure: header length / sign 防御 ----------
+
+    @Test
+    void header_exceeding_max_length_is_rejected() {
+        MockHttpServletRequest req = new MockHttpServletRequest();
+        // 25 chars > MAX_USER_ID_LENGTH=19
+        req.addHeader("X-User-Id", "1234567890123456789012345");
+        assertThatThrownBy(() -> resolver.resolveArgument(null, null,
+                new ServletWebRequest(req), null))
+                .isInstanceOf(MissingCurrentUserException.class)
+                .hasMessageContaining("exceeds max length");
+    }
+
+    @Test
+    void header_non_positive_is_rejected() {
+        MockHttpServletRequest req = new MockHttpServletRequest();
+        req.addHeader("X-User-Id", "0");
+        assertThatThrownBy(() -> resolver.resolveArgument(null, null,
+                new ServletWebRequest(req), null))
+                .isInstanceOf(MissingCurrentUserException.class)
+                .hasMessageContaining("must be positive");
+    }
 }

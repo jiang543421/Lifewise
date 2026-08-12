@@ -31,6 +31,9 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     /** v1.0 个人版白名单：仅允许 userId=1。 */
     private static final long ALLOWED_USER_ID = 1L;
 
+    /** Long.MAX_VALUE 字符数（"9223372036854775807".length()）— 防止 header 长度攻击。 */
+    private static final int MAX_USER_ID_LENGTH = 19;
+
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return parameter.hasParameterAnnotation(CurrentUser.class)
@@ -40,22 +43,37 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-        String header = webRequest.getHeader("X-User-Id");
-        // missing / blank → fail-open 降级到 userId=1（nginx 故障兜底）
+        return parseUserId(webRequest.getHeader("X-User-Id"));
+    }
+
+    /**
+     * 校验链：缺失 → 默认 ALLOWED_USER_ID（fail-safe）；
+     * 长度超限 / 非数字 / 非正数 / 非白名单 → 抛 {@link MissingCurrentUserException} → 401。
+     *
+     * <p>对齐 {@code com.lifewise.expense.web.CurrentUserArgumentResolver}
+     * 的同步契约（CLAUDE.md §7.3.1），保证 6 模块 resolver 行为一致。
+     */
+    private Long parseUserId(String header) {
         if (header == null || header.isBlank()) {
             return ALLOWED_USER_ID;
         }
-        long userId;
+        String trimmed = header.trim();
+        if (trimmed.length() > MAX_USER_ID_LENGTH) {
+            throw new MissingCurrentUserException("X-User-Id exceeds max length (19)");
+        }
+        long parsed;
         try {
-            userId = Long.parseLong(header.trim());
+            parsed = Long.parseLong(trimmed);
         } catch (NumberFormatException ex) {
             throw new MissingCurrentUserException("X-User-Id header must be numeric");
         }
-        // 白名单校验：非 1 一律拒绝（客户端伪造防御）
-        if (userId != ALLOWED_USER_ID) {
+        if (parsed <= 0) {
+            throw new MissingCurrentUserException("X-User-Id must be positive");
+        }
+        if (parsed != ALLOWED_USER_ID) {
             throw new MissingCurrentUserException(
                     "v1.0 single-user mode: only userId=" + ALLOWED_USER_ID + " is allowed");
         }
-        return userId;
+        return parsed;
     }
 }
