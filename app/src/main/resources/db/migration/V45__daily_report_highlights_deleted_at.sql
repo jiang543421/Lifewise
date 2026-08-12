@@ -1,5 +1,5 @@
 -- ============================================================
--- V38__daily_module_deleted_at_columns.sql
+-- V45__daily_module_deleted_at_columns.sql
 -- 补齐 daily_report_highlights.deleted_at + ai_summaries.deleted_at 列
 -- （BaseEntity 软删必需）
 --
