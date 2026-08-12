@@ -84,4 +84,16 @@ class TagServiceTest {
         assertThatThrownBy(() -> service.softDelete(7L, 1L))
                 .isInstanceOf(TagNotFoundException.class);
     }
+
+    @Test
+    void soft_delete_detaches_links_then_deletes_tag() {
+        TaskTag tag = TaskTag.create(7L, "x", null);
+        tag.setIdInternal(1L);
+        when(tagRepository.findById(1L)).thenReturn(Optional.of(tag));
+
+        service.softDelete(7L, 1L);
+
+        org.mockito.Mockito.verify(linkRepository).deleteByIdTaskId(1L);
+        org.mockito.Mockito.verify(tagRepository).delete(tag);
+    }
 }
