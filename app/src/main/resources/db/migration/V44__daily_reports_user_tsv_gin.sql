@@ -1,6 +1,6 @@
 -- ============================================================
--- V39__daily_reports_user_tsv_gin.sql
--- 修复 V37 中 idx_daily_reports_user_content_tsv 的索引类型 bug：
+-- V44__daily_reports_user_tsv_gin.sql
+-- 修复 V43 中 idx_daily_reports_user_content_tsv 的索引类型 bug：
 -- 该索引原本按默认 btree 建立在 (user_id, content_tsv) 上，content_tsv 是 tsvector，
 -- content 允许 50000 字符，tsvector 通常 > 2.7KB，超过 btree version 4 单条上限
 -- （索引页 ~8KB，去除 header 后可用 ~2700 字节），导致长日报 INSERT/UPDATE 报错
@@ -28,4 +28,4 @@ CREATE INDEX IF NOT EXISTS idx_daily_reports_user_content_tsv
     ON daily_reports USING GIN (user_id, content_tsv);
 
 COMMENT ON INDEX idx_daily_reports_user_content_tsv IS
-    'v1.2 P2：V39 替换 V37 btree 索引；btree_gin 复合 GIN 同时支持 user_id 裁剪与 tsvector @@ 匹配';
+    'v1.2 P2：V44 替换 V43 btree 索引；btree_gin 复合 GIN 同时支持 user_id 裁剪与 tsvector @@ 匹配';

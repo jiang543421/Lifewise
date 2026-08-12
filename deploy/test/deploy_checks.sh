@@ -101,7 +101,14 @@ j11_compose_valid() {
     #   0  - 完全通过
     #   1  - 配置错误（硬失败）
     #  64/255 - 仅 warning（变量未设等），不视为失败
-    out="$(docker compose -f "${COMPOSE_FILE}" config 2>&1)"
+    #
+    # 用 .env.example 作为占位环境文件：满足 ${VAR:?...} 必填校验。
+    # 生产部署时由真实 .env 注入；本静态检查只关心 compose 语法合法。
+    if [[ -f "${ENV_EXAMPLE}" ]]; then
+      out="$(docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_EXAMPLE}" config 2>&1)"
+    else
+      out="$(docker compose -f "${COMPOSE_FILE}" config 2>&1)"
+    fi
     rc=$?
     if [[ ${rc} -eq 1 ]]; then
       echo "  docker compose config 校验失败：" >&2
@@ -152,7 +159,7 @@ j1_healthchecks() {
 j12_required_secrets() {
   require_file "${ENV_EXAMPLE}" || { echo "  缺 .env.example" >&2; return 1; }
   require_file "${GITIGNORE}"   || { echo "  缺 .gitignore" >&2; return 1; }
-  for key in DB_PASSWORD JWT_SECRET JWT_ACCESS_TTL JWT_REFRESH_TTL REDIS_PASSWORD OLLAMA_MODEL OLLAMA_BASE_URL VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT TZ LOG_LEVEL SPRING_PROFILES_ACTIVE; do
+  for key in DB_PASSWORD AUTH_JWT_SECRET_BASE64 AUTH_JWT_ACCESS_TTL_MINUTES AUTH_JWT_REFRESH_TTL_DAYS REDIS_PASSWORD OLLAMA_MODEL OLLAMA_BASE_URL VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT TZ LOG_LEVEL SPRING_PROFILES_ACTIVE; do
     require_grep "${ENV_EXAMPLE}" "^${key}=" || { echo "  .env.example 缺 ${key}" >&2; return 1; }
   done
   require_grep "${GITIGNORE}" "^\.env$"     || { echo "  .gitignore 未忽略 .env" >&2; return 1; }
