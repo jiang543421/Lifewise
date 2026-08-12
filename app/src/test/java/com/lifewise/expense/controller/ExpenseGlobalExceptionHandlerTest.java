@@ -69,7 +69,7 @@ class ExpenseGlobalExceptionHandlerTest {
         when(expenseService.findById(anyLong(), eq(99L)))
             .thenThrow(new ExpenseNotFoundException(99L));
 
-        mockMvc.perform(get("/api/expenses/99").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/expenses/99").header("X-User-Id", "1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("EXPENSE_NOT_FOUND"))
@@ -81,7 +81,7 @@ class ExpenseGlobalExceptionHandlerTest {
         doThrow(new BudgetNotFoundException(50L))
             .when(budgetService).softDelete(anyLong(), eq(50L));
 
-        mockMvc.perform(delete("/api/budgets/50").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/budgets/50").header("X-User-Id", "1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("BUDGET_NOT_FOUND"))
@@ -94,7 +94,7 @@ class ExpenseGlobalExceptionHandlerTest {
             .thenThrow(new CategoryNotFoundException(11L));
 
         mockMvc.perform(put("/api/expense-categories/11")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"x\"}"))
                 .andExpect(status().isNotFound())
@@ -118,7 +118,7 @@ class ExpenseGlobalExceptionHandlerTest {
                 null, "CNY");
 
         mockMvc.perform(post("/api/expenses")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(bad)))
                 .andExpect(status().isBadRequest())
@@ -138,7 +138,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("咖啡", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -154,7 +154,7 @@ class ExpenseGlobalExceptionHandlerTest {
             .thenThrow(new CategoryProtectedException(5L));
 
         mockMvc.perform(put("/api/expense-categories/5")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"x\"}"))
                 .andExpect(status().isBadRequest())
@@ -168,7 +168,7 @@ class ExpenseGlobalExceptionHandlerTest {
         doThrow(new CategoryHasBudgetException(11L))
             .when(categoryService).softDelete(anyLong(), eq(11L));
 
-        mockMvc.perform(delete("/api/expense-categories/11").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/expense-categories/11").header("X-User-Id", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("CATEGORY_HAS_BUDGET"))
@@ -186,7 +186,7 @@ class ExpenseGlobalExceptionHandlerTest {
         BudgetRequest req = new BudgetRequest(BudgetScope.CATEGORY, 11L,
                 2026, 8, 10000L, "CNY", true);
         mockMvc.perform(post("/api/budgets")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -198,12 +198,12 @@ class ExpenseGlobalExceptionHandlerTest {
     // ---------- handleMissingUser 完整 envelope 断言 ----------
 
     @Test
-    void missing_user_id_maps_401_with_TOKEN_INVALID_envelope() throws Exception {
+    void missing_user_id_fails_open_to_user_1() throws Exception {
+        // P1-4 fail-safe：missing header 降级到 userId=1。
+        // 该测试覆盖 envelope handler 在 fail-open 路径下不应被触发。
         mockMvc.perform(get("/api/expenses?from=2026-08-01&to=2026-08-31"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("TOKEN_INVALID"))
-                .andExpect(jsonPath("$.error.trace_id").exists());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     // ---------- positive-path 覆盖：剩余 controller 方法（update/restore/mute/list/listSystem） ----------
@@ -223,7 +223,7 @@ class ExpenseGlobalExceptionHandlerTest {
         when(expenseService.update(anyLong(), eq(1L), any())).thenReturn(view);
 
         mockMvc.perform(put("/api/expenses/1")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -240,7 +240,7 @@ class ExpenseGlobalExceptionHandlerTest {
                         null);
         when(expenseService.findById(anyLong(), eq(1L))).thenReturn(view);
 
-        mockMvc.perform(post("/api/expenses/1/restore").header("X-User-Id", "7"))
+        mockMvc.perform(post("/api/expenses/1/restore").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(1));
     }
@@ -255,7 +255,7 @@ class ExpenseGlobalExceptionHandlerTest {
         com.lifewise.expense.dto.BudgetMuteRequest muteReq =
                 new com.lifewise.expense.dto.BudgetMuteRequest(java.time.LocalDate.of(2026, 8, 20));
         mockMvc.perform(post("/api/budgets/1/mute")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(muteReq)))
                 .andExpect(status().isOk())
@@ -267,7 +267,7 @@ class ExpenseGlobalExceptionHandlerTest {
         when(budgetService.list(anyLong(), eq(2026), eq(8)))
             .thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/budgets?year=2026&month=8").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/budgets?year=2026&month=8").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
     }
@@ -277,7 +277,7 @@ class ExpenseGlobalExceptionHandlerTest {
         when(categoryService.list(anyLong()))
             .thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/expense-categories").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/expense-categories").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
     }
@@ -287,7 +287,7 @@ class ExpenseGlobalExceptionHandlerTest {
         when(categoryService.listSystem())
             .thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/expense-categories/system").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/expense-categories/system").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray());
     }
@@ -301,7 +301,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("咖啡", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -317,7 +317,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -333,7 +333,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         var result = mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -360,7 +360,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -376,7 +376,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         var result = mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -399,7 +399,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -419,7 +419,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("咖啡", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -438,7 +438,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         var result = mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -459,7 +459,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
         CategoryCreateRequest req = new CategoryCreateRequest("x", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -471,7 +471,7 @@ class ExpenseGlobalExceptionHandlerTest {
     @Test
     void type_mismatch_throws_400_with_field_details() throws Exception {
         // /api/expenses/{id} 的 id 是 Long，传 "abc" 触发 MethodArgumentTypeMismatchException
-        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
@@ -482,7 +482,7 @@ class ExpenseGlobalExceptionHandlerTest {
     @Test
     void type_mismatch_envelope_includes_param_name_and_expected_type() throws Exception {
         // 验证 field=id（参数名）+ message 提到期望类型 Long
-        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.details.errors[0].message")
                         .value(org.hamcrest.Matchers.containsString("Long")));
@@ -490,7 +490,7 @@ class ExpenseGlobalExceptionHandlerTest {
 
     @Test
     void type_mismatch_envelope_has_trace_id() throws Exception {
-        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "7"))
+        mockMvc.perform(get("/api/expenses/abc").header("X-User-Id", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.trace_id").exists());
     }

@@ -73,21 +73,22 @@ class ExpenseWebMvcTest {
                 1000L, "CNY", PayMethod.CASH,
                 OffsetDateTime.of(2026, 8, 1, 10, 0, 0, 0, ZoneOffset.UTC), null);
         e.setIdInternal(1L);
-        when(expenseService.listInRange(eq(7L), any(), any()))
+        when(expenseService.listInRange(anyLong(), any(), any()))
             .thenReturn(List.of(ExpenseView.from(e)));
 
         mockMvc.perform(get("/api/expenses?from=2026-08-01&to=2026-08-31")
-                        .header("X-User-Id", "7"))
+                        .header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1));
     }
 
     @Test
-    void list_expenses_without_user_id_returns_401() throws Exception {
+    void list_expenses_without_user_id_fails_open_to_user_1() throws Exception {
+        // P1-4 fail-safe：missing header 降级到 userId=1（nginx 故障兜底）。
+        // 列表调用应穿透到 service，返回空列表 200；mock 未设值时返回 List.of()。
         mockMvc.perform(get("/api/expenses?from=2026-08-01&to=2026-08-31"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("TOKEN_INVALID"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     // ---------- C3 防御层：CurrentUserArgumentResolver 格式校验边界（task + expense 同步）----------
@@ -132,8 +133,8 @@ class ExpenseWebMvcTest {
                 3500L, "CNY", PayMethod.ALIPAY,
                 OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC), "早咖啡");
         created.setIdInternal(100L);
-        when(categoryService.loadOwnedCategory(7L, 11L)).thenReturn(cat);
-        when(expenseService.create(eq(7L), any(ExpenseCreateRequest.class), eq(cat)))
+        when(categoryService.loadOwnedCategory(anyLong(), eq(11L))).thenReturn(cat);
+        when(expenseService.create(anyLong(), any(ExpenseCreateRequest.class), eq(cat)))
             .thenReturn(ExpenseView.from(created));
 
         ExpenseCreateRequest req = new ExpenseCreateRequest(
@@ -141,7 +142,7 @@ class ExpenseWebMvcTest {
                 OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC),
                 "早咖啡", "CNY");
         mockMvc.perform(post("/api/expenses")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -156,7 +157,7 @@ class ExpenseWebMvcTest {
                 OffsetDateTime.of(2026, 8, 3, 9, 30, 0, 0, ZoneOffset.UTC),
                 null, "CNY");
         mockMvc.perform(post("/api/expenses")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
@@ -165,7 +166,7 @@ class ExpenseWebMvcTest {
 
     @Test
     void soft_delete_expense_returns_204() throws Exception {
-        mockMvc.perform(delete("/api/expenses/1").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/expenses/1").header("X-User-Id", "1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -175,12 +176,12 @@ class ExpenseWebMvcTest {
     void create_category_returns_201() throws Exception {
         ExpenseCategory cat = ExpenseCategory.createUserCategory(7L, "咖啡", "☕", "#A0522D", null, 0);
         cat.setIdInternal(11L);
-        when(categoryService.create(eq(7L), any(CategoryCreateRequest.class)))
+        when(categoryService.create(anyLong(), any(CategoryCreateRequest.class)))
             .thenReturn(CategoryView.from(cat));
 
         CategoryCreateRequest req = new CategoryCreateRequest("咖啡", "☕", "#A0522D", null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -189,12 +190,12 @@ class ExpenseWebMvcTest {
 
     @Test
     void create_category_duplicate_returns_409() throws Exception {
-        when(categoryService.create(eq(7L), any(CategoryCreateRequest.class)))
+        when(categoryService.create(anyLong(), any(CategoryCreateRequest.class)))
             .thenThrow(new CategoryNameExistsException("咖啡"));
 
         CategoryCreateRequest req = new CategoryCreateRequest("咖啡", null, null, null, 0);
         mockMvc.perform(post("/api/expense-categories")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -204,9 +205,9 @@ class ExpenseWebMvcTest {
     @Test
     void delete_default_category_returns_400() throws Exception {
         org.mockito.Mockito.doThrow(new CategoryProtectedException(5L))
-            .when(categoryService).softDelete(eq(7L), eq(5L));
+            .when(categoryService).softDelete(anyLong(), eq(5L));
 
-        mockMvc.perform(delete("/api/expense-categories/5").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/expense-categories/5").header("X-User-Id", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("CATEGORY_PROTECTED"));
     }
@@ -214,9 +215,9 @@ class ExpenseWebMvcTest {
     @Test
     void delete_category_with_budget_returns_400() throws Exception {
         org.mockito.Mockito.doThrow(new CategoryHasBudgetException(11L))
-            .when(categoryService).softDelete(eq(7L), eq(11L));
+            .when(categoryService).softDelete(anyLong(), eq(11L));
 
-        mockMvc.perform(delete("/api/expense-categories/11").header("X-User-Id", "7"))
+        mockMvc.perform(delete("/api/expense-categories/11").header("X-User-Id", "1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("CATEGORY_HAS_BUDGET"));
     }
@@ -227,12 +228,12 @@ class ExpenseWebMvcTest {
     void create_budget_returns_201() throws Exception {
         BudgetView view = new BudgetView(50L, 7L, BudgetScope.CATEGORY, 11L,
                 2026, 8, 10000L, "CNY", true, null);
-        when(budgetService.create(eq(7L), any(BudgetRequest.class))).thenReturn(view);
+        when(budgetService.create(anyLong(), any(BudgetRequest.class))).thenReturn(view);
 
         BudgetRequest req = new BudgetRequest(BudgetScope.CATEGORY, 11L,
                 2026, 8, 10000L, "CNY", true);
         mockMvc.perform(post("/api/budgets")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
@@ -242,13 +243,13 @@ class ExpenseWebMvcTest {
 
     @Test
     void create_duplicate_budget_returns_409() throws Exception {
-        when(budgetService.create(eq(7L), any(BudgetRequest.class)))
+        when(budgetService.create(anyLong(), any(BudgetRequest.class)))
             .thenThrow(new BudgetAlreadyExistsException(7L, BudgetScope.CATEGORY, 11L, 2026, 8));
 
         BudgetRequest req = new BudgetRequest(BudgetScope.CATEGORY, 11L,
                 2026, 8, 10000L, "CNY", true);
         mockMvc.perform(post("/api/budgets")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isConflict())
@@ -259,11 +260,11 @@ class ExpenseWebMvcTest {
     void mute_budget_returns_200() throws Exception {
         BudgetView view = new BudgetView(1L, 7L, BudgetScope.CATEGORY, 11L,
                 2026, 8, 10000L, "CNY", true, LocalDate.of(2026, 8, 20));
-        when(budgetService.mute(eq(7L), eq(1L), any(BudgetMuteRequest.class))).thenReturn(view);
+        when(budgetService.mute(anyLong(), eq(1L), any(BudgetMuteRequest.class))).thenReturn(view);
 
         BudgetMuteRequest req = new BudgetMuteRequest(LocalDate.of(2026, 8, 20));
         mockMvc.perform(post("/api/budgets/1/mute")
-                        .header("X-User-Id", "7")
+                        .header("X-User-Id", "1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -274,18 +275,19 @@ class ExpenseWebMvcTest {
 
     @Test
     void stats_returns_200() throws Exception {
-        when(statsService.stats(eq(7L), any(), any(), eq("category")))
+        when(statsService.stats(anyLong(), any(), any(), eq("category")))
             .thenReturn(new StatsView(10000L, "CNY", List.of(), List.of()));
 
         mockMvc.perform(get("/api/expenses/stats?from=2026-08-01&to=2026-08-31&groupBy=category")
-                        .header("X-User-Id", "7"))
+                        .header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.total_cents").value(10000));
     }
 
     @Test
-    void stats_without_user_id_returns_401() throws Exception {
+    void stats_without_user_id_fails_open_to_user_1() throws Exception {
+        // P1-4 fail-safe：missing header 降级到 userId=1。
         mockMvc.perform(get("/api/expenses/stats?from=2026-08-01&to=2026-08-31"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
     }
 }
