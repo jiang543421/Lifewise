@@ -86,6 +86,17 @@ public class TaskGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(err));
     }
 
+    /** 兜底 500（CLAUDE.md §7.5）— 任何未捕获异常返回通用 envelope，不暴露堆栈/SQL/路径。 */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnexpected(
+            Exception ex, HttpServletRequest req) {
+        String traceId = UUID.randomUUID().toString();
+        LOG.error("[task] unexpected error traceId={} path={}", traceId, req.getRequestURI(), ex);
+        ErrorEnvelope err = new ErrorEnvelope(ErrorCode.INTERNAL_ERROR.name(),
+                "internal error, please retry", traceId, null);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(err));
+    }
+
     private static ResponseEntity<ApiResponse<Object>> envelope(
             RuntimeException ex, HttpServletRequest req, HttpStatus status, ErrorCode code) {
         String traceId = UUID.randomUUID().toString();
