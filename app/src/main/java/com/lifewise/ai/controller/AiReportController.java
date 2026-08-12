@@ -12,7 +12,7 @@ import com.lifewise.ai.service.AiReportService;
 import com.lifewise.ai.service.ConsentVerifier;
 import com.lifewise.shared.integration.dto.ApiResponse;
 import com.lifewise.shared.integration.dto.PageMeta;
-import com.lifewise.task.web.CurrentUser;
+import com.lifewise.ai.web.CurrentUser;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import org.slf4j.Logger;

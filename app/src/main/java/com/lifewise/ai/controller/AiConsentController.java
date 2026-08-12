@@ -5,7 +5,7 @@ import com.lifewise.ai.dto.ConsentView;
 import com.lifewise.ai.service.ConsentVerifier;
 import com.lifewise.shared.integration.dto.ApiResponse;
 import com.lifewise.shared.integration.dto.ErrorEnvelope;
-import com.lifewise.task.web.CurrentUser;
+import com.lifewise.ai.web.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -3,7 +3,7 @@ package com.lifewise.ai.controller;
 import com.lifewise.ai.dto.AiJobView;
 import com.lifewise.ai.service.AiJobService;
 import com.lifewise.shared.integration.dto.ApiResponse;
-import com.lifewise.task.web.CurrentUser;
+import com.lifewise.ai.web.CurrentUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
